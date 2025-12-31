@@ -10,7 +10,6 @@ import org.schabi.newpipe.R;
 import org.schabi.newpipe.error.ErrorInfo;
 import org.schabi.newpipe.error.UserAction;
 import org.schabi.newpipe.extractor.NewPipe;
-import org.schabi.newpipe.extractor.ServiceList;
 import org.schabi.newpipe.extractor.exceptions.ExtractionException;
 import org.schabi.newpipe.extractor.kiosk.KioskList;
 import org.schabi.newpipe.util.KioskTranslator;
@@ -49,45 +48,12 @@ public class DefaultKioskFragment extends KioskFragment {
     public void onResume() {
         super.onResume();
 
-        boolean shouldReload = false;
-        final android.content.SharedPreferences prefs =
-                androidx.preference.PreferenceManager
-                        .getDefaultSharedPreferences(requireContext());
-        final String recommendationAlgorithmKey = getString(R.string.recommendation_algorithm_key);
-        final String currentRecommendationAlgorithm =
-                prefs.getString(recommendationAlgorithmKey, "youtube");
-
-        if (serviceId != ServiceHelper.getSelectedServiceId(requireContext())
-                || !currentRecommendationAlgorithm.equals(lastRecommendationAlgorithm)) {
-            updateSelectedDefaultKiosk();
-            currentInfo = null;
+        if (serviceId != ServiceHelper.getSelectedServiceId(requireContext())) {
             if (currentWorker != null) {
                 currentWorker.dispose();
             }
-            shouldReload = true;
-        }
-
-        final View rootView = getView();
-        if ("Tournesol".equals(kioskId)) {
-            if (rootView != null) {
-                ensureTournesolController(rootView);
-                applyTournesolFilters(tournesolFilterController.getCurrentLanguages(),
-                        tournesolFilterController.getCurrentDateKey(), shouldReload);
-            }
-            if (tournesolFilterController != null) {
-                tournesolFilterController.onResume();
-            }
-        } else {
-            if (tournesolFilterController != null) {
-                tournesolFilterController.onDestroyView();
-                tournesolFilterController = null;
-            }
-            if (rootView != null) {
-                hideTournesolHeader(rootView);
-            }
-            if (shouldReload) {
-                reloadContent();
-            }
+            updateSelectedDefaultKiosk();
+            reloadContent();
         }
     }
 
@@ -98,77 +64,6 @@ public class DefaultKioskFragment extends KioskFragment {
             tournesolFilterController = null;
         }
         super.onDestroyView();
-    }
-
-    private String lastRecommendationAlgorithm;
-
-    private void updateSelectedDefaultKiosk() {
-        try {
-            serviceId = ServiceHelper.getSelectedServiceId(requireContext());
-
-            String kioskId = null;
-            String url = null;
-            String kioskTranslatedName = null;
-
-            final android.content.SharedPreferences prefs =
-                    androidx.preference.PreferenceManager
-                            .getDefaultSharedPreferences(requireContext());
-            final String recommendationAlgorithmKey =
-                    getString(R.string.recommendation_algorithm_key);
-            final String recommendationAlgorithm =
-                    prefs.getString(recommendationAlgorithmKey, "youtube");
-
-            lastRecommendationAlgorithm = recommendationAlgorithm;
-
-            final KioskList kioskList = NewPipe.getService(serviceId).getKioskList();
-
-            if (serviceId == ServiceList.YouTube.getServiceId()) {
-                if ("tournesol".equals(recommendationAlgorithm)) {
-                    kioskId = "Tournesol";
-                    url = "Tournesol";
-                    kioskTranslatedName = KioskTranslator
-                            .getTranslatedKioskName(kioskId, requireContext());
-                } else if (!"youtube".equals(recommendationAlgorithm)
-                        && recommendationAlgorithm != null
-                        && !recommendationAlgorithm.isEmpty()) {
-                    kioskId = recommendationAlgorithm;
-                    try {
-                        url = kioskList.getListLinkHandlerFactoryByType(kioskId)
-                                .fromId(kioskId).getUrl();
-                    } catch (final Exception e) {
-                        kioskId = kioskList.getDefaultKioskId();
-                        url = kioskList.getListLinkHandlerFactoryByType(kioskId)
-                                .fromId(kioskId).getUrl();
-                    }
-                    kioskTranslatedName = KioskTranslator
-                            .getTranslatedKioskName(kioskId, requireContext());
-                } else {
-                    kioskId = kioskList.getDefaultKioskId();
-                    url = kioskList.getListLinkHandlerFactoryByType(kioskId)
-                            .fromId(kioskId).getUrl();
-                    kioskTranslatedName = KioskTranslator
-                            .getTranslatedKioskName(kioskId, requireContext());
-                }
-            } else {
-                kioskId = kioskList.getDefaultKioskId();
-                url = kioskList.getListLinkHandlerFactoryByType(kioskId).fromId(kioskId).getUrl();
-                kioskTranslatedName = KioskTranslator
-                        .getTranslatedKioskName(kioskId, requireContext());
-            }
-
-            this.kioskId = kioskId;
-            this.url = url;
-            this.name = kioskTranslatedName;
-            this.kioskTranslatedName = kioskTranslatedName;
-
-            setInitialData(serviceId, url, kioskTranslatedName);
-
-            currentInfo = null;
-            currentNextPage = null;
-        } catch (final ExtractionException e) {
-            showError(new ErrorInfo(e, UserAction.REQUESTED_KIOSK,
-                    "Loading default kiosk for selected service"));
-        }
     }
 
     private void ensureTournesolController(@NonNull final View rootView) {
@@ -203,6 +98,25 @@ public class DefaultKioskFragment extends KioskFragment {
         final View headerContainer = rootView.findViewById(R.id.kiosk_header_container);
         if (headerContainer != null) {
             headerContainer.setVisibility(View.GONE);
+        }
+    }
+
+    private void updateSelectedDefaultKiosk() {
+        try {
+            serviceId = ServiceHelper.getSelectedServiceId(requireContext());
+
+            final KioskList kioskList = NewPipe.getService(serviceId).getKioskList();
+            kioskId = kioskList.getDefaultKioskId();
+            url = kioskList.getListLinkHandlerFactoryByType(kioskId).fromId(kioskId).getUrl();
+
+            kioskTranslatedName = KioskTranslator.getTranslatedKioskName(kioskId, requireContext());
+            name = kioskTranslatedName;
+
+            currentInfo = null;
+            currentNextPage = null;
+        } catch (final ExtractionException e) {
+            showError(new ErrorInfo(e, UserAction.REQUESTED_KIOSK,
+                    "Loading default kiosk for selected service"));
         }
     }
 }

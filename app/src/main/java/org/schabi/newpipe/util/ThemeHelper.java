@@ -214,6 +214,41 @@ public final class ThemeHelper {
     }
 
     /**
+     * Return the Tournesol Filter theme styled according to the selected theme.
+     *
+     * @param context context to get the selected theme
+     * @return the theme style
+     */
+    @StyleRes
+    public static int getTournesolFilterTheme(final Context context) {
+        final Resources res = context.getResources();
+        final String lightThemeKey = res.getString(R.string.light_theme_key);
+        final String blackThemeKey = res.getString(R.string.black_theme_key);
+        final String automaticDeviceThemeKey = res.getString(R.string.auto_device_theme_key);
+
+        final String selectedThemeKey = getSelectedThemeKey(context);
+
+        if (selectedThemeKey.equals(lightThemeKey)) {
+            return R.style.Theme_TournesolFilter_Light;
+        } else if (selectedThemeKey.equals(blackThemeKey)) {
+            return R.style.Theme_TournesolFilter_Black;
+        } else if (selectedThemeKey.equals(automaticDeviceThemeKey)) {
+            if (isDeviceDarkThemeEnabled(context)) {
+                final String selectedNightThemeKey = getSelectedNightThemeKey(context);
+                if (selectedNightThemeKey.equals(blackThemeKey)) {
+                    return R.style.Theme_TournesolFilter_Black;
+                } else {
+                    return R.style.Theme_TournesolFilter_Dark;
+                }
+            } else {
+                return R.style.Theme_TournesolFilter_Light;
+            }
+        } else {
+            return R.style.Theme_TournesolFilter_Dark;
+        }
+    }
+
+    /**
      * Get a color from an attr styled according to the context's theme.
      *
      * @param context   Android app context

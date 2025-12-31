@@ -2,6 +2,10 @@ package org.schabi.newpipe.fragments.list.kiosk
 
 import android.os.Bundle
 import android.view.View
+import org.schabi.newpipe.extractor.NewPipe
+import org.schabi.newpipe.extractor.StreamingService
+import org.schabi.newpipe.extractor.exceptions.ExtractionException
+import org.schabi.newpipe.extractor.linkhandler.ListLinkHandlerFactory
 import org.schabi.newpipe.util.TournesolHelper
 
 class TournesolKioskFragment : KioskFragment() {
@@ -59,11 +63,15 @@ class TournesolKioskFragment : KioskFragment() {
 
     companion object {
         @JvmStatic
+        @Throws(ExtractionException::class)
         fun getInstance(serviceId: Int, kioskId: String): TournesolKioskFragment {
             val instance = TournesolKioskFragment()
+            val service: StreamingService = NewPipe.getService(serviceId)
+            val kioskLinkHandlerFactory: ListLinkHandlerFactory =
+                service.kioskList.getListLinkHandlerFactoryByType(kioskId)
             instance.setInitialData(
                 serviceId,
-                kioskId,
+                kioskLinkHandlerFactory.fromId(kioskId).url,
                 kioskId
             )
             instance.kioskId = kioskId

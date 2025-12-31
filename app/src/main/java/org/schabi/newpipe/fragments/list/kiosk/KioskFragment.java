@@ -169,7 +169,8 @@ public class KioskFragment extends BaseListInfoFragment<StreamInfoItem, KioskInf
     public void showEmptyState() {
         // show "no live streams" for live stream kiosk
         super.showEmptyState();
-        if (MediaCCCLiveStreamKiosk.KIOSK_ID.equals(currentInfo.getId())
+        if (currentInfo != null
+                && MediaCCCLiveStreamKiosk.KIOSK_ID.equals(currentInfo.getId())
                 && ServiceList.MediaCCC.getServiceId() == currentInfo.getServiceId()) {
             setEmptyStateMessage(R.string.no_live_streams);
         }
