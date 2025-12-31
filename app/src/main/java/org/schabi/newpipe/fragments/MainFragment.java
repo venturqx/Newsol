@@ -64,6 +64,9 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
     private String youtubeRestrictedModeEnabledKey;
     private boolean mainTabsPositionBottom;
     private String mainTabsPositionKey;
+    private String defaultTabKey;
+    private String recommendationAlgorithmKey;
+    private String currentRecommendationAlgorithm;
 
     /*//////////////////////////////////////////////////////////////////////////
     // Fragment's LifeCycle
@@ -80,7 +83,7 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
                         + "onTabsChanged called, isResumed = " + isResumed());
             }
             if (isResumed()) {
-                setupTabs();
+                setupTabs(false);
             } else {
                 hasTabsChanged = true;
             }
@@ -91,6 +94,10 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
         youtubeRestrictedModeEnabled = prefs.getBoolean(youtubeRestrictedModeEnabledKey, false);
         mainTabsPositionKey = getString(R.string.main_tabs_position_key);
         mainTabsPositionBottom = prefs.getBoolean(mainTabsPositionKey, false);
+        defaultTabKey = getString(R.string.default_tab_key);
+        recommendationAlgorithmKey = getString(R.string.recommendation_algorithm_key);
+        currentRecommendationAlgorithm = prefs.getString(recommendationAlgorithmKey,
+                getString(R.string.recommendation_algorithm_youtube));
     }
 
     @Override
@@ -109,7 +116,7 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
         binding.mainTabLayout.setupWithViewPager(binding.pager);
         binding.mainTabLayout.addOnTabSelectedListener(this);
 
-        setupTabs();
+        setupTabs(savedInstanceState == null);
         updateTabLayoutPosition();
     }
 
@@ -119,15 +126,24 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
 
         final boolean newYoutubeRestrictedModeEnabled =
                 prefs.getBoolean(youtubeRestrictedModeEnabledKey, false);
-        if (youtubeRestrictedModeEnabled != newYoutubeRestrictedModeEnabled || hasTabsChanged) {
+        if (youtubeRestrictedModeEnabled != newYoutubeRestrictedModeEnabled || hasTabsChanged
+                || NavigationHelper.isTabsChanged()) {
             youtubeRestrictedModeEnabled = newYoutubeRestrictedModeEnabled;
-            setupTabs();
+            setupTabs(false);
+            NavigationHelper.setTabsChanged(false);
         }
 
         final boolean newMainTabsPosition = prefs.getBoolean(mainTabsPositionKey, false);
         if (mainTabsPositionBottom != newMainTabsPosition) {
             mainTabsPositionBottom = newMainTabsPosition;
             updateTabLayoutPosition();
+        }
+
+        final String newRecommendationAlgorithm = prefs.getString(recommendationAlgorithmKey,
+                getString(R.string.recommendation_algorithm_youtube));
+        if (!currentRecommendationAlgorithm.equals(newRecommendationAlgorithm)) {
+            currentRecommendationAlgorithm = newRecommendationAlgorithm;
+            setupTabs(false);
         }
     }
 
@@ -185,7 +201,7 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
     // Tabs
     //////////////////////////////////////////////////////////////////////////*/
 
-    private void setupTabs() {
+    private void setupTabs(final boolean isFirstCreation) {
         tabsList.clear();
         tabsList.addAll(tabsManager.getTabs());
 
@@ -198,9 +214,66 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
         binding.pager.setAdapter(pagerAdapter);
 
         updateTabsIconAndDescription();
-        updateTitleForTab(binding.pager.getCurrentItem());
+        if (isFirstCreation || NavigationHelper.isTabsChanged()) {
+            selectDefaultTab();
+        } else {
+            updateTitleForTab(binding.pager.getCurrentItem());
+        }
 
         hasTabsChanged = false;
+    }
+
+    private void selectDefaultTab() {
+        if (getFM().getBackStackEntryCount() > 0) {
+            return;
+        }
+
+        final String selectedType = prefs.getString(defaultTabKey, "LIVE");
+        Tab.Type type = null;
+        if ("DEFAULT_KIOSK".equals(selectedType)) {
+            type = Tab.Type.DEFAULT_KIOSK;
+        } else if ("FEED".equals(selectedType)) {
+            type = Tab.Type.FEED;
+        } else if ("SUBSCRIPTIONS".equals(selectedType)) {
+            type = Tab.Type.SUBSCRIPTIONS;
+        } else if ("BOOKMARKS".equals(selectedType)) {
+            type = Tab.Type.BOOKMARKS;
+        } else if ("TRENDING_PODCASTS".equals(selectedType)) {
+            type = Tab.Type.TRENDING_PODCASTS;
+        } else if ("TRENDING_GAMING".equals(selectedType)) {
+            type = Tab.Type.TRENDING_GAMING;
+        } else if ("TRENDING_MUSIC".equals(selectedType)) {
+            type = Tab.Type.TRENDING_MUSIC;
+        } else if ("TRENDING_MOVIES".equals(selectedType)) {
+            type = Tab.Type.TRENDING_MOVIES;
+        } else if ("TOURNESOL".equals(selectedType)) {
+            type = Tab.Type.TOURNESOL;
+        } else if ("LIVE".equals(selectedType)) {
+            type = Tab.Type.LIVE;
+        }
+
+        if (type == null) {
+            updateTitleForTab(binding.pager.getCurrentItem());
+            return;
+        }
+
+        final int defaultTabId = type.getTabId();
+        int defaultTabIndex = -1;
+        for (int i = 0; i < tabsList.size(); i++) {
+            if (tabsList.get(i).getTabId() == defaultTabId) {
+                defaultTabIndex = i;
+                break;
+            }
+        }
+
+        if (defaultTabIndex != -1) {
+            if (binding.pager.getCurrentItem() != defaultTabIndex) {
+                binding.pager.setCurrentItem(defaultTabIndex, false);
+            }
+            updateTitleForTab(defaultTabIndex);
+        } else {
+            updateTitleForTab(binding.pager.getCurrentItem());
+        }
     }
 
     private void updateTabsIconAndDescription() {

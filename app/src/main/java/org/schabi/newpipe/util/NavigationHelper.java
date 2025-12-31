@@ -78,8 +78,17 @@ public final class NavigationHelper {
     public static final String SEARCH_FRAGMENT_TAG = "search_fragment_tag";
 
     private static final String TAG = NavigationHelper.class.getSimpleName();
+    private static boolean tabsChanged = false;
 
     private NavigationHelper() {
+    }
+
+    public static void setTabsChanged(final boolean changed) {
+        tabsChanged = changed;
+    }
+
+    public static boolean isTabsChanged() {
+        return tabsChanged;
     }
 
     /*//////////////////////////////////////////////////////////////////////////

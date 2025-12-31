@@ -398,9 +398,16 @@
     <string name="title_last_played">Last Played</string>
     <string name="title_most_played">Most Played</string>
     <!-- Content -->
+    <string name="recommendation_algorithm_title">Recommendation Algorithm</string>
+    <string name="recommendation_algorithm_summary">Choose the service used for recommendations</string>
+    <string name="recommendation_algorithm_key">recommendation_algorithm_key</string>
+    <string name="recommendation_algorithm_youtube">YouTube</string>
+    <string name="recommendation_algorithm_tournesol">Tournesol</string>
     <string name="main_page_content">Content of main page</string>
     <string name="main_page_content_summary">What tabs are shown on the main page</string>
     <string name="main_page_content_swipe_remove">Swipe items to remove them</string>
+    <string name="default_tab_title">Default startup tab</string>
+    <string name="default_tab_summary">Choose which tab is shown when the app starts</string>
     <string name="blank_page_summary">Blank page</string>
     <string name="kiosk_page_summary">Kiosk page</string>
     <string name="default_kiosk_page_summary">Default Kiosk</string>

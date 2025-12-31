@@ -18,6 +18,7 @@ import org.schabi.newpipe.R;
 import org.schabi.newpipe.extractor.NewPipe;
 import org.schabi.newpipe.player.helper.PlayerHelper;
 import org.schabi.newpipe.util.Localization;
+import org.schabi.newpipe.util.NavigationHelper;
 import org.schabi.newpipe.util.image.ImageStrategy;
 import org.schabi.newpipe.util.image.PreferredImageQuality;
 
@@ -36,6 +37,7 @@ public class ContentSettingsFragment extends BasePreferenceFragment {
 
         setupAppLanguagePreferences();
         setupImageQualityPref();
+        setupDefaultTabPref();
     }
 
     private void setupAppLanguagePreferences() {
@@ -83,6 +85,14 @@ public class ContentSettingsFragment extends BasePreferenceFragment {
 
                 return true;
             });
+    }
+
+    private void setupDefaultTabPref() {
+        requirePreference(R.string.default_tab_key).setOnPreferenceChangeListener(
+                (preference, newValue) -> {
+                    NavigationHelper.setTabsChanged(true);
+                    return true;
+                });
     }
 
     @Override
