@@ -32,7 +32,6 @@ import org.schabi.newpipe.local.playlist.LocalPlaylistFragment;
 import org.schabi.newpipe.local.subscription.SubscriptionFragment;
 import org.schabi.newpipe.util.KioskTranslator;
 import org.schabi.newpipe.util.ServiceHelper;
-import org.schabi.newpipe.util.TournesolHelper;
 
 import java.util.Objects;
 
@@ -185,7 +184,7 @@ public abstract class Tab {
         TRENDING_MUSIC(new SpecificKioskTab(21, "trending_music")),
         TRENDING_MOVIES(new SpecificKioskTab(22, "trending_movies_and_shows")),
         TRENDING_PODCASTS(new SpecificKioskTab(23, "trending_podcasts_episodes")),
-        TOURNESOL(new SpecificKioskTab(24, TournesolHelper.KIOSK_ID)),
+        TOURNESOL(new SpecificKioskTab(24, "Tournesol")),
         LIVE(new SpecificKioskTab(25, "live"));
 
         private final Tab tab;
@@ -588,7 +587,7 @@ public abstract class Tab {
             } catch (final Exception e) {
                 // fallback
             }
-            if (TournesolHelper.KIOSK_ID.equalsIgnoreCase(kioskId)) {
+            if ("Tournesol".equalsIgnoreCase(kioskId)) {
                 return TournesolKioskFragment.getInstance(serviceId, kioskId);
             }
             return KioskFragment.getInstance(serviceId, kioskId);

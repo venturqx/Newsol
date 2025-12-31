@@ -36,7 +36,7 @@ public class DefaultKioskFragment extends KioskFragment {
     @Override
     protected void initViews(final View rootView, final Bundle savedInstanceState) {
         super.initViews(rootView, savedInstanceState);
-        if (TournesolHelper.KIOSK_ID.equalsIgnoreCase(kioskId)) {
+        if ("Tournesol".equals(kioskId)) {
             ensureTournesolController(rootView);
             applyTournesolFilters(tournesolFilterController.getCurrentLanguages(),
                     tournesolFilterController.getCurrentDateKey(), false);
@@ -68,7 +68,7 @@ public class DefaultKioskFragment extends KioskFragment {
         }
 
         final View rootView = getView();
-        if (TournesolHelper.KIOSK_ID.equalsIgnoreCase(kioskId)) {
+        if ("Tournesol".equals(kioskId)) {
             if (rootView != null) {
                 ensureTournesolController(rootView);
                 applyTournesolFilters(tournesolFilterController.getCurrentLanguages(),
@@ -124,8 +124,8 @@ public class DefaultKioskFragment extends KioskFragment {
 
             if (serviceId == ServiceList.YouTube.getServiceId()) {
                 if ("tournesol".equals(recommendationAlgorithm)) {
-                    kioskId = TournesolHelper.KIOSK_ID;
-                    url = TournesolHelper.KIOSK_ID;
+                    kioskId = "Tournesol";
+                    url = "Tournesol";
                     kioskTranslatedName = KioskTranslator
                             .getTranslatedKioskName(kioskId, requireContext());
                 } else if (!"youtube".equals(recommendationAlgorithm)
