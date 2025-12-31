@@ -42,7 +42,10 @@ import org.schabi.newpipe.extractor.NewPipe;
 import org.schabi.newpipe.extractor.Page;
 import org.schabi.newpipe.extractor.channel.ChannelInfo;
 import org.schabi.newpipe.extractor.channel.tabs.ChannelTabInfo;
+import org.schabi.newpipe.extractor.exceptions.ExtractionException;
 import org.schabi.newpipe.extractor.kiosk.KioskInfo;
+import org.schabi.newpipe.extractor.kiosk.KioskExtractor;
+import org.schabi.newpipe.extractor.kiosk.KioskList;
 import org.schabi.newpipe.extractor.linkhandler.ListLinkHandler;
 import org.schabi.newpipe.extractor.playlist.PlaylistInfo;
 import org.schabi.newpipe.extractor.search.SearchInfo;
@@ -51,6 +54,8 @@ import org.schabi.newpipe.extractor.stream.StreamInfoItem;
 import org.schabi.newpipe.extractor.suggestion.SuggestionExtractor;
 import org.schabi.newpipe.util.text.TextLinkifier;
 
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -59,6 +64,11 @@ import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
 
 public final class ExtractorHelper {
+    private static final String TOURNESOL_KIOSK_ID = "Tournesol";
+    private static final String TOURNESOL_KIOSK_ID_LOWER = "tournesol";
+    private static final String TOURNESOL_EXTRACTOR_CLASS =
+            "org.schabi.newpipe.extractor.services.youtube.extractors.kiosk."
+                    + "TournesolKioskExtractor";
     private static final String TAG = ExtractorHelper.class.getSimpleName();
     private static final InfoCache CACHE = InfoCache.getInstance();
 
@@ -165,7 +175,108 @@ public final class ExtractorHelper {
                                                  final String url,
                                                  final boolean forceLoad) {
         return checkCache(forceLoad, serviceId, url, InfoCache.Type.KIOSK,
-                Single.fromCallable(() -> KioskInfo.getInfo(NewPipe.getService(serviceId), url)));
+                Single.fromCallable(() -> {
+                    // Tournesol logic is now handled by the tab selection or service selection
+                    // If we are here, we are loading a standard kiosk or Tournesol if selected.
+
+                    // Check if the service is Tournesol or if the URL/Kiosk ID implies Tournesol.
+                    // However, Tournesol isn't a separate service ID in NewPipe usually,
+                    // it might be an extractor override.
+
+                    // Since we removed the setting check that forced Tournesol, we should ensure
+                    // that if the user explicitly selected Tournesol tab (if it exists), it works.
+                    // But if Tournesol was just a "recommendation algorithm" that replaced
+                    // "Trending", and we want it to be a tab, we need to ensure there is a way
+                    // to get Tournesol content.
+
+                    // If Tournesol is implemented as a Kiosk, it should be in the Kiosk list.
+                    // If it was just a hack in ExtractorHelper, we might need to expose it as
+                    // a Kiosk or keep a check here if the "url" requested matches a Tournesol
+                    // identifier.
+
+                    // Special handling for Tournesol request
+                    if (isTournesolUrl(url)) {
+                        final KioskExtractor extractor = getTournesolExtractor(serviceId);
+                        configureTournesolExtractor(extractor, url);
+                        extractor.fetchPage();
+                        return KioskInfo.getInfo(extractor);
+                    }
+
+                    return KioskInfo.getInfo(NewPipe.getService(serviceId), url);
+                }));
+    }
+
+    private static void configureTournesolExtractor(final KioskExtractor extractor,
+                                                    final String url) {
+        if (!isTournesolExtractor(extractor)) {
+            return;
+        }
+
+        invokeSetDateGte(extractor, null);
+        if (url.contains("?")) {
+            final String query = url.substring(url.indexOf("?") + 1);
+            final String[] pairs = query.split("&");
+            for (final String pair : pairs) {
+                final String[] parts = pair.split("=", -1);
+                if (parts.length == 2) {
+                    if ("languages".equals(parts[0])) {
+                        if (parts[1] != null && !parts[1].isEmpty()) {
+                            invokeSetLanguages(extractor, Arrays.asList(parts[1].split(",")));
+                        } else {
+                            invokeSetLanguages(extractor, Collections.emptyList());
+                        }
+                    } else if ("date_gte".equals(parts[0])) {
+                        invokeSetDateGte(extractor, parts[1]);
+                    }
+                }
+            }
+        }
+    }
+
+    private static boolean isTournesolExtractor(final KioskExtractor extractor) {
+        if (extractor == null) {
+            return false;
+        }
+        return TOURNESOL_EXTRACTOR_CLASS.equals(extractor.getClass().getName());
+    }
+
+    private static boolean isTournesolUrl(@Nullable final String url) {
+        if (url == null) {
+            return false;
+        }
+        return url.regionMatches(true, 0, TOURNESOL_KIOSK_ID_LOWER, 0,
+                TOURNESOL_KIOSK_ID_LOWER.length());
+    }
+
+    private static KioskExtractor getTournesolExtractor(final int serviceId)
+            throws ExtractionException, IOException {
+        final KioskList kioskList = NewPipe.getService(serviceId).getKioskList();
+        try {
+            return kioskList.getExtractorById(TOURNESOL_KIOSK_ID, null);
+        } catch (final ExtractionException e) {
+            return kioskList.getExtractorById(TOURNESOL_KIOSK_ID_LOWER, null);
+        }
+    }
+
+    private static void invokeSetDateGte(final KioskExtractor extractor, final String value) {
+        try {
+            extractor.getClass()
+                    .getMethod("setDateGte", String.class)
+                    .invoke(extractor, value);
+        } catch (final ReflectiveOperationException ignored) {
+            // Method not available in this extractor version.
+        }
+    }
+
+    private static void invokeSetLanguages(final KioskExtractor extractor,
+                                           final List<String> languages) {
+        try {
+            extractor.getClass()
+                    .getMethod("setLanguages", List.class)
+                    .invoke(extractor, languages);
+        } catch (final ReflectiveOperationException ignored) {
+            // Method not available in this extractor version.
+        }
     }
 
     public static Single<InfoItemsPage<StreamInfoItem>> getMoreKioskItems(final int serviceId,
