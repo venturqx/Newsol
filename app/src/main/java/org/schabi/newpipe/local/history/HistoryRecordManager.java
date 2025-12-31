@@ -171,6 +171,17 @@ public class HistoryRecordManager {
         return streamHistoryTable.getHistorySortedById().subscribeOn(Schedulers.io());
     }
 
+    public Maybe<StreamHistoryEntry> getLatestStreamHistoryEntry() {
+        if (!isStreamHistoryEnabled()) {
+            return Maybe.empty();
+        }
+
+        return Maybe.defer(() -> {
+            final StreamHistoryEntry entry = streamHistoryTable.getLatestHistoryEntry();
+            return entry == null ? Maybe.empty() : Maybe.just(entry);
+        }).subscribeOn(Schedulers.io());
+    }
+
     public Flowable<List<StreamStatisticsEntry>> getStreamStatistics() {
         return streamHistoryTable.getStatistics().subscribeOn(Schedulers.io());
     }

@@ -31,6 +31,9 @@ abstract class StreamHistoryDAO : BasicDAO<StreamHistoryEntity> {
     @get:Query("SELECT * FROM streams INNER JOIN stream_history ON uid = stream_id ORDER BY access_date DESC")
     abstract val history: Flowable<MutableList<StreamHistoryEntry>>
 
+    @Query("SELECT * FROM streams INNER JOIN stream_history ON uid = stream_id ORDER BY access_date DESC LIMIT 1")
+    abstract fun getLatestHistoryEntry(): StreamHistoryEntry?
+
     @get:Query("SELECT * FROM streams INNER JOIN stream_history ON uid = stream_id ORDER BY uid ASC")
     abstract val historySortedById: Flowable<MutableList<StreamHistoryEntry>>
 
