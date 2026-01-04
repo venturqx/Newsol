@@ -15,7 +15,10 @@ import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.schabi.newpipe.R
 
-class TournesolLoginDialog(private val context: Context) {
+class TournesolLoginDialog(
+    private val context: Context,
+    private val onLoginSuccess: (() -> Unit)? = null
+) {
     private var loginDisposable: Disposable? = null
 
     fun show() {
@@ -67,6 +70,7 @@ class TournesolLoginDialog(private val context: Context) {
                     { tokenResponse ->
                         dialog.dismiss()
                         TournesolAuthManager.saveAuthState(context, tokenResponse)
+                        onLoginSuccess?.invoke()
                         Toast.makeText(
                             context,
                             context.getString(R.string.tournesol_login_success),
