@@ -61,11 +61,30 @@
         android:lines="1"
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:textSize="@dimen/video_item_search_uploader_text_size"
-        app:layout_constraintBottom_toTopOf="@+id/itemAdditionalDetails"
+        app:layout_constraintBottom_toTopOf="@+id/itemTournesolScore"
         app:layout_constraintEnd_toEndOf="@+id/itemThumbnailView"
         app:layout_constraintStart_toStartOf="@+id/itemThumbnailView"
         app:layout_constraintTop_toBottomOf="@+id/itemVideoTitleView"
         tools:text="Uploader name long very very long long" />
+
+    <org.schabi.newpipe.views.NewPipeTextView
+        android:id="@+id/itemTournesolScore"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:drawablePadding="@dimen/spacing_micro"
+        android:drawableStart="@drawable/logo_small"
+        android:ellipsize="end"
+        android:fontFamily="sans-serif-medium"
+        android:lines="1"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:textSize="@dimen/tournesol_score_text_size"
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@+id/itemAdditionalDetails"
+        app:layout_constraintEnd_toEndOf="@+id/itemThumbnailView"
+        app:layout_constraintStart_toStartOf="@+id/itemThumbnailView"
+        app:layout_constraintTop_toBottomOf="@+id/itemUploaderView"
+        tools:text="Tournesol score: 95.5" />
 
     <org.schabi.newpipe.views.NewPipeTextView
         android:id="@+id/itemAdditionalDetails"
@@ -78,7 +97,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="@+id/itemThumbnailView"
         app:layout_constraintStart_toStartOf="@+id/itemThumbnailView"
-        app:layout_constraintTop_toBottomOf="@+id/itemUploaderView"
+        app:layout_constraintTop_toBottomOf="@+id/itemTournesolScore"
         tools:text="2 years ago • 10M views" />
 
     <org.schabi.newpipe.views.AnimatedProgressBar

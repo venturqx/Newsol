@@ -86,6 +86,24 @@
         app:layout_constraintTop_toTopOf="@id/itemUploaderView"
         tools:text="2 years ago • 10M views" />
 
+    <org.schabi.newpipe.views.NewPipeTextView
+        android:id="@+id/itemTournesolScore"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:drawablePadding="@dimen/spacing_micro"
+        android:drawableStart="@drawable/logo_small"
+        android:ellipsize="end"
+        android:fontFamily="sans-serif-medium"
+        android:lines="1"
+        android:textAppearance="?android:textAppearanceSmall"
+        android:textSize="@dimen/tournesol_score_text_size"
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="@id/itemVideoTitleView"
+        app:layout_constraintStart_toStartOf="@id/itemVideoTitleView"
+        app:layout_constraintTop_toBottomOf="@id/itemUploaderView"
+        tools:text="Tournesol score: 95.5" />
+
     <org.schabi.newpipe.views.AnimatedProgressBar
         android:id="@+id/itemProgressView"
         style="@style/Widget.AppCompat.ProgressBar.Horizontal"
