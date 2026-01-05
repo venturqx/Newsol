@@ -1,18 +1,9 @@
-# Newsol
+# Ufonirpt
 
-Newsol is a fork of NewPipe that adds Tournesol-powered recommendations. It is
-not affiliated with or endorsed by the NewPipe project.
+Unofficial fork of NewPipe integrating recommendations powered by Tournesol.
+This application is not affiliated with or endorsed by the NewPipe project nor the Tournesol project."
 
-## Status
-
-- Community fork for experimentation and feature work.
-- Not an official NewPipe release.
-
-## Features
-
-- Stream browsing, playback, and background audio.
-- Tournesol recommendations for supported services.
-- Local subscriptions, playlists, and history.
+![Screenshots](assets/ufonirpt-screens.png)
 
 ## Build
 
