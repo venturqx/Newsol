@@ -61,6 +61,9 @@
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:minWidth="72dp"
+            android:paddingHorizontal="12dp"
             android:text="@string/tournesol_register_button" />
 
         <View
@@ -73,6 +76,9 @@
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:minWidth="72dp"
+            android:paddingHorizontal="12dp"
             android:text="@string/cancel"
             android:layout_marginEnd="8dp" />
 
