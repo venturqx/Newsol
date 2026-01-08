@@ -37,13 +37,40 @@ android {
     compileSdk = 36
     namespace = "org.schabi.newpipe"
 
+    val keystorePath =
+        System.getenv("ANDROID_KEYSTORE_PATH") ?: System.getProperty("ANDROID_KEYSTORE_PATH")
+    val keystorePassword =
+        System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            ?: System.getProperty("ANDROID_KEYSTORE_PASSWORD")
+    val signingKeyAlias =
+        System.getenv("ANDROID_KEY_ALIAS") ?: System.getProperty("ANDROID_KEY_ALIAS")
+    val signingKeyPassword =
+        System.getenv("ANDROID_KEY_PASSWORD") ?: System.getProperty("ANDROID_KEY_PASSWORD")
+    val hasReleaseSigning = listOf(
+        keystorePath,
+        keystorePassword,
+        signingKeyAlias,
+        signingKeyPassword
+    ).all { !it.isNullOrBlank() }
+
+    if (hasReleaseSigning) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(keystorePath!!)
+                storePassword = keystorePassword
+                keyAlias = signingKeyAlias
+                keyPassword = signingKeyPassword
+            }
+        }
+    }
+
     defaultConfig {
         applicationId = "dev.ufonirpt.ufonirpt"
         resValue("string", "app_name", "Ufonirpt")
         minSdk = 21
         targetSdk = 35
 
-        versionCode = System.getProperty("versionCodeOverride")?.toInt() ?: 1005
+        versionCode = System.getProperty("versionCodeOverride")?.toInt() ?: 1
 
         versionName = System.getProperty("versionNameOverride") ?: "0.0.1"
         System.getProperty("versionNameSuffix")?.let { versionNameSuffix = it }
@@ -65,6 +92,9 @@ android {
             isMinifyEnabled = true
             isShrinkResources = false // disabled to fix F-Droid"s reproducible build
             proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
