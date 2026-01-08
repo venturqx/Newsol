@@ -446,7 +446,6 @@
     <string name="tournesol_login_failed">Login failed</string>
     <string name="tournesol_login_failed_with_message">Login failed: %1$s</string>
     <string name="tournesol_auth_cancelled">Tournesol auth cancelled</string>
-    <string name="tournesol_score_label">%1$s</string>
     <string name="export_complete_toast">Exported</string>
     <string name="import_complete_toast">Imported</string>
     <string name="no_valid_zip_file">No valid ZIP file</string>
@@ -455,7 +454,6 @@
     <string name="import_settings">Do you want to also import settings?</string>
     <string name="error_unable_to_load_comments">Could not load comments</string>
     <string name="compare_title">Compare</string>
-    <string name="compare_instruction_text">This should be more recommended than this:</string>
     <string name="compare_current_video_header">Current video</string>
     <string name="compare_last_viewed_header">Last viewed video</string>
     <string name="compare_loading_history">Loading history...</string>
@@ -463,17 +461,6 @@
     <string name="compare_history_empty">No videos in history</string>
     <string name="compare_score_label">Score: %1$d</string>
     <string name="compare_action_button">Compare</string>
-    <string name="compare_submit_label">SUBMIT</string>
-    <string name="compare_submitted_label">SUBMITTED</string>
-    <string name="compare_submit_with_score">%1$s %2$d</string>
-    <string name="compare_login_label">LOGIN</string>
-    <string name="compare_logged_in_label">LOGGED IN</string>
-    <string name="compare_previous_video">Previous video</string>
-    <string name="compare_next_video">Next video</string>
-    <string name="compare_thumbnail_description">Video thumbnail</string>
-    <string name="compare_score_accessibility">Comparison score: %1$d from %2$d to %3$d</string>
-    <string name="compare_score_no">NO</string>
-    <string name="compare_score_yes">YES</string>
     <string name="compare_item_info">Title: %1$s\nURL: %2$s</string>
     <string name="compare_current_unavailable">Current video unavailable</string>
     <string name="compare_login_required">Tournesol login required</string>
@@ -965,4 +952,3 @@
     <string name="sign_in_confirm_not_bot_error">%1$s refused to provide data, asking for a login to confirm the requester is not a bot.\n\nYour IP might have been temporarily banned by %1$s, you can wait some time or switch to a different IP (for example by turning on/off a VPN, or by switching from WiFi to mobile data).</string>
     <string name="unsupported_content_in_country">This content is not available for the currently selected content country.\n\nChange your selection from \"Settings > Content > Default content country\".</string>
 </resources>
-
