@@ -439,6 +439,7 @@
     <string name="tournesol_username_hint">Username</string>
     <string name="tournesol_password_hint">Password</string>
     <string name="tournesol_login_button">Login</string>
+    <string name="tournesol_register_button">Register</string>
     <string name="tournesol_login_action">Log in to Tournesol</string>
     <string name="tournesol_login_missing_fields">Please enter username and password</string>
     <string name="tournesol_login_in_progress">Extracting and logging in...</string>
