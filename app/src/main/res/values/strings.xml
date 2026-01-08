@@ -447,6 +447,7 @@
     <string name="tournesol_login_failed">Login failed</string>
     <string name="tournesol_login_failed_with_message">Login failed: %1$s</string>
     <string name="tournesol_auth_cancelled">Tournesol auth cancelled</string>
+    <string name="tournesol_score_label">%1$s</string>
     <string name="export_complete_toast">Exported</string>
     <string name="import_complete_toast">Imported</string>
     <string name="no_valid_zip_file">No valid ZIP file</string>
