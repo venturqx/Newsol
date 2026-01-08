@@ -45,6 +45,7 @@ import androidx.core.os.postDelayed
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.preference.PreferenceManager
+import androidx.viewpager.widget.ViewPager
 import coil3.util.CoilUtils
 import com.evernote.android.state.State
 import com.google.android.exoplayer2.PlaybackException
@@ -563,6 +564,11 @@ class VideoDetailFragment :
         pageAdapter = TabAdapter(getChildFragmentManager())
         binding.viewPager.setAdapter(pageAdapter)
         binding.tabLayout.setupWithViewPager(binding.viewPager)
+        binding.viewPager.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
+            override fun onPageSelected(position: Int) {
+                updateTitleBorderForTab(pageAdapter.getItemTitle(position))
+            }
+        })
 
         binding.detailThumbnailRootLayout.requestFocus()
 
@@ -838,6 +844,7 @@ class VideoDetailFragment :
         }
         // the page adapter now contains tabs: show the tab layout
         updateTabLayoutVisibility()
+        updateTitleBorderForTab(pageAdapter.getItemTitle(binding.viewPager.currentItem))
     }
 
     /**
@@ -889,6 +896,19 @@ class VideoDetailFragment :
         updateTabLayoutVisibility()
         pageAdapter.notifyDataSetUpdate()
         updateTabIconsAndContentDescriptions()
+        updateTitleBorderForTab(pageAdapter.getItemTitle(binding.viewPager.currentItem))
+    }
+
+    private fun updateTitleBorderForTab(tabTag: String?) {
+        if (nullableBinding == null) {
+            return
+        }
+        val shouldHighlight = tabTag == COMPARE_TAB_TAG
+        binding.detailTitleRootLayout.background = if (shouldHighlight) {
+            AppCompatResources.getDrawable(requireContext(), R.drawable.bg_detail_title_compare)
+        } else {
+            null
+        }
     }
 
     private fun shouldShowComments(): Boolean {
