@@ -1,9 +1,13 @@
 package org.schabi.newpipe.util
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.view.LayoutInflater
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
@@ -29,9 +33,16 @@ class TournesolLoginDialog(private val context: Context) {
         val usernameInput = dialogView.findViewById<EditText>(R.id.tournesol_username)
         val passwordInput = dialogView.findViewById<EditText>(R.id.tournesol_password)
         val loginButton = dialogView.findViewById<Button>(R.id.tournesol_login_button)
+        val statusText = dialogView.findViewById<TextView>(R.id.tournesol_login_status)
         val cancelButton = dialogView.findViewById<Button>(R.id.tournesol_cancel_button)
+        val registerButton = dialogView.findViewById<Button>(R.id.tournesol_register_button)
 
         cancelButton.setOnClickListener { dialog.dismiss() }
+        registerButton.setOnClickListener {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(REGISTER_URL))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+        }
 
         loginButton.setOnClickListener {
             val username = usernameInput.text.toString().trim()
@@ -47,7 +58,7 @@ class TournesolLoginDialog(private val context: Context) {
             }
 
             loginButton.isEnabled = false
-            loginButton.setText(R.string.tournesol_login_in_progress)
+            statusText.visibility = View.VISIBLE
 
             loginDisposable = TournesolAuthManager.performPasswordLogin(username, password)
                 .subscribeOn(Schedulers.io())
@@ -65,6 +76,7 @@ class TournesolLoginDialog(private val context: Context) {
                     { error ->
                         loginButton.isEnabled = true
                         loginButton.setText(R.string.tournesol_login_button)
+                        statusText.visibility = View.GONE
                         val message = error.message
                         val errorText = if (message.isNullOrBlank()) {
                             context.getString(R.string.tournesol_login_failed)
@@ -78,5 +90,9 @@ class TournesolLoginDialog(private val context: Context) {
         }
 
         dialog.show()
+    }
+
+    companion object {
+        private const val REGISTER_URL = "https://tournesol.app/signup"
     }
 }
