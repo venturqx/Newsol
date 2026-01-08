@@ -274,6 +274,7 @@ dependencies {
 
     // HTTP client
     implementation(libs.squareup.okhttp)
+    implementation(libs.appauth)
 
     // Media player
     implementation(libs.google.exoplayer.core)
