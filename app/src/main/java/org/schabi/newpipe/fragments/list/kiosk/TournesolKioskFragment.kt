@@ -2,14 +2,30 @@ package org.schabi.newpipe.fragments.list.kiosk
 
 import android.os.Bundle
 import android.view.View
+import androidx.appcompat.app.AppCompatActivity
+import org.schabi.newpipe.databinding.PlaylistControlBinding
 import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.StreamingService
 import org.schabi.newpipe.extractor.exceptions.ExtractionException
+import org.schabi.newpipe.extractor.kiosk.KioskInfo
 import org.schabi.newpipe.extractor.linkhandler.ListLinkHandlerFactory
+import org.schabi.newpipe.extractor.stream.StreamInfoItem
+import org.schabi.newpipe.fragments.list.playlist.PlaylistControlViewHolder
+import org.schabi.newpipe.player.playqueue.KioskPlayQueue
+import org.schabi.newpipe.player.playqueue.PlayQueue
+import org.schabi.newpipe.util.PlayButtonHelper
 import org.schabi.newpipe.util.TournesolHelper
+import java.util.function.Supplier
 
-class TournesolKioskFragment : KioskFragment() {
+class TournesolKioskFragment : KioskFragment(), PlaylistControlViewHolder {
     private var tournesolFilterController: TournesolFilterController? = null
+    private var playlistControlBinding: PlaylistControlBinding? = null
+
+    protected override fun getListHeaderSupplier(): Supplier<View> {
+        playlistControlBinding = PlaylistControlBinding
+            .inflate(requireActivity().layoutInflater, itemsList, false)
+        return Supplier { playlistControlBinding!!.root }
+    }
 
     override fun initViews(rootView: View?, savedInstanceState: Bundle?) {
         super.initViews(rootView, savedInstanceState)
@@ -39,6 +55,7 @@ class TournesolKioskFragment : KioskFragment() {
     override fun onDestroyView() {
         tournesolFilterController?.onDestroyView()
         tournesolFilterController = null
+        playlistControlBinding = null
         super.onDestroyView()
     }
 
@@ -59,6 +76,26 @@ class TournesolKioskFragment : KioskFragment() {
         currentNextPage = null
         currentWorker?.dispose()
         reloadContent()
+    }
+
+    override fun handleResult(result: KioskInfo) {
+        super.handleResult(result)
+
+        val binding = playlistControlBinding ?: return
+        binding.root.visibility = if (infoListAdapter.itemCount > 1) {
+            View.VISIBLE
+        } else {
+            View.GONE
+        }
+
+        val hostActivity = activity as? AppCompatActivity ?: return
+        PlayButtonHelper.initPlaylistControlClickListener(hostActivity, binding, this)
+    }
+
+    override fun getPlayQueue(): PlayQueue {
+        val streamItems = infoListAdapter.itemsList
+            .filterIsInstance<StreamInfoItem>()
+        return KioskPlayQueue(serviceId, url, currentNextPage, streamItems, 0)
     }
 
     companion object {
