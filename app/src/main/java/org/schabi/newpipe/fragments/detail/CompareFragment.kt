@@ -1,5 +1,7 @@
 package org.schabi.newpipe.fragments.detail
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -31,9 +33,14 @@ import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -65,18 +72,21 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
@@ -100,7 +110,6 @@ import org.schabi.newpipe.ui.components.items.stream.StreamThumbnail
 import org.schabi.newpipe.ui.theme.AppTheme
 import org.schabi.newpipe.util.KEY_INFO
 import org.schabi.newpipe.util.TournesolAuthManager
-import org.schabi.newpipe.util.TournesolLoginDialog
 import java.io.IOException
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -116,6 +125,10 @@ class CompareFragment : Fragment() {
     private var selectedStreamId: Long? = null
     private var score by mutableIntStateOf(0)
     private var submitted by mutableStateOf(false)
+    private var showLoginDialog by mutableStateOf(false)
+    private var loginInProgress by mutableStateOf(false)
+    private var loginError by mutableStateOf<String?>(null)
+    private var loginDisposable: Disposable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -159,9 +172,15 @@ class CompareFragment : Fragment() {
                         historyMessageRes = historyMessageRes,
                         score = score,
                         submitted = submitted,
+                        showLoginDialog = showLoginDialog,
+                        loginInProgress = loginInProgress,
+                        loginError = loginError,
                         onSelectIndex = { selectIndex(it) },
                         onScoreChange = { score = it },
-                        onSubmit = { sendComparison(score) }
+                        onSubmit = { sendComparison(score) },
+                        onDismissLogin = { dismissLoginDialog() },
+                        onRegister = { openRegisterPage() },
+                        onLogin = { username, password -> performLogin(username, password) }
                     )
                 }
             }
@@ -170,6 +189,8 @@ class CompareFragment : Fragment() {
 
     override fun onDestroyView() {
         disposables.clear()
+        loginDisposable?.dispose()
+        loginDisposable = null
         super.onDestroyView()
     }
 
@@ -229,7 +250,58 @@ class CompareFragment : Fragment() {
     }
 
     private fun showLoginDialog() {
-        TournesolLoginDialog(requireContext()).show()
+        loginError = null
+        loginInProgress = false
+        showLoginDialog = true
+    }
+
+    private fun dismissLoginDialog() {
+        showLoginDialog = false
+        loginInProgress = false
+        loginError = null
+        loginDisposable?.dispose()
+        loginDisposable = null
+    }
+
+    private fun openRegisterPage() {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(REGISTER_URL))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        requireContext().startActivity(intent)
+    }
+
+    private fun performLogin(username: String, password: String) {
+        if (username.isBlank() || password.isBlank()) {
+            loginError = getString(R.string.tournesol_login_missing_fields)
+            return
+        }
+        loginError = null
+        loginInProgress = true
+        loginDisposable?.dispose()
+        loginDisposable = TournesolAuthManager.performPasswordLogin(username, password)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(
+                { tokenResponse ->
+                    TournesolAuthManager.saveAuthState(requireContext(), tokenResponse)
+                    loginInProgress = false
+                    showLoginDialog = false
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.tournesol_login_success),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                },
+                { error ->
+                    loginInProgress = false
+                    val message = error.message
+                    loginError = if (message.isNullOrBlank()) {
+                        getString(R.string.tournesol_login_failed)
+                    } else {
+                        getString(R.string.tournesol_login_failed_with_message, message)
+                    }
+                }
+            )
+        loginDisposable?.let { disposables.add(it) }
     }
 
     private fun sendComparison(score: Int) {
@@ -399,9 +471,15 @@ class CompareFragment : Fragment() {
         historyMessageRes: Int?,
         score: Int,
         submitted: Boolean,
+        showLoginDialog: Boolean,
+        loginInProgress: Boolean,
+        loginError: String?,
         onSelectIndex: (Int) -> Unit,
         onScoreChange: (Int) -> Unit,
-        onSubmit: () -> Unit
+        onSubmit: () -> Unit,
+        onDismissLogin: () -> Unit,
+        onRegister: () -> Unit,
+        onLogin: (String, String) -> Unit
     ) {
         val currentEntry = historyEntries.getOrNull(selectedIndex)
         Column(
@@ -499,6 +577,143 @@ class CompareFragment : Fragment() {
                     contentDescription = null,
                     modifier = Modifier.size(20.dp)
                 )
+            }
+        }
+
+        if (showLoginDialog) {
+            TournesolLoginDialog(
+                inProgress = loginInProgress,
+                errorMessage = loginError,
+                onDismiss = onDismissLogin,
+                onRegister = onRegister,
+                onLogin = onLogin
+            )
+        }
+    }
+
+    @Composable
+    private fun TournesolLoginDialog(
+        inProgress: Boolean,
+        errorMessage: String?,
+        onDismiss: () -> Unit,
+        onRegister: () -> Unit,
+        onLogin: (String, String) -> Unit
+    ) {
+        var username by remember { mutableStateOf("") }
+        var password by remember { mutableStateOf("") }
+        var localError by remember { mutableStateOf<String?>(null) }
+        val statusText = when {
+            localError != null -> localError
+            inProgress -> stringResource(R.string.tournesol_login_in_progress)
+            errorMessage != null -> errorMessage
+            else -> null
+        }
+        val statusColor = if (localError != null || errorMessage != null) {
+            MaterialTheme.colorScheme.error
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        }
+        val missingFieldsText = stringResource(R.string.tournesol_login_missing_fields)
+
+        Dialog(onDismissRequest = { if (!inProgress) onDismiss() }) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                tonalElevation = 6.dp
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.tournesol_login_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(R.string.compare_login_required),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = username,
+                        onValueChange = {
+                            username = it
+                            if (localError != null) {
+                                localError = null
+                            }
+                        },
+                        label = { Text(stringResource(R.string.tournesol_username_hint)) },
+                        singleLine = true,
+                        enabled = !inProgress,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = {
+                            password = it
+                            if (localError != null) {
+                                localError = null
+                            }
+                        },
+                        label = { Text(stringResource(R.string.tournesol_password_hint)) },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        enabled = !inProgress,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (statusText != null) {
+                        Text(
+                            text = statusText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = statusColor
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(
+                            onClick = onRegister,
+                            enabled = !inProgress
+                        ) {
+                            Text(stringResource(R.string.tournesol_register_button))
+                        }
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedButton(
+                                onClick = onDismiss,
+                                enabled = !inProgress
+                            ) {
+                                Text(stringResource(R.string.cancel))
+                            }
+                            Button(
+                                onClick = {
+                                    if (username.isBlank() || password.isBlank()) {
+                                        localError = missingFieldsText
+                                    } else {
+                                        localError = null
+                                        onLogin(username.trim(), password.trim())
+                                    }
+                                },
+                                enabled = !inProgress
+                            ) {
+                                if (inProgress) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp),
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Text(stringResource(R.string.tournesol_login_button))
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -990,6 +1205,7 @@ class CompareFragment : Fragment() {
         private const val SCORE_MIN = -100
         private const val SCORE_MAX = 100
         private const val SCORE_RANGE = SCORE_MAX - SCORE_MIN
+        private const val REGISTER_URL = "https://tournesol.app/signup"
 
         @JvmStatic
         fun getInstance(info: StreamInfo): CompareFragment {
