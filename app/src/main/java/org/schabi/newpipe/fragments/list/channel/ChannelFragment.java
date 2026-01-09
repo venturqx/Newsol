@@ -477,6 +477,14 @@ public class ChannelFragment extends BaseStateFragment<ChannelInfo>
             final SharedPreferences preferences = PreferenceManager
                     .getDefaultSharedPreferences(context);
 
+            if (!TextUtils.isEmpty(currentInfo.getName())) {
+                final ChannelRankFragment rankFragment =
+                        ChannelRankFragment.getInstance(serviceId, currentInfo.getName());
+                rankFragment.useAsFrontPage(useAsFrontPage);
+                tabAdapter.addFragment(rankFragment,
+                        context.getString(R.string.channel_tab_rank));
+            }
+
             for (final ListLinkHandler linkHandler : currentInfo.getTabs()) {
                 final String tab = linkHandler.getContentFilters().get(0);
                 if (ChannelTabHelper.showChannelTab(context, preferences, tab)) {

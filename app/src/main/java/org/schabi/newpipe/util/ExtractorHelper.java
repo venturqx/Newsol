@@ -219,14 +219,17 @@ public final class ExtractorHelper {
             for (final String pair : pairs) {
                 final String[] parts = pair.split("=", -1);
                 if (parts.length == 2) {
+                    final String value = decodeQueryValue(parts[1]);
                     if ("languages".equals(parts[0])) {
-                        if (parts[1] != null && !parts[1].isEmpty()) {
-                            invokeSetLanguages(extractor, Arrays.asList(parts[1].split(",")));
+                        if (value != null && !value.isEmpty()) {
+                            invokeSetLanguages(extractor, Arrays.asList(value.split(",")));
                         } else {
                             invokeSetLanguages(extractor, Collections.emptyList());
                         }
                     } else if ("date_gte".equals(parts[0])) {
-                        invokeSetDateGte(extractor, parts[1]);
+                        invokeSetDateGte(extractor, value);
+                    } else if ("uploader".equals(parts[0])) {
+                        invokeSetUploader(extractor, value);
                     }
                 }
             }
@@ -276,6 +279,29 @@ public final class ExtractorHelper {
                     .invoke(extractor, languages);
         } catch (final ReflectiveOperationException ignored) {
             // Method not available in this extractor version.
+        }
+    }
+
+    private static void invokeSetUploader(final KioskExtractor extractor,
+                                          @Nullable final String uploader) {
+        try {
+            extractor.getClass()
+                    .getMethod("setUploader", String.class)
+                    .invoke(extractor, uploader);
+        } catch (final ReflectiveOperationException ignored) {
+            // Method not available in this extractor version.
+        }
+    }
+
+    private static String decodeQueryValue(@Nullable final String value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return java.net.URLDecoder.decode(
+                    value, java.nio.charset.StandardCharsets.UTF_8.name());
+        } catch (final Exception ignored) {
+            return value;
         }
     }
 

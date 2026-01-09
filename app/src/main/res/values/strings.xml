@@ -892,6 +892,7 @@
     <string name="audio_track_type_descriptive">descriptive</string>
     <string name="audio_track_type_secondary">secondary</string>
     <string name="channel_tab_videos">Videos</string>
+    <string name="channel_tab_rank">Rank</string>
     <string name="channel_tab_tracks">Tracks</string>
     <string name="channel_tab_shorts">Shorts</string>
     <string name="channel_tab_livestreams">Live</string>
