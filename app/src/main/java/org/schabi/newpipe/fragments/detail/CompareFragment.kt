@@ -485,18 +485,9 @@ class CompareFragment : Fragment() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "- COMPARE THIS VIDEO WITH OTHER VIDEOS YOU WATCHED -",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 6.dp)
-            )
             Text(
                 text = buildAnnotatedString {
                     withStyle(SpanStyle(color = Color(0xFFE57373))) {
@@ -512,7 +503,7 @@ class CompareFragment : Fragment() {
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 12.dp)
+                    .padding(bottom = 3.dp)
             )
 
             HistoryWheel(
@@ -522,7 +513,7 @@ class CompareFragment : Fragment() {
                 onSelectIndex = onSelectIndex
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
