@@ -23,3 +23,5 @@ bin/
 
 # logs
 *.log
+release.jks
+test*.png
