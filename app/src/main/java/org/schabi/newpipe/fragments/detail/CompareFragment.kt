@@ -717,12 +717,13 @@ class CompareFragment : Fragment() {
         historyMessageRes: Int?,
         onSelectIndex: (Int) -> Unit
     ) {
+        val itemHeight = 64.dp
         if (entries.isEmpty()) {
             val message = historyMessageRes?.let { stringResource(it) }.orEmpty()
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 96.dp),
+                    .heightIn(min = itemHeight),
                 shape = RoundedCornerShape(16.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerLow
             ) {
@@ -738,7 +739,6 @@ class CompareFragment : Fragment() {
             return
         }
 
-        val itemHeight = 96.dp
         val density = LocalDensity.current
         val pagerState = rememberPagerState(
             initialPage = selectedIndex.coerceIn(0, entries.lastIndex)
@@ -747,7 +747,7 @@ class CompareFragment : Fragment() {
         val cameraDistance = with(density) { 22.dp.toPx() }
         val depthShift = with(density) { 18.dp.toPx() }
         val pageSizePx = with(density) { itemHeight.toPx() }
-        val overlap = itemHeight / 2
+        val overlap = itemHeight * 0.75f
         val pageStepPx = with(density) { (itemHeight - overlap).toPx() }.coerceAtLeast(1f)
 
         LaunchedEffect(entries, selectedIndex) {
@@ -972,7 +972,7 @@ class CompareFragment : Fragment() {
             Column(
                 modifier = Modifier
                     .graphicsLayer(alpha = contentAlpha.coerceIn(0f, 1f))
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 CompareVideoRow(entry)
@@ -1154,14 +1154,14 @@ class CompareFragment : Fragment() {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
+                .padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             StreamThumbnail(
                 stream = stream,
                 showProgress = false,
                 modifier = Modifier
-                    .size(width = 120.dp, height = 68.dp)
+                    .size(width = 88.dp, height = 48.dp)
                     .semantics {
                         contentDescription = thumbnailDescription
                     }
