@@ -58,13 +58,15 @@
 
         <Button
             android:id="@+id/tournesol_register_button"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minHeight="48dp"
+            android:layout_height="48dp"
             android:minWidth="72dp"
-            android:paddingHorizontal="12dp"
-            android:text="@string/tournesol_register_button" />
+            android:paddingHorizontal="16dp"
+            android:background="@drawable/bg_tournesol_dialog_button"
+            android:textColor="@color/contrastColor"
+            android:textSize="16sp"
+            android:text="@string/tournesol_register_button"
+            android:textAllCaps="false" />
 
         <View
             android:layout_width="0dp"
@@ -73,13 +75,15 @@
 
         <Button
             android:id="@+id/tournesol_cancel_button"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minHeight="48dp"
+            android:layout_height="48dp"
             android:minWidth="72dp"
-            android:paddingHorizontal="12dp"
+            android:paddingHorizontal="16dp"
+            android:background="@drawable/bg_tournesol_dialog_button"
+            android:textColor="@color/contrastColor"
+            android:textSize="16sp"
             android:text="@string/cancel"
+            android:textAllCaps="false"
             android:layout_marginEnd="8dp" />
 
         <Button
