@@ -1184,14 +1184,14 @@ class CompareFragment : Fragment() {
             ) {
                 Text(
                     text = stream.name,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.bodySmall,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = stream.uploaderName.orEmpty(),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFF64B5F6),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
