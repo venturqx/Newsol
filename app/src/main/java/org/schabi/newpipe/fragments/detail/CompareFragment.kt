@@ -7,7 +7,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -56,7 +61,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.nativeCanvas
@@ -130,6 +138,7 @@ class CompareFragment : Fragment() {
     private var selectedStreamId: Long? = null
     private var score by mutableIntStateOf(0)
     private var submitted by mutableStateOf(false)
+    private var submitInProgress by mutableStateOf(false)
     private var showLoginDialog by mutableStateOf(false)
     private var loginInProgress by mutableStateOf(false)
     private var loginError by mutableStateOf<String?>(null)
@@ -231,6 +240,7 @@ class CompareFragment : Fragment() {
         val newSelectedId = filtered.getOrNull(newIndex)?.streamId
         if (newSelectedId != selectedStreamId) {
             submitted = false
+            submitInProgress = false
             selectedStreamId = newSelectedId
         }
         selectedIndex = newIndex
@@ -247,6 +257,7 @@ class CompareFragment : Fragment() {
         selectedIndex = clampedIndex
         selectedStreamId = historyEntries[clampedIndex].streamId
         submitted = false
+        submitInProgress = false
     }
 
     private fun isHistoryEnabled(): Boolean {
@@ -331,17 +342,6 @@ class CompareFragment : Fragment() {
             return
         }
 
-        val token = getAccessToken()
-        if (token == null) {
-            Toast.makeText(
-                requireContext(),
-                getString(R.string.compare_login_required),
-                Toast.LENGTH_SHORT
-            ).show()
-            showLoginDialog()
-            return
-        }
-
         val lastUid = buildTournesolUid(
             selectedEntry.streamEntity.url,
             selectedEntry.streamEntity.serviceId
@@ -360,11 +360,20 @@ class CompareFragment : Fragment() {
             return
         }
 
+        submitInProgress = true
         disposables.add(
-            submitComparison(token, lastUid, currentUid, score)
+            TournesolAuthManager.getValidAccessToken(requireContext())
+                .subscribeOn(Schedulers.io())
+                .switchIfEmpty(
+                    io.reactivex.rxjava3.core.Maybe.error(MissingTokenException())
+                )
+                .flatMapSingle { token ->
+                    submitComparison(token, lastUid, currentUid, score)
+                }
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
                     { messageRes ->
+                        submitInProgress = false
                         submitted = true
                         Toast.makeText(
                             requireContext(),
@@ -373,6 +382,16 @@ class CompareFragment : Fragment() {
                         ).show()
                     },
                     { throwable ->
+                        submitInProgress = false
+                        if (throwable is MissingTokenException) {
+                            Toast.makeText(
+                                requireContext(),
+                                getString(R.string.compare_login_required),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            showLoginDialog()
+                            return@subscribe
+                        }
                         val message = throwable.message
                         val errorText = if (message.isNullOrBlank()) {
                             getString(R.string.compare_failed)
@@ -381,19 +400,11 @@ class CompareFragment : Fragment() {
                         }
                         Toast.makeText(requireContext(), errorText, Toast.LENGTH_LONG).show()
                     }
-                )
+            )
         )
     }
 
-    private fun getAccessToken(): String? {
-        val authState = TournesolAuthManager.getAuthState(requireContext()) ?: return null
-        val token = authState.accessToken
-        val expirationTime = authState.accessTokenExpirationTime
-        if (token == null || (expirationTime != null && expirationTime <= System.currentTimeMillis())) {
-            return null
-        }
-        return token
-    }
+    private class MissingTokenException : RuntimeException()
 
     private fun buildTournesolUid(url: String, serviceId: Int): String? {
         val prefix = getTournesolServicePrefix(serviceId) ?: return null
@@ -547,9 +558,11 @@ class CompareFragment : Fragment() {
                 modifier = Modifier.fillMaxWidth()
             )
 
-            val submitEnabled = currentEntry != null && !submitted
+            val submitEnabled = currentEntry != null && !submitted && !submitInProgress
             val submitLabel = stringResource(
-                if (submitted) {
+                if (submitInProgress) {
+                    R.string.compare_submitting_label
+                } else if (submitted) {
                     R.string.compare_submitted_label
                 } else {
                     R.string.compare_submit_label
@@ -573,11 +586,18 @@ class CompareFragment : Fragment() {
                     }
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Image(
-                    painter = painterResource(R.drawable.logo_small),
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
+                if (submitInProgress) {
+                    SubmitSpinner(
+                        modifier = Modifier.size(18.dp),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(R.drawable.logo_small),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
 
@@ -1196,6 +1216,51 @@ class CompareFragment : Fragment() {
                     overflow = TextOverflow.Ellipsis
                 )
             }
+        }
+    }
+
+    @Composable
+    private fun SubmitSpinner(
+        modifier: Modifier = Modifier,
+        color: Color
+    ) {
+        val transition = rememberInfiniteTransition(label = "submitSpinner")
+        val rotation by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 900, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "submitSpinnerRotation"
+        )
+        val sweep by transition.animateFloat(
+            initialValue = 80f,
+            targetValue = 300f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 900, easing = LinearOutSlowInEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "submitSpinnerSweep"
+        )
+        val brush = Brush.sweepGradient(
+            listOf(
+                color.copy(alpha = 0.15f),
+                color,
+                color.copy(alpha = 0.15f)
+            )
+        )
+        Canvas(
+            modifier = modifier.graphicsLayer { rotationZ = rotation }
+        ) {
+            val strokeWidth = size.minDimension * 0.18f
+            drawArc(
+                brush = brush,
+                startAngle = 0f,
+                sweepAngle = sweep,
+                useCenter = false,
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+            )
         }
     }
 
