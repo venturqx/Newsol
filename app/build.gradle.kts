@@ -67,7 +67,7 @@ android {
     defaultConfig {
         applicationId = "dev.ufonirpt.ufonirpt"
         resValue("string", "app_name", "Ufonirpt")
-        minSdk = 21
+        minSdk = 23
         targetSdk = 35
 
         versionCode = System.getProperty("versionCodeOverride")?.toInt() ?: 1
@@ -253,6 +253,7 @@ dependencies {
     implementation(libs.androidx.media)
     implementation(libs.androidx.preference)
     implementation(libs.androidx.recyclerview)
+    implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.rxjava3)
     ksp(libs.androidx.room.compiler)

@@ -1,8 +1,11 @@
 package org.schabi.newpipe.util
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.util.Base64
 import androidx.preference.PreferenceManager
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKeys
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
 import net.openid.appauth.AuthState
@@ -19,13 +22,46 @@ import java.util.concurrent.TimeUnit
 
 object TournesolAuthManager {
     private const val SHARED_PREF_AUTH_STATE = "tournesol_auth_state"
+    private const val AUTH_STATE_PREFS_NAME = "tournesol_auth_state_prefs"
     private const val AUTH_URL = "https://api.tournesol.app/o/authorize/"
     private const val TOKEN_URL = "https://api.tournesol.app/o/token/"
     private const val OAUTH_SCOPE = "read write groups"
     private const val DEFAULT_MIN_TTL_MS = 2 * 60 * 1000L
 
+    private fun getAuthStatePrefs(context: Context): SharedPreferences {
+        val appContext = context.applicationContext
+        val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
+        val encryptedPrefs = EncryptedSharedPreferences.create(
+            AUTH_STATE_PREFS_NAME,
+            masterKeyAlias,
+            appContext,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+
+        migrateLegacyAuthState(appContext, encryptedPrefs)
+
+        return encryptedPrefs
+    }
+
+    private fun migrateLegacyAuthState(
+        context: Context,
+        encryptedPrefs: SharedPreferences
+    ) {
+        val legacyPrefs = PreferenceManager.getDefaultSharedPreferences(context)
+        if (!legacyPrefs.contains(SHARED_PREF_AUTH_STATE)) {
+            return
+        }
+
+        val legacyValue = legacyPrefs.getString(SHARED_PREF_AUTH_STATE, null)
+        if (!legacyValue.isNullOrBlank() && !encryptedPrefs.contains(SHARED_PREF_AUTH_STATE)) {
+            encryptedPrefs.edit().putString(SHARED_PREF_AUTH_STATE, legacyValue).apply()
+        }
+        legacyPrefs.edit().remove(SHARED_PREF_AUTH_STATE).apply()
+    }
+
     fun saveAuthState(context: Context, authState: AuthState) {
-        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val prefs = getAuthStatePrefs(context)
         prefs.edit().putString(SHARED_PREF_AUTH_STATE, authState.jsonSerializeString()).apply()
     }
 
@@ -40,7 +76,7 @@ object TournesolAuthManager {
     }
 
     fun getAuthState(context: Context): AuthState? {
-        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val prefs = getAuthStatePrefs(context)
         val json = prefs.getString(SHARED_PREF_AUTH_STATE, null) ?: return null
         return try {
             AuthState.jsonDeserialize(json)
