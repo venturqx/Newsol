@@ -38,6 +38,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
       - uses: gradle/actions/wrapper-validation@v4
 
       - name: create and checkout branch
@@ -81,6 +83,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
 
       - name: Enable KVM
         run: |
