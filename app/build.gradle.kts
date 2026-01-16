@@ -64,15 +64,23 @@ android {
         }
     }
 
+    val versionCodeOverride = System.getProperty("versionCodeOverride")
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+        ?.toInt()
+    val versionNameOverride = System.getProperty("versionNameOverride")
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+
     defaultConfig {
         applicationId = "dev.ufonirpt.ufonirpt"
         resValue("string", "app_name", "Ufonirpt")
         minSdk = 23
         targetSdk = 35
 
-        versionCode = System.getProperty("versionCodeOverride")?.toInt() ?: 1
+        versionCode = versionCodeOverride ?: 1
 
-        versionName = System.getProperty("versionNameOverride") ?: "0.0.1"
+        versionName = versionNameOverride ?: "0.0.1"
         System.getProperty("versionNameSuffix")?.let { versionNameSuffix = it }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
