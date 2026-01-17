@@ -55,6 +55,7 @@ public final class ServiceHelper {
             case "music_songs" -> c.getString(R.string.songs);
             case "music_albums" -> c.getString(R.string.albums);
             case "music_artists" -> c.getString(R.string.artists);
+            case "tournesol" -> c.getString(R.string.recommendation_algorithm_tournesol);
             default -> filter;
         };
     }
