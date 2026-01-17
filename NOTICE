@@ -1,0 +1,10 @@
+NOTICE
+
+This repository is a fork of NewPipe (https://github.com/TeamNewPipe/NewPipe),
+licensed under GPL-3.0-or-later.
+
+It uses NewPipeExtractor (https://github.com/TeamNewPipe/NewPipeExtractor),
+licensed under GPL-3.0-or-later.
+
+It uses the Tournesol API (https://tournesol.app). Use of the API is subject to
+Tournesol's terms of service and any applicable usage limits.

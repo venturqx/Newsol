@@ -8,5 +8,6 @@ plugins {
 }
 
 repositories {
-    gradlePluginPortal()
+    google()
+    maven(url = "https://maven-central.storage-download.googleapis.com/maven2")
 }

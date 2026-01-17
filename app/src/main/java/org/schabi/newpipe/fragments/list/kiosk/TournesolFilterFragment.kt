@@ -1,0 +1,242 @@
+package org.schabi.newpipe.fragments.list.kiosk
+
+import android.app.Dialog
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import org.schabi.newpipe.R
+import org.schabi.newpipe.ui.theme.AppTheme
+import org.schabi.newpipe.util.TournesolHelper
+
+class TournesolFilterFragment : BottomSheetDialogFragment() {
+    interface FilterListener {
+        fun onApply(languages: List<String>, dateKey: String)
+    }
+
+    private var listener: FilterListener? = null
+    private var initialLanguages: List<String>? = null
+    private var initialDateKey: String? = null
+
+    fun setListener(listener: FilterListener) {
+        this.listener = listener
+    }
+
+    fun setInitialData(languages: List<String>, dateKey: String) {
+        this.initialLanguages = languages
+        this.initialDateKey = dateKey
+    }
+
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        val dialog = super.onCreateDialog(savedInstanceState)
+        dialog.setOnShowListener { dialogInterface ->
+            val bottomSheetDialog = dialogInterface as BottomSheetDialog
+            val bottomSheet = bottomSheetDialog.findViewById<View>(
+                com.google.android.material.R.id.design_bottom_sheet
+            )
+            if (bottomSheet != null) {
+                // Ensure the parent bottom sheet is transparent so our background shows.
+                bottomSheet.setBackgroundResource(android.R.color.transparent)
+            }
+        }
+        return dialog
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        val seedLanguages = initialLanguages
+            ?: TournesolHelper.DEFAULT_TOURNESOL_FILTER_LANGUAGES.split(",")
+        val seedDateKey = initialDateKey ?: TournesolHelper.DEFAULT_TOURNESOL_FILTER_DATE_KEY
+
+        return ComposeView(requireContext()).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                AppTheme {
+                    TournesolFilterSheet(
+                        initialLanguages = seedLanguages,
+                        initialDateKey = seedDateKey,
+                        onApply = { languages, dateKey ->
+                            listener?.onApply(languages, dateKey)
+                        },
+                        onClose = { dismiss() }
+                    )
+                }
+            }
+        }
+    }
+}
+
+private data class FilterOption(val key: String, @StringRes val labelResId: Int)
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TournesolFilterSheet(
+    initialLanguages: List<String>,
+    initialDateKey: String,
+    onApply: (List<String>, String) -> Unit,
+    onClose: () -> Unit
+) {
+    val chipSelectedColor = colorResource(R.color.tournesol_filter_accent)
+    val chipUnselectedColor = colorResource(R.color.tournesol_chip_unchecked)
+    val chipColors = FilterChipDefaults.filterChipColors(
+        selectedContainerColor = chipSelectedColor,
+        containerColor = chipUnselectedColor,
+        selectedLabelColor = Color.White,
+        labelColor = Color.White
+    )
+    val selectedLanguages = remember {
+        mutableStateListOf<String>().apply { addAll(initialLanguages) }
+    }
+    var selectedDateKey by remember { mutableStateOf(initialDateKey) }
+
+    val languageOptions = remember {
+        listOf(
+            FilterOption("en", R.string.language_english),
+            FilterOption("fr", R.string.language_french),
+            FilterOption("es", R.string.language_spanish),
+            FilterOption("de", R.string.language_german),
+            FilterOption("it", R.string.language_italian),
+            FilterOption("pt", R.string.language_portuguese)
+        )
+    }
+    val dateOptions = remember {
+        listOf(
+            FilterOption("forever", R.string.date_since_forever),
+            FilterOption("year", R.string.date_last_year),
+            FilterOption("3_months", R.string.date_last_3_months),
+            FilterOption("month", R.string.date_last_month),
+            FilterOption("week", R.string.date_last_week)
+        )
+    }
+
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = stringResource(R.string.filter_tournesol),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = onClose) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_close),
+                        contentDescription = stringResource(R.string.cancel),
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = stringResource(R.string.filter_languages),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                languageOptions.forEach { option ->
+                    val isSelected = selectedLanguages.contains(option.key)
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = {
+                            if (isSelected) {
+                                selectedLanguages.remove(option.key)
+                            } else {
+                                selectedLanguages.add(option.key)
+                            }
+                            onApply(selectedLanguages.toList(), selectedDateKey)
+                        },
+                        label = { Text(text = stringResource(option.labelResId)) },
+                        colors = chipColors,
+                        border = null
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = stringResource(R.string.filter_date),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                dateOptions.forEach { option ->
+                    val isSelected = selectedDateKey == option.key
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = {
+                            if (!isSelected) {
+                                selectedDateKey = option.key
+                                onApply(selectedLanguages.toList(), selectedDateKey)
+                            }
+                        },
+                        label = { Text(text = stringResource(option.labelResId)) },
+                        colors = chipColors,
+                        border = null
+                    )
+                }
+            }
+        }
+    }
+}

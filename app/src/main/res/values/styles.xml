@@ -155,4 +155,49 @@
 
     <style name="RouterActivityThemeDark" parent="Base.RouterActivityThemeDark" />
 
+    <style name="Widget.NewPipe.Chip.Filter" parent="Widget.MaterialComponents.Chip.Filter">
+        <item name="chipBackgroundColor">@color/tournesol_chip_background_color</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="chipStrokeWidth">0dp</item>
+    </style>
+
+    <style name="Theme.TournesolFilter.Light" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="android:textColorPrimary">@color/light_license_text_color</item>
+        <item name="android:textColorSecondary">@color/light_license_text_color</item>
+        <item name="colorPrimary">@color/light_youtube_primary_color</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorAccent">@color/tournesol_filter_accent</item>
+        <item name="colorControlActivated">@color/tournesol_filter_accent</item>
+        <item name="colorSurface">@color/light_dialog_background_color</item>
+        <item name="colorOnSurface">@color/light_license_text_color</item>
+        <item name="android:windowBackground">@color/light_dialog_background_color</item>
+        <item name="windowBackground">@color/light_dialog_background_color</item>
+    </style>
+
+    <style name="Theme.TournesolFilter.Dark" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="android:textColorPrimary">@color/dark_license_text_color</item>
+        <item name="android:textColorSecondary">@color/dark_license_text_color</item>
+        <item name="colorPrimary">@color/dark_youtube_primary_color</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorAccent">@color/tournesol_filter_accent</item>
+        <item name="colorControlActivated">@color/tournesol_filter_accent</item>
+        <item name="colorSurface">@color/dark_dialog_background_color</item>
+        <item name="colorOnSurface">@color/dark_license_text_color</item>
+        <item name="android:windowBackground">@color/dark_dialog_background_color</item>
+        <item name="windowBackground">@color/dark_dialog_background_color</item>
+    </style>
+
+    <style name="Theme.TournesolFilter.Black" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="android:textColorPrimary">@color/dark_license_text_color</item>
+        <item name="android:textColorSecondary">@color/dark_license_text_color</item>
+        <item name="colorPrimary">@color/dark_youtube_primary_color</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorAccent">@color/tournesol_filter_accent</item>
+        <item name="colorControlActivated">@color/tournesol_filter_accent</item>
+        <item name="colorSurface">@color/black_dialog_background_color</item>
+        <item name="colorOnSurface">@color/dark_license_text_color</item>
+        <item name="android:windowBackground">@color/black_dialog_background_color</item>
+        <item name="windowBackground">@color/black_dialog_background_color</item>
+    </style>
+
 </resources>

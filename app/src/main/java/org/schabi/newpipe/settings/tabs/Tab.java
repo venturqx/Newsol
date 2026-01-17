@@ -6,6 +6,7 @@ import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.preference.PreferenceManager;
 
 import com.grack.nanojson.JsonObject;
 import com.grack.nanojson.JsonStringWriter;
@@ -22,6 +23,7 @@ import org.schabi.newpipe.fragments.BlankFragment;
 import org.schabi.newpipe.fragments.list.channel.ChannelFragment;
 import org.schabi.newpipe.fragments.list.kiosk.DefaultKioskFragment;
 import org.schabi.newpipe.fragments.list.kiosk.KioskFragment;
+import org.schabi.newpipe.fragments.list.kiosk.TournesolKioskFragment;
 import org.schabi.newpipe.fragments.list.playlist.PlaylistFragment;
 import org.schabi.newpipe.local.bookmark.BookmarkFragment;
 import org.schabi.newpipe.local.feed.FeedFragment;
@@ -95,6 +97,18 @@ public abstract class Tab {
                     return new PlaylistTab(jsonObject);
                 case FEEDGROUP:
                     return new FeedGroupTab(jsonObject);
+                case TRENDING_GAMING:
+                case TRENDING_MUSIC:
+                case TRENDING_MOVIES:
+                case TRENDING_PODCASTS:
+                case TOURNESOL:
+                case LIVE:
+                    // These are static tabs, no JSON data needed to reconstruct them
+                    // beyond their ID which maps to the Type.
+                    // However, 'from' logic usually returns a new instance from JSON.
+                    // Since these tabs don't store extra state in JSON (unlike KioskTab which
+                    // stores serviceId/kioskId), we can just return the default instance.
+                    return type.getTab();
             }
         }
 
@@ -165,7 +179,13 @@ public abstract class Tab {
         KIOSK(new KioskTab()),
         CHANNEL(new ChannelTab()),
         PLAYLIST(new PlaylistTab()),
-        FEEDGROUP(new FeedGroupTab());
+        FEEDGROUP(new FeedGroupTab()),
+        TRENDING_GAMING(new SpecificKioskTab(20, "trending_gaming")),
+        TRENDING_MUSIC(new SpecificKioskTab(21, "trending_music")),
+        TRENDING_MOVIES(new SpecificKioskTab(22, "trending_movies_and_shows")),
+        TRENDING_PODCASTS(new SpecificKioskTab(23, "trending_podcasts_episodes")),
+        TOURNESOL(new SpecificKioskTab(24, "Tournesol")),
+        LIVE(new SpecificKioskTab(25, "live"));
 
         private final Tab tab;
 
@@ -508,6 +528,18 @@ public abstract class Tab {
         }
 
         private String getDefaultKioskId(final Context context) {
+            final String recommendationAlgorithmKey = context
+                    .getString(R.string.recommendation_algorithm_key);
+            final String recommendationAlgorithm = PreferenceManager
+                    .getDefaultSharedPreferences(context)
+                    .getString(recommendationAlgorithmKey,
+                            context.getString(R.string.recommendation_algorithm_youtube));
+
+            if (recommendationAlgorithm != null && !recommendationAlgorithm.isEmpty()
+                    && !recommendationAlgorithm.equals("youtube")) {
+                return recommendationAlgorithm;
+            }
+
             final int kioskServiceId = ServiceHelper.getSelectedServiceId(context);
 
             String kioskId = "";
@@ -519,6 +551,46 @@ public abstract class Tab {
                         UserAction.REQUESTED_KIOSK, "Loading default kiosk for selected service"));
             }
             return kioskId;
+        }
+    }
+
+    public static class SpecificKioskTab extends Tab {
+        private final int id;
+        private final String kioskId;
+
+        public SpecificKioskTab(final int id, final String kioskId) {
+            this.id = id;
+            this.kioskId = kioskId;
+        }
+
+        @Override
+        public int getTabId() {
+            return id;
+        }
+
+        @Override
+        public String getTabName(final Context context) {
+            return KioskTranslator.getTranslatedKioskName(kioskId, context);
+        }
+
+        @DrawableRes
+        @Override
+        public int getTabIconRes(final Context context) {
+            return KioskTranslator.getKioskIcon(kioskId);
+        }
+
+        @Override
+        public Fragment getFragment(final Context context) throws ExtractionException {
+            int serviceId = 0; // YouTube
+            try {
+                serviceId = org.schabi.newpipe.extractor.ServiceList.YouTube.getServiceId();
+            } catch (final Exception e) {
+                // fallback
+            }
+            if ("Tournesol".equalsIgnoreCase(kioskId)) {
+                return TournesolKioskFragment.getInstance(serviceId, kioskId);
+            }
+            return KioskFragment.getInstance(serviceId, kioskId);
         }
     }
 

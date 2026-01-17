@@ -255,7 +255,7 @@
     <string name="dark_theme_key">dark_theme</string>
     <string name="black_theme_key">black_theme</string>
     <string name="auto_device_theme_key">auto_device_theme</string>
-    <string name="default_theme_value">@string/auto_device_theme_key</string>
+    <string name="default_theme_value">@string/dark_theme_key</string>
     <string name="default_night_theme_value">@string/dark_theme_key</string>
     <string-array name="theme_values_list">
         <item>@string/light_theme_key</item>
@@ -347,6 +347,7 @@
     <string name="enable_search_history_key">enable_search_history</string>
     <string name="enable_watch_history_key">enable_watch_history</string>
     <string name="main_page_content_key">main_page_content</string>
+    <string name="default_tab_key">default_tab_key</string>
     <string name="enable_playback_resume_key">enable_playback_resume</string>
     <string name="enable_playback_state_lists_key">enable_playback_state_lists</string>
     <string name="adjustment_step_key">adjustment_step_key</string>
@@ -1283,6 +1284,62 @@
         <item>zh-hk</item>
         <item>zh-tw</item>
     </string-array>
+    <string-array name="recommendation_algorithm_entries">
+        <item>@string/recommendation_algorithm_youtube</item>
+        <item>@string/recommendation_algorithm_tournesol</item>
+        <item>@string/trending</item>
+        <item>@string/top_50</item>
+        <item>@string/new_and_hot</item>
+        <item>@string/recently_added</item>
+        <item>@string/most_liked</item>
+        <item>@string/duration_live</item>
+        <item>@string/trending_gaming</item>
+        <item>@string/trending_music</item>
+        <item>@string/trending_movies</item>
+        <item>@string/trending_podcasts</item>
+    </string-array>
+
+    <string-array name="recommendation_algorithm_values">
+        <item>youtube</item>
+        <item>tournesol</item>
+        <item>Trending</item>
+        <item>Top 50</item>
+        <item>New &amp; hot</item>
+        <item>Recently added</item>
+        <item>Most liked</item>
+        <item>live</item>
+        <item>trending_gaming</item>
+        <item>trending_music</item>
+        <item>trending_movies_and_shows</item>
+        <item>trending_podcasts_episodes</item>
+    </string-array>
+
+    <string-array name="default_tab_entries">
+        <item>@string/trending</item>
+        <item>@string/tab_subscriptions</item>
+        <item>@string/duration_live</item>
+        <item>@string/tab_bookmarks</item>
+        <item>@string/fragment_feed_title</item>
+        <item>@string/trending_podcasts</item>
+        <item>@string/trending_gaming</item>
+        <item>@string/trending_music</item>
+        <item>@string/trending_movies</item>
+        <item>@string/recommendation_algorithm_tournesol</item>
+    </string-array>
+
+    <string-array name="default_tab_values">
+        <item>DEFAULT_KIOSK</item>
+        <item>SUBSCRIPTIONS</item>
+        <item>LIVE</item>
+        <item>BOOKMARKS</item>
+        <item>FEED</item>
+        <item>TRENDING_PODCASTS</item>
+        <item>TRENDING_GAMING</item>
+        <item>TRENDING_MUSIC</item>
+        <item>TRENDING_MOVIES</item>
+        <item>TOURNESOL</item>
+    </string-array>
+
     <string-array name="app_language_name">
         <item>@string/systems_language</item>
         <item>Basa Acèh</item>

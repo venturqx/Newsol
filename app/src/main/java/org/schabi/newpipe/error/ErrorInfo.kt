@@ -20,7 +20,6 @@ import org.schabi.newpipe.extractor.exceptions.GeographicRestrictionException
 import org.schabi.newpipe.extractor.exceptions.PaidContentException
 import org.schabi.newpipe.extractor.exceptions.PrivateContentException
 import org.schabi.newpipe.extractor.exceptions.ReCaptchaException
-import org.schabi.newpipe.extractor.exceptions.SignInConfirmNotBotException
 import org.schabi.newpipe.extractor.exceptions.SoundCloudGoPlusContentException
 import org.schabi.newpipe.extractor.exceptions.UnsupportedContentInCountryException
 import org.schabi.newpipe.extractor.exceptions.YoutubeMusicPremiumContentException
@@ -232,8 +231,6 @@ class ErrorInfo private constructor(
                     ErrorMessage(R.string.unsupported_content_in_country)
                 throwable is YoutubeMusicPremiumContentException ->
                     ErrorMessage(R.string.youtube_music_premium_content)
-                throwable is SignInConfirmNotBotException ->
-                    ErrorMessage(R.string.sign_in_confirm_not_bot_error, getServiceName(serviceId))
                 throwable is ContentNotAvailableException ->
                     ErrorMessage(R.string.content_not_available)
 

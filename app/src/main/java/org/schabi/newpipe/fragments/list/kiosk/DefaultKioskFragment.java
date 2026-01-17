@@ -1,7 +1,12 @@
 package org.schabi.newpipe.fragments.list.kiosk;
 
 import android.os.Bundle;
+import android.view.View;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import org.schabi.newpipe.R;
 import org.schabi.newpipe.error.ErrorInfo;
 import org.schabi.newpipe.error.UserAction;
 import org.schabi.newpipe.extractor.NewPipe;
@@ -9,8 +14,14 @@ import org.schabi.newpipe.extractor.exceptions.ExtractionException;
 import org.schabi.newpipe.extractor.kiosk.KioskList;
 import org.schabi.newpipe.util.KioskTranslator;
 import org.schabi.newpipe.util.ServiceHelper;
+import org.schabi.newpipe.util.TournesolHelper;
+
+import java.util.List;
 
 public class DefaultKioskFragment extends KioskFragment {
+
+    @Nullable
+    private TournesolFilterController tournesolFilterController;
 
     @Override
     public void onCreate(final Bundle savedInstanceState) {
@@ -18,6 +29,18 @@ public class DefaultKioskFragment extends KioskFragment {
 
         if (serviceId < 0) {
             updateSelectedDefaultKiosk();
+        }
+    }
+
+    @Override
+    protected void initViews(final View rootView, final Bundle savedInstanceState) {
+        super.initViews(rootView, savedInstanceState);
+        if ("Tournesol".equals(kioskId)) {
+            ensureTournesolController(rootView);
+            applyTournesolFilters(tournesolFilterController.getCurrentLanguages(),
+                    tournesolFilterController.getCurrentDateKey(), false);
+        } else {
+            hideTournesolHeader(rootView);
         }
     }
 
@@ -31,6 +54,50 @@ public class DefaultKioskFragment extends KioskFragment {
             }
             updateSelectedDefaultKiosk();
             reloadContent();
+        }
+    }
+
+    @Override
+    public void onDestroyView() {
+        if (tournesolFilterController != null) {
+            tournesolFilterController.onDestroyView();
+            tournesolFilterController = null;
+        }
+        super.onDestroyView();
+    }
+
+    private void ensureTournesolController(@NonNull final View rootView) {
+        if (tournesolFilterController == null) {
+            tournesolFilterController =
+                    new TournesolFilterController(this, this::onTournesolFiltersChanged);
+        }
+        tournesolFilterController.init(rootView);
+    }
+
+    private void onTournesolFiltersChanged(@NonNull final List<String> languages,
+                                           @NonNull final String dateKey) {
+        applyTournesolFilters(languages, dateKey, true);
+    }
+
+    private void applyTournesolFilters(@NonNull final List<String> languages,
+                                       @NonNull final String dateKey,
+                                       final boolean reload) {
+        url = TournesolHelper.INSTANCE.buildTournesolUrl(languages, dateKey);
+        if (!reload) {
+            return;
+        }
+        currentInfo = null;
+        currentNextPage = null;
+        if (currentWorker != null) {
+            currentWorker.dispose();
+        }
+        reloadContent();
+    }
+
+    private void hideTournesolHeader(@NonNull final View rootView) {
+        final View headerContainer = rootView.findViewById(R.id.kiosk_header_container);
+        if (headerContainer != null) {
+            headerContainer.setVisibility(View.GONE);
         }
     }
 

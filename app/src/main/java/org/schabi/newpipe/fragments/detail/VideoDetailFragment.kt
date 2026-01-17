@@ -45,6 +45,7 @@ import androidx.core.os.postDelayed
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.preference.PreferenceManager
+import androidx.viewpager.widget.ViewPager
 import coil3.util.CoilUtils
 import com.evernote.android.state.State
 import com.google.android.exoplayer2.PlaybackException
@@ -151,6 +152,7 @@ class VideoDetailFragment :
     private var showComments = false
     private var showRelatedItems = false
     private var showDescription = false
+    private var isTournesolTab = false
     private lateinit var selectedTabTag: String
     @AttrRes val tabIcons = ArrayList<Int>()
     @StringRes val tabContentDescriptions = ArrayList<Int>()
@@ -167,6 +169,10 @@ class VideoDetailFragment :
                 tabSettingsChanged = true
             } else if (getString(R.string.show_description_key) == key) {
                 showDescription = sharedPreferences.getBoolean(key, true)
+                tabSettingsChanged = true
+            } else if (getString(R.string.default_tab_key) == key) {
+                val defaultTabValue = sharedPreferences.getString(key, "LIVE")
+                isTournesolTab = "TOURNESOL" == defaultTabValue
                 tabSettingsChanged = true
             }
         }
@@ -243,6 +249,9 @@ class VideoDetailFragment :
         showComments = prefs.getBoolean(getString(R.string.show_comments_key), true)
         showRelatedItems = prefs.getBoolean(getString(R.string.show_next_video_key), true)
         showDescription = prefs.getBoolean(getString(R.string.show_description_key), true)
+        val defaultTabKey = getString(R.string.default_tab_key)
+        val defaultTabValue = prefs.getString(defaultTabKey, "LIVE")
+        isTournesolTab = "TOURNESOL" == defaultTabValue
         selectedTabTag = prefs.getString(
             getString(R.string.stream_info_selected_tab_key), COMMENTS_TAB_TAG
         )!!
@@ -555,6 +564,11 @@ class VideoDetailFragment :
         pageAdapter = TabAdapter(getChildFragmentManager())
         binding.viewPager.setAdapter(pageAdapter)
         binding.tabLayout.setupWithViewPager(binding.viewPager)
+        binding.viewPager.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
+            override fun onPageSelected(position: Int) {
+                updateTitleBorderForTab(pageAdapter.getItemTitle(position))
+            }
+        })
 
         binding.detailThumbnailRootLayout.requestFocus()
 
@@ -798,9 +812,15 @@ class VideoDetailFragment :
 
         if (showRelatedItems && binding.relatedItemsLayout == null) {
             // temp empty fragment. will be updated in handleResult
-            pageAdapter.addFragment(EmptyFragment.newInstance(false), RELATED_TAB_TAG)
-            tabIcons.add(R.drawable.ic_art_track)
-            tabContentDescriptions.add(R.string.related_items_tab_description)
+            if (isTournesolTab) {
+                pageAdapter.addFragment(EmptyFragment.newInstance(false), COMPARE_TAB_TAG)
+                tabIcons.add(R.drawable.ic_art_track)
+                tabContentDescriptions.add(R.string.compare_tab_description)
+            } else {
+                pageAdapter.addFragment(EmptyFragment.newInstance(false), RELATED_TAB_TAG)
+                tabIcons.add(R.drawable.ic_art_track)
+                tabContentDescriptions.add(R.string.related_items_tab_description)
+            }
         }
 
         if (showDescription) {
@@ -824,6 +844,7 @@ class VideoDetailFragment :
         }
         // the page adapter now contains tabs: show the tab layout
         updateTabLayoutVisibility()
+        updateTitleBorderForTab(pageAdapter.getItemTitle(binding.viewPager.currentItem))
     }
 
     /**
@@ -845,10 +866,21 @@ class VideoDetailFragment :
     private fun updateTabs(info: StreamInfo) {
         if (showRelatedItems) {
             when (val relatedItemsLayout = binding.relatedItemsLayout) {
-                null -> pageAdapter.updateItem(RELATED_TAB_TAG, getInstance(info)) // phone
+                null -> {
+                    if (isTournesolTab) {
+                        pageAdapter.updateItem(COMPARE_TAB_TAG, CompareFragment.getInstance(info))
+                    } else {
+                        pageAdapter.updateItem(RELATED_TAB_TAG, getInstance(info))
+                    }
+                }
                 else -> { // tablet + TV
+                    val fragment = if (isTournesolTab) {
+                        CompareFragment.getInstance(info)
+                    } else {
+                        getInstance(info)
+                    }
                     getChildFragmentManager().beginTransaction()
-                        .replace(R.id.relatedItemsLayout, getInstance(info))
+                        .replace(R.id.relatedItemsLayout, fragment)
                         .commitAllowingStateLoss()
                     relatedItemsLayout.isVisible = !this.isFullscreen
                 }
@@ -864,6 +896,19 @@ class VideoDetailFragment :
         updateTabLayoutVisibility()
         pageAdapter.notifyDataSetUpdate()
         updateTabIconsAndContentDescriptions()
+        updateTitleBorderForTab(pageAdapter.getItemTitle(binding.viewPager.currentItem))
+    }
+
+    private fun updateTitleBorderForTab(tabTag: String?) {
+        if (nullableBinding == null) {
+            return
+        }
+        val shouldHighlight = tabTag == COMPARE_TAB_TAG
+        binding.detailTitleRootLayout.background = if (shouldHighlight) {
+            AppCompatResources.getDrawable(requireContext(), R.drawable.bg_detail_title_compare)
+        } else {
+            null
+        }
     }
 
     private fun shouldShowComments(): Boolean {
@@ -2285,6 +2330,7 @@ class VideoDetailFragment :
 
         private const val COMMENTS_TAB_TAG = "COMMENTS"
         private const val RELATED_TAB_TAG = "NEXT VIDEO"
+        private const val COMPARE_TAB_TAG = "COMPARE"
         private const val DESCRIPTION_TAB_TAG = "DESCRIPTION TAB"
         private const val EMPTY_TAB_TAG = "EMPTY TAB"
 

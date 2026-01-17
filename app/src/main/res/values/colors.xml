@@ -4,8 +4,6 @@
     <color name="contrastColor">@color/black</color>
     <color name="defaultIconTint">@color/black</color>
 
-    <color name="ic_launcher_background">#CD201F</color>
-
     <color name="placeholder_background">#999999</color>
     <color name="placeholder_foreground">#6C6C6C</color>
 
@@ -42,6 +40,7 @@
 
     <!-- Black Theme -->
     <color name="black_background_color">#000000</color>
+    <color name="black_dialog_background_color">#0F0F0F</color>
     <color name="black_settings_accent_color">@color/dark_settings_accent_color</color>
     <color name="black_separator_color">#1effffff</color>
     <color name="black_contrast_background_color">#23454545</color>
@@ -57,6 +56,7 @@
     <color name="playlist_stream_count_background_color">#e6000000</color>
     <color name="duration_text_color">#EEFFFFFF</color>
     <color name="video_overlay_color">#64000000</color>
+    <color name="compare_video_a">#E57373</color>
 
     <color name="subscribe_text_color">#fff</color>
     <color name="subscribed_background_color">#d6d6d6</color>
@@ -85,3 +85,4 @@
     <color name="black">#000</color>
 
 </resources>
+

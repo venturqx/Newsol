@@ -1,5 +1,7 @@
 package org.schabi.newpipe.settings.tabs;
 
+import android.content.Context;
+
 import androidx.annotation.Nullable;
 
 import com.grack.nanojson.JsonArray;
@@ -19,7 +21,7 @@ public final class TabsJsonHelper {
     private static final String JSON_TABS_ARRAY_KEY = "tabs";
 
     private static final List<Tab> FALLBACK_INITIAL_TABS_LIST = List.of(
-            Tab.Type.DEFAULT_KIOSK.getTab(),
+            Tab.Type.LIVE.getTab(),
             Tab.Type.FEED.getTab(),
             Tab.Type.SUBSCRIPTIONS.getTab(),
             Tab.Type.BOOKMARKS.getTab());
@@ -34,14 +36,16 @@ public final class TabsJsonHelper {
      * <p>
      * Tabs with invalid ids (i.e. not in the {@link Tab.Type} enum) will be ignored.
      *
+     * @param context a context used to read default tab preferences; can be null.
      * @param tabsJson a JSON string got from {@link #getJsonToSave(List)}.
      * @return a list of {@link Tab tabs}.
      * @throws InvalidJsonException if the JSON string is not valid
      */
-    public static List<Tab> getTabsFromJson(@Nullable final String tabsJson)
+    public static List<Tab> getTabsFromJson(@Nullable final Context context,
+                                            @Nullable final String tabsJson)
             throws InvalidJsonException {
         if (tabsJson == null || tabsJson.isEmpty()) {
-            return getDefaultTabs();
+            return getDefaultTabs(context);
         }
 
         final List<Tab> returnTabs = new ArrayList<>();
@@ -73,7 +77,7 @@ public final class TabsJsonHelper {
         }
 
         if (returnTabs.isEmpty()) {
-            return getDefaultTabs();
+            return getDefaultTabs(context);
         }
 
         return returnTabs;
@@ -99,6 +103,46 @@ public final class TabsJsonHelper {
 
         jsonWriter.end();
         return jsonWriter.done();
+    }
+
+    public static List<Tab> getDefaultTabs(@Nullable final Context context) {
+        if (context == null) {
+            return FALLBACK_INITIAL_TABS_LIST;
+        }
+
+        final android.content.SharedPreferences prefs =
+                androidx.preference.PreferenceManager.getDefaultSharedPreferences(context);
+        final String defaultTabKey = context.getString(org.schabi.newpipe.R.string.default_tab_key);
+        final String selectedType = prefs.getString(defaultTabKey, "LIVE");
+
+        final Tab firstTab;
+        if ("DEFAULT_KIOSK".equals(selectedType)) {
+            firstTab = Tab.Type.DEFAULT_KIOSK.getTab();
+        } else if ("FEED".equals(selectedType)) {
+            firstTab = Tab.Type.FEED.getTab();
+        } else if ("SUBSCRIPTIONS".equals(selectedType)) {
+            firstTab = Tab.Type.SUBSCRIPTIONS.getTab();
+        } else if ("BOOKMARKS".equals(selectedType)) {
+            firstTab = Tab.Type.BOOKMARKS.getTab();
+        } else if ("TRENDING_PODCASTS".equals(selectedType)) {
+            firstTab = Tab.Type.TRENDING_PODCASTS.getTab();
+        } else if ("TRENDING_GAMING".equals(selectedType)) {
+            firstTab = Tab.Type.TRENDING_GAMING.getTab();
+        } else if ("TRENDING_MUSIC".equals(selectedType)) {
+            firstTab = Tab.Type.TRENDING_MUSIC.getTab();
+        } else if ("TRENDING_MOVIES".equals(selectedType)) {
+            firstTab = Tab.Type.TRENDING_MOVIES.getTab();
+        } else if ("TOURNESOL".equals(selectedType)) {
+            firstTab = Tab.Type.TOURNESOL.getTab();
+        } else {
+            firstTab = Tab.Type.LIVE.getTab();
+        }
+
+        return List.of(
+                firstTab,
+                Tab.Type.FEED.getTab(),
+                Tab.Type.SUBSCRIPTIONS.getTab(),
+                Tab.Type.BOOKMARKS.getTab());
     }
 
     public static List<Tab> getDefaultTabs() {
