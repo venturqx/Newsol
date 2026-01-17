@@ -25,12 +25,12 @@ public class TabsJsonHelperTest {
         final List<Tab> defaultTabs = TabsJsonHelper.getDefaultTabs();
 
         final String emptyTabsJson = "{\"" + JSON_TABS_ARRAY_KEY + "\":[]}";
-        List<Tab> items = TabsJsonHelper.getTabsFromJson(null, emptyTabsJson);
-        assertEquals(items, defaultTabs);
+        List<Tab> tabs = TabsJsonHelper.getTabsFromJson(null, emptyTabsJson);
+        assertEquals(defaultTabs, tabs);
 
         final String nullSource = null;
-        items = TabsJsonHelper.getTabsFromJson(null, nullSource);
-        assertEquals(items, defaultTabs);
+        tabs = TabsJsonHelper.getTabsFromJson(null, nullSource);
+        assertEquals(defaultTabs, tabs);
     }
 
     @Test
@@ -39,10 +39,10 @@ public class TabsJsonHelperTest {
         final String emptyTabsJson = "{\"" + JSON_TABS_ARRAY_KEY + "\":["
                 + "{\"" + JSON_TAB_ID_KEY + "\":" + blankTabId + "},"
                 + "{\"" + JSON_TAB_ID_KEY + "\":" + 12345678 + "}" + "]}";
-        final List<Tab> items = TabsJsonHelper.getTabsFromJson(null, emptyTabsJson);
+        final List<Tab> tabs = TabsJsonHelper.getTabsFromJson(null, emptyTabsJson);
 
-        assertEquals("Should ignore the tab with invalid id", 1, items.size());
-        assertEquals(blankTabId, items.get(0).getTabId());
+        assertEquals("Should ignore the tab with invalid id", 1, tabs.size());
+        assertEquals(blankTabId, tabs.get(0).getTabId());
     }
 
     @Test
