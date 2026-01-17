@@ -25,11 +25,11 @@ public class TabsJsonHelperTest {
         final List<Tab> defaultTabs = TabsJsonHelper.getDefaultTabs();
 
         final String emptyTabsJson = "{\"" + JSON_TABS_ARRAY_KEY + "\":[]}";
-        List<Tab> items = TabsJsonHelper.getTabsFromJson(emptyTabsJson);
+        List<Tab> items = TabsJsonHelper.getTabsFromJson(null, emptyTabsJson);
         assertEquals(items, defaultTabs);
 
         final String nullSource = null;
-        items = TabsJsonHelper.getTabsFromJson(nullSource);
+        items = TabsJsonHelper.getTabsFromJson(null, nullSource);
         assertEquals(items, defaultTabs);
     }
 
@@ -39,7 +39,7 @@ public class TabsJsonHelperTest {
         final String emptyTabsJson = "{\"" + JSON_TABS_ARRAY_KEY + "\":["
                 + "{\"" + JSON_TAB_ID_KEY + "\":" + blankTabId + "},"
                 + "{\"" + JSON_TAB_ID_KEY + "\":" + 12345678 + "}" + "]}";
-        final List<Tab> items = TabsJsonHelper.getTabsFromJson(emptyTabsJson);
+        final List<Tab> items = TabsJsonHelper.getTabsFromJson(null, emptyTabsJson);
 
         assertEquals("Should ignore the tab with invalid id", 1, items.size());
         assertEquals(blankTabId, items.get(0).getTabId());
@@ -55,7 +55,7 @@ public class TabsJsonHelperTest {
 
         for (final String invalidContent : invalidList) {
             try {
-                TabsJsonHelper.getTabsFromJson(invalidContent);
+                TabsJsonHelper.getTabsFromJson(null, invalidContent);
 
                 fail("didn't throw exception");
             } catch (final Exception e) {
