@@ -5,6 +5,12 @@
 
 ## Rules for NewPipeExtractor
 -keep class org.schabi.newpipe.extractor.timeago.patterns.** { *; }
+# Tournesol: methods invoked via reflection in ExtractorHelper
+-keepclassmembers class org.schabi.newpipe.extractor.services.youtube.extractors.kiosk.TournesolKioskExtractor {
+    public void setLanguages(java.util.List);
+    public void setDateGte(java.lang.String);
+    public void setUploader(java.lang.String);
+}
 ## Rules for Rhino and Rhino Engine
 -keep class org.mozilla.javascript.* { *; }
 -keep class org.mozilla.javascript.** { *; }

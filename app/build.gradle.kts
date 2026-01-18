@@ -100,6 +100,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = false // disabled to fix F-Droid"s reproducible build
             proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("debug")
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
             }
