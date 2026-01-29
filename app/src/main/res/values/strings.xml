@@ -467,6 +467,8 @@
     <string name="compare_submit_label">SUBMIT</string>
     <string name="compare_submitting_label">SUBMITTING</string>
     <string name="compare_submitted_label">SUBMITTED</string>
+    <string name="compare_submit_more_label">SUBMIT MORE</string>
+    <string name="compare_more_criteria_title">More criteria</string>
     <string name="compare_submit_with_score">%1$s %2$d</string>
     <string name="compare_login_label">LOGIN</string>
     <string name="compare_logged_in_label">LOGGED IN</string>
@@ -481,9 +483,19 @@
     <string name="compare_login_required">Tournesol login required</string>
     <string name="compare_service_not_supported">Service not supported</string>
     <string name="compare_submitted">Comparison submitted</string>
+    <string name="compare_more_submitted">Additional criteria submitted</string>
     <string name="compare_already_submitted">Comparison already submitted</string>
     <string name="compare_failed">Compare failed</string>
     <string name="compare_failed_with_message">Compare failed: %1$s</string>
+    <string name="compare_criteria_reliability">Reliability</string>
+    <string name="compare_criteria_pedagogy">Pedagogy</string>
+    <string name="compare_criteria_importance">Importance</string>
+    <string name="compare_criteria_layman_friendly">Layman friendly</string>
+    <string name="compare_criteria_entertaining_relaxing">Entertaining / relaxing</string>
+    <string name="compare_criteria_engaging">Engaging</string>
+    <string name="compare_criteria_diversity_inclusion">Diversity \u0026 inclusion</string>
+    <string name="compare_criteria_better_habits">Better habits</string>
+    <string name="compare_criteria_backfire_risk">Backfire risk</string>
     <string name="select_a_feed_group">Select a feed group</string>
     <string name="no_feed_group_created_yet">No feed group created yet</string>
     <!-- Kiosk Names -->

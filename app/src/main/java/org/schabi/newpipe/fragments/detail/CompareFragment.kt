@@ -40,8 +40,10 @@ class CompareFragment : Fragment() {
     private var selectedIndex by mutableIntStateOf(0)
     private var selectedStreamId: Long? = null
     private var score by mutableIntStateOf(0)
+    private var extraScores by mutableStateOf(defaultExtraScores())
     private var submitted by mutableStateOf(false)
     private var submitInProgress by mutableStateOf(false)
+    private var submitMoreInProgress by mutableStateOf(false)
     private var showLoginDialog by mutableStateOf(false)
     private var loginInProgress by mutableStateOf(false)
     private var loginError by mutableStateOf<String?>(null)
@@ -93,8 +95,10 @@ class CompareFragment : Fragment() {
                             selectedIndex = selectedIndex,
                             historyMessageRes = historyMessageRes,
                             score = score,
+                            extraScores = extraScores,
                             submitted = submitted,
                             submitInProgress = submitInProgress,
+                            submitMoreInProgress = submitMoreInProgress,
                             showLoginDialog = showLoginDialog,
                             loginInProgress = loginInProgress,
                             loginError = loginError
@@ -102,6 +106,10 @@ class CompareFragment : Fragment() {
                         onSelectIndex = { selectIndex(it) },
                         onScoreChange = { score = it },
                         onSubmit = { sendComparison(score) },
+                        onExtraScoreChange = { criteria, value ->
+                            updateExtraScore(criteria, value)
+                        },
+                        onSubmitMore = { sendAdditionalCriteria() },
                         onDismissLogin = { dismissLoginDialog() },
                         onRegister = { openRegisterPage() },
                         onLogin = { username, password -> performLogin(username, password) }
@@ -150,6 +158,7 @@ class CompareFragment : Fragment() {
         selectedIndex = newIndex
         if (newSelectedId != selectedStreamId) {
             submitInProgress = false
+            resetExtraCriteriaState()
             selectedStreamId = newSelectedId
             refreshSubmittedState()
         }
@@ -166,6 +175,7 @@ class CompareFragment : Fragment() {
         selectedIndex = clampedIndex
         selectedStreamId = historyEntries[clampedIndex].streamId
         submitInProgress = false
+        resetExtraCriteriaState()
         refreshSubmittedState()
     }
 
@@ -311,6 +321,111 @@ class CompareFragment : Fragment() {
                     }
                 )
         )
+    }
+
+    private fun sendAdditionalCriteria() {
+        if (submitMoreInProgress || !submitted) {
+            return
+        }
+        val info = currentInfo
+        if (info == null) {
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.compare_current_unavailable),
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+        val selectedEntry = historyEntries.getOrNull(selectedIndex)
+        if (selectedEntry == null) {
+            val messageRes = historyMessageRes ?: R.string.compare_history_unavailable
+            Toast.makeText(
+                requireContext(),
+                getString(messageRes),
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
+        val lastUid = CompareRepository.buildTournesolUid(
+            selectedEntry.streamEntity.url,
+            selectedEntry.streamEntity.serviceId
+        )
+        val currentUid = CompareRepository.buildTournesolUid(
+            info.url,
+            info.serviceId
+        )
+
+        if (lastUid == null || currentUid == null) {
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.compare_service_not_supported),
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
+        val criteriaScores = EXTRA_CRITERIA.map { criterion ->
+            CriteriaScore(criterion.id, extraScores[criterion.id] ?: 0)
+        }
+
+        submitMoreInProgress = true
+        disposables.add(
+            TournesolAuthManager.getValidAccessToken(requireContext())
+                .subscribeOn(Schedulers.io())
+                .switchIfEmpty(
+                    io.reactivex.rxjava3.core.Maybe.error(MissingTokenException())
+                )
+                .flatMapSingle { token ->
+                    CompareRepository.patchComparison(
+                        token,
+                        lastUid,
+                        currentUid,
+                        criteriaScores
+                    )
+                }
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                    { messageRes ->
+                        submitMoreInProgress = false
+                        Toast.makeText(
+                            requireContext(),
+                            getString(messageRes),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    },
+                    { throwable ->
+                        submitMoreInProgress = false
+                        if (throwable is MissingTokenException) {
+                            Toast.makeText(
+                                requireContext(),
+                                getString(R.string.compare_login_required),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            showLoginDialog()
+                            return@subscribe
+                        }
+                        val message = throwable.message
+                        val errorText = if (message.isNullOrBlank()) {
+                            getString(R.string.compare_failed)
+                        } else {
+                            getString(R.string.compare_failed_with_message, message)
+                        }
+                        Toast.makeText(requireContext(), errorText, Toast.LENGTH_LONG).show()
+                    }
+                )
+        )
+    }
+
+    private fun updateExtraScore(criteria: String, value: Int) {
+        val updated = extraScores.toMutableMap()
+        updated[criteria] = value
+        extraScores = updated
+    }
+
+    private fun resetExtraCriteriaState() {
+        extraScores = defaultExtraScores()
+        submitMoreInProgress = false
     }
 
     private fun updateSubmittedState() {

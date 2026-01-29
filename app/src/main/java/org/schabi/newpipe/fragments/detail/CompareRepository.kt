@@ -81,6 +81,32 @@ object CompareRepository {
         }
     }.subscribeOn(Schedulers.io())
 
+    internal fun patchComparison(
+        token: String,
+        lastUid: String,
+        currentUid: String,
+        criteriaScores: List<CriteriaScore>
+    ): Single<Int> = Single.fromCallable {
+        val payload = buildPatchPayload(criteriaScores)
+        val mediaType = "application/json; charset=utf-8".toMediaType()
+        val body = payload.toString().toRequestBody(mediaType)
+        val request = Request.Builder()
+            .url("$COMPARE_URL/$lastUid/$currentUid/")
+            .patch(body)
+            .addHeader("Authorization", "Bearer $token")
+            .addHeader("Content-Type", "application/json")
+            .build()
+
+        val client = getHttpClient()
+        client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (response.isSuccessful) {
+                return@fromCallable R.string.compare_more_submitted
+            }
+            throw IOException("HTTP ${response.code} $responseBody")
+        }
+    }.subscribeOn(Schedulers.io())
+
     private fun getTournesolServicePrefix(serviceId: Int): String? {
         return when (serviceId) {
             ServiceList.YouTube.serviceId -> "yt"
@@ -100,15 +126,31 @@ object CompareRepository {
         payload.put("entity_a", JSONObject().put("uid", lastUid))
         payload.put("entity_b", JSONObject().put("uid", currentUid))
 
-        val scoreItem = JSONObject()
-        scoreItem.put("criteria", COMPARE_CRITERIA)
-        scoreItem.put("score", score)
-        scoreItem.put("score_max", SCORE_MAX)
-
-        val criteriaScores = JSONArray()
-        criteriaScores.put(scoreItem)
+        val criteriaScores = buildCriteriaScores(
+            listOf(CriteriaScore(COMPARE_CRITERIA, score))
+        )
         payload.put("criteria_scores", criteriaScores)
         return payload
+    }
+
+    private fun buildPatchPayload(
+        criteriaScores: List<CriteriaScore>
+    ): JSONObject {
+        val payload = JSONObject()
+        payload.put("criteria_scores", buildCriteriaScores(criteriaScores))
+        return payload
+    }
+
+    private fun buildCriteriaScores(criteriaScores: List<CriteriaScore>): JSONArray {
+        val scores = JSONArray()
+        criteriaScores.forEach { scoreItem ->
+            val item = JSONObject()
+            item.put("criteria", scoreItem.criteria)
+            item.put("score", scoreItem.score)
+            item.put("score_max", SCORE_MAX)
+            scores.put(item)
+        }
+        return scores
     }
 
     private fun getHttpClient(): OkHttpClient {

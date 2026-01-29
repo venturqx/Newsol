@@ -98,6 +98,8 @@ fun CompareScreen(
     onSelectIndex: (Int) -> Unit,
     onScoreChange: (Int) -> Unit,
     onSubmit: () -> Unit,
+    onExtraScoreChange: (String, Int) -> Unit,
+    onSubmitMore: () -> Unit,
     onDismissLogin: () -> Unit,
     onRegister: () -> Unit,
     onLogin: (String, String) -> Unit
@@ -201,6 +203,60 @@ fun CompareScreen(
                     contentDescription = null,
                     modifier = Modifier.size(20.dp)
                 )
+            }
+        }
+
+        if (state.submitted) {
+            Spacer(modifier = Modifier.height(18.dp))
+            Text(
+                text = stringResource(R.string.compare_more_criteria_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            AdditionalCriteriaSection(
+                scores = state.extraScores,
+                onScoreChange = onExtraScoreChange
+            )
+
+            val submitMoreEnabled = currentEntry != null && !state.submitMoreInProgress
+            val submitMoreLabel = stringResource(
+                if (state.submitMoreInProgress) {
+                    R.string.compare_submitting_label
+                } else {
+                    R.string.compare_submit_more_label
+                }
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp)
+                    .clickable(enabled = submitMoreEnabled) { onSubmitMore() },
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = submitMoreLabel,
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = if (submitMoreEnabled) {
+                        lerp(MaterialTheme.colorScheme.onSurface, Color(0xFFFFD54F), 0.35f)
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                if (state.submitMoreInProgress) {
+                    SubmitSpinner(
+                        modifier = Modifier.size(18.dp),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(R.drawable.logo_small),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
     }
@@ -778,6 +834,56 @@ private fun ThickScoreSlider(
             val textY = labelCenterY - (metrics.ascent + metrics.descent) / 2f
             drawText(valueText, indicatorCenterX, textY, labelPaint)
         }
+    }
+}
+
+@Composable
+private fun AdditionalCriteriaSection(
+    scores: Map<String, Int>,
+    onScoreChange: (String, Int) -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        EXTRA_CRITERIA.forEach { criterion ->
+            CriteriaScoreRow(
+                criterion = criterion,
+                score = scores[criterion.id] ?: 0,
+                onScoreChange = { value -> onScoreChange(criterion.id, value) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun CriteriaScoreRow(
+    criterion: CompareCriterion,
+    score: Int,
+    onScoreChange: (Int) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(criterion.iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = stringResource(criterion.labelRes),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+        ThickScoreSlider(
+            value = score,
+            onValueChange = onScoreChange,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 

@@ -7,8 +7,10 @@ data class CompareUiState(
     val selectedIndex: Int = 0,
     val historyMessageRes: Int? = null,
     val score: Int = 0,
+    val extraScores: Map<String, Int> = defaultExtraScores(),
     val submitted: Boolean = false,
     val submitInProgress: Boolean = false,
+    val submitMoreInProgress: Boolean = false,
     val showLoginDialog: Boolean = false,
     val loginInProgress: Boolean = false,
     val loginError: String? = null
