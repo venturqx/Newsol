@@ -42,8 +42,11 @@ class CompareFragment : Fragment() {
     private var selectedStreamId: Long? = null
     private var score by mutableIntStateOf(0)
     private var extraScores by mutableStateOf(defaultExtraScores())
+    private var storedMainScore by mutableStateOf<Int?>(null)
     private var submitted by mutableStateOf(false)
+    private var submittedConfirmed by mutableStateOf(false)
     private var submitInProgress by mutableStateOf(false)
+    private var changeInProgress by mutableStateOf(false)
     private var submitMoreInProgress by mutableStateOf(false)
     private var showLoginDialog by mutableStateOf(false)
     private var loginInProgress by mutableStateOf(false)
@@ -99,8 +102,11 @@ class CompareFragment : Fragment() {
                             historyMessageRes = historyMessageRes,
                             score = score,
                             extraScores = extraScores,
+                            storedMainScore = storedMainScore,
                             submitted = submitted,
+                            submittedConfirmed = submittedConfirmed,
                             submitInProgress = submitInProgress,
+                            changeInProgress = changeInProgress,
                             submitMoreInProgress = submitMoreInProgress,
                             showLoginDialog = showLoginDialog,
                             loginInProgress = loginInProgress,
@@ -109,6 +115,7 @@ class CompareFragment : Fragment() {
                         onSelectIndex = { selectIndex(it) },
                         onScoreChange = { score = it },
                         onSubmit = { sendComparison(score) },
+                        onChangeMainScore = { sendMainScoreChange() },
                         onExtraScoreChange = { criteria, value ->
                             updateExtraScore(criteria, value)
                         },
@@ -328,6 +335,65 @@ class CompareFragment : Fragment() {
         )
     }
 
+    private fun sendMainScoreChange() {
+        if (changeInProgress || !submittedConfirmed) {
+            return
+        }
+        val key = compareKeyForSelection() ?: return
+        val storedScore = storedScores[key.toStorage()]?.mainScore
+        if (storedScore != null && storedScore == score) {
+            return
+        }
+
+        changeInProgress = true
+        disposables.add(
+            TournesolAuthManager.getValidAccessToken(requireContext())
+                .subscribeOn(Schedulers.io())
+                .switchIfEmpty(
+                    io.reactivex.rxjava3.core.Maybe.error(MissingTokenException())
+                )
+                .flatMapSingle { token ->
+                    CompareRepository.patchComparison(
+                        token,
+                        key.lastUid,
+                        key.currentUid,
+                        listOf(CriteriaScore("largely_recommended", score))
+                    )
+                }
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                    {
+                        changeInProgress = false
+                        storeSubmittedScores(key, mainScore = score)
+                        Toast.makeText(
+                            requireContext(),
+                            getString(R.string.compare_score_updated),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    },
+                    { throwable ->
+                        changeInProgress = false
+                        if (throwable is MissingTokenException) {
+                            Toast.makeText(
+                                requireContext(),
+                                getString(R.string.compare_login_required),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            showLoginDialog()
+                            return@subscribe
+                        }
+                        val message = throwable.message
+                        val errorText = if (message.isNullOrBlank()) {
+                            getString(R.string.compare_failed)
+                        } else {
+                            getString(R.string.compare_failed_with_message, message)
+                        }
+                        Toast.makeText(requireContext(), errorText, Toast.LENGTH_LONG).show()
+                    }
+                )
+        )
+    }
+
     private fun sendAdditionalCriteria() {
         if (submitMoreInProgress || !submitted) {
             return
@@ -434,15 +500,19 @@ class CompareFragment : Fragment() {
 
     private fun resetSelectionState() {
         submitInProgress = false
+        changeInProgress = false
         submitMoreInProgress = false
         score = 0
         extraScores = defaultExtraScores()
+        storedMainScore = null
+        submittedConfirmed = false
         applyStoredScoresForSelection()
     }
 
     private fun applyStoredScoresForSelection() {
         val key = compareKeyForSelection() ?: return
         val stored = storedScores[key.toStorage()] ?: return
+        storedMainScore = stored.mainScore
         stored.mainScore?.let { score = it }
         if (stored.extraScores.isNotEmpty()) {
             val updated = defaultExtraScores().toMutableMap()
@@ -455,6 +525,7 @@ class CompareFragment : Fragment() {
 
     private fun updateSubmittedState() {
         submitted = compareKeyForSelection()?.let(submittedComparisons::contains) == true
+        submittedConfirmed = false
     }
 
     private fun refreshSubmittedState() {
@@ -489,7 +560,14 @@ class CompareFragment : Fragment() {
             if (submittedComparisons.remove(key)) {
                 saveSubmittedComparisons()
             }
+            if (storedScores.remove(key.toStorage()) != null) {
+                saveStoredScores()
+            }
+            if (compareKeyForSelection() == key) {
+                storedMainScore = null
+            }
             submitted = false
+            submittedConfirmed = false
         }
     }
 
@@ -513,6 +591,7 @@ class CompareFragment : Fragment() {
             saveSubmittedComparisons()
         }
         submitted = true
+        submittedConfirmed = true
     }
 
     private fun loadSubmittedComparisons() {
@@ -600,6 +679,9 @@ class CompareFragment : Fragment() {
             mainScore = mergedMain,
             extraScores = mergedExtra
         )
+        if (compareKeyForSelection() == key) {
+            storedMainScore = mergedMain
+        }
         saveStoredScores()
     }
 

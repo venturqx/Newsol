@@ -98,6 +98,7 @@ fun CompareScreen(
     onSelectIndex: (Int) -> Unit,
     onScoreChange: (Int) -> Unit,
     onSubmit: () -> Unit,
+    onChangeMainScore: () -> Unit,
     onExtraScoreChange: (String, Int) -> Unit,
     onSubmitMore: () -> Unit,
     onDismissLogin: () -> Unit,
@@ -165,6 +166,11 @@ fun CompareScreen(
         )
 
         val submitEnabled = currentEntry != null && !state.submitted && !state.submitInProgress
+        val showChange = state.submittedConfirmed
+        val changeEnabled = showChange &&
+            currentEntry != null &&
+            !state.changeInProgress &&
+            (state.storedMainScore == null || state.score != state.storedMainScore)
         val submitLabel = stringResource(
             if (state.submitInProgress) {
                 R.string.compare_submitting_label
@@ -177,32 +183,66 @@ fun CompareScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 12.dp)
-                .clickable(enabled = submitEnabled) { onSubmit() },
+                .padding(top = 12.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = submitLabel,
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                color = if (submitEnabled) {
-                    lerp(MaterialTheme.colorScheme.onSurface, Color(0xFFFFD54F), 0.35f)
+            Row(
+                modifier = Modifier.clickable(enabled = submitEnabled) { onSubmit() },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = submitLabel,
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = if (submitEnabled) {
+                        lerp(MaterialTheme.colorScheme.onSurface, Color(0xFFFFD54F), 0.35f)
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                if (state.submitInProgress) {
+                    SubmitSpinner(
+                        modifier = Modifier.size(18.dp),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    Image(
+                        painter = painterResource(R.drawable.logo_small),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            if (state.submitInProgress) {
-                SubmitSpinner(
-                    modifier = Modifier.size(18.dp),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            } else {
-                Image(
-                    painter = painterResource(R.drawable.logo_small),
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
+            }
+            if (showChange) {
+                Spacer(modifier = Modifier.width(14.dp))
+                Row(
+                    modifier = Modifier.clickable(enabled = changeEnabled) { onChangeMainScore() },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.compare_change_label),
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = if (changeEnabled) {
+                            lerp(MaterialTheme.colorScheme.onSurface, Color(0xFFFFD54F), 0.35f)
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    if (state.changeInProgress) {
+                        SubmitSpinner(
+                            modifier = Modifier.size(18.dp),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(R.drawable.ic_refresh),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
             }
         }
 
