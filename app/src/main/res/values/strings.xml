@@ -468,6 +468,7 @@
     <string name="compare_submitting_label">SUBMITTING</string>
     <string name="compare_submitted_label">SUBMITTED</string>
     <string name="compare_change_label">CHANGE</string>
+    <string name="compare_update_label">UPDATE</string>
     <string name="compare_submit_more_label">SUBMIT MORE</string>
     <string name="compare_more_criteria_title">More criteria</string>
     <string name="compare_submit_with_score">%1$s %2$d</string>

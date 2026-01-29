@@ -259,10 +259,22 @@ fun CompareScreen(
                 onScoreChange = onExtraScoreChange
             )
 
-            val submitMoreEnabled = currentEntry != null && !state.submitMoreInProgress
+            val submitMoreEnabled = currentEntry != null &&
+                !state.submitMoreInProgress &&
+                !state.extraSubmitted
+            val showUpdate = state.extraSubmitted
+            val extraChanged = EXTRA_CRITERIA.any { criterion ->
+                state.extraScores[criterion.id] != state.storedExtraScores[criterion.id]
+            }
+            val updateEnabled = showUpdate &&
+                currentEntry != null &&
+                !state.submitMoreInProgress &&
+                extraChanged
             val submitMoreLabel = stringResource(
                 if (state.submitMoreInProgress) {
                     R.string.compare_submitting_label
+                } else if (state.extraSubmitted) {
+                    R.string.compare_submitted_label
                 } else {
                     R.string.compare_submit_more_label
                 }
@@ -270,32 +282,66 @@ fun CompareScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp)
-                    .clickable(enabled = submitMoreEnabled) { onSubmitMore() },
+                    .padding(top = 12.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = submitMoreLabel,
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = if (submitMoreEnabled) {
-                        lerp(MaterialTheme.colorScheme.onSurface, Color(0xFFFFD54F), 0.35f)
+                Row(
+                    modifier = Modifier.clickable(enabled = submitMoreEnabled) { onSubmitMore() },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = submitMoreLabel,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = if (submitMoreEnabled) {
+                            lerp(MaterialTheme.colorScheme.onSurface, Color(0xFFFFD54F), 0.35f)
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    if (state.submitMoreInProgress) {
+                        SubmitSpinner(
+                            modifier = Modifier.size(18.dp),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     } else {
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        Image(
+                            painter = painterResource(R.drawable.logo_small),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                if (state.submitMoreInProgress) {
-                    SubmitSpinner(
-                        modifier = Modifier.size(18.dp),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                } else {
-                    Image(
-                        painter = painterResource(R.drawable.logo_small),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
+                }
+                if (showUpdate) {
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Row(
+                        modifier = Modifier.clickable(enabled = updateEnabled) { onSubmitMore() },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.compare_update_label),
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            color = if (updateEnabled) {
+                                lerp(MaterialTheme.colorScheme.onSurface, Color(0xFFFFD54F), 0.35f)
+                            } else {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        if (state.submitMoreInProgress) {
+                            SubmitSpinner(
+                                modifier = Modifier.size(18.dp),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        } else {
+                            Image(
+                                painter = painterResource(R.drawable.ic_refresh),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
                 }
             }
         }

@@ -43,8 +43,10 @@ class CompareFragment : Fragment() {
     private var score by mutableIntStateOf(0)
     private var extraScores by mutableStateOf(defaultExtraScores())
     private var storedMainScore by mutableStateOf<Int?>(null)
+    private var storedExtraScores by mutableStateOf<Map<String, Int>>(emptyMap())
     private var submitted by mutableStateOf(false)
     private var submittedConfirmed by mutableStateOf(false)
+    private var extraSubmitted by mutableStateOf(false)
     private var submitInProgress by mutableStateOf(false)
     private var changeInProgress by mutableStateOf(false)
     private var submitMoreInProgress by mutableStateOf(false)
@@ -103,8 +105,10 @@ class CompareFragment : Fragment() {
                             score = score,
                             extraScores = extraScores,
                             storedMainScore = storedMainScore,
+                            storedExtraScores = storedExtraScores,
                             submitted = submitted,
                             submittedConfirmed = submittedConfirmed,
+                            extraSubmitted = extraSubmitted,
                             submitInProgress = submitInProgress,
                             changeInProgress = changeInProgress,
                             submitMoreInProgress = submitMoreInProgress,
@@ -505,6 +509,8 @@ class CompareFragment : Fragment() {
         score = 0
         extraScores = defaultExtraScores()
         storedMainScore = null
+        storedExtraScores = emptyMap()
+        extraSubmitted = false
         submittedConfirmed = false
         applyStoredScoresForSelection()
     }
@@ -513,6 +519,8 @@ class CompareFragment : Fragment() {
         val key = compareKeyForSelection() ?: return
         val stored = storedScores[key.toStorage()] ?: return
         storedMainScore = stored.mainScore
+        storedExtraScores = stored.extraScores
+        extraSubmitted = stored.extraScores.isNotEmpty()
         stored.mainScore?.let { score = it }
         if (stored.extraScores.isNotEmpty()) {
             val updated = defaultExtraScores().toMutableMap()
@@ -565,6 +573,8 @@ class CompareFragment : Fragment() {
             }
             if (compareKeyForSelection() == key) {
                 storedMainScore = null
+                storedExtraScores = emptyMap()
+                extraSubmitted = false
             }
             submitted = false
             submittedConfirmed = false
@@ -681,6 +691,8 @@ class CompareFragment : Fragment() {
         )
         if (compareKeyForSelection() == key) {
             storedMainScore = mergedMain
+            storedExtraScores = mergedExtra
+            extraSubmitted = mergedExtra.isNotEmpty()
         }
         saveStoredScores()
     }
