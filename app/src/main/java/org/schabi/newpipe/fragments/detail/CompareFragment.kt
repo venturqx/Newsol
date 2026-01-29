@@ -3,6 +3,7 @@ package org.schabi.newpipe.fragments.detail
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.util.Base64
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -50,6 +51,7 @@ class CompareFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         currentInfo = arguments?.serializable<StreamInfo>(KEY_INFO)
+        loadSubmittedComparisons()
     }
 
     override fun onCreateView(
@@ -329,14 +331,61 @@ class CompareFragment : Fragment() {
     }
 
     private fun markSubmitted(lastUid: String, currentUid: String) {
-        submittedComparisons.add(CompareKey(lastUid, currentUid))
+        val key = CompareKey(lastUid, currentUid)
+        if (submittedComparisons.add(key)) {
+            saveSubmittedComparisons()
+        }
         submitted = true
     }
 
+    private fun loadSubmittedComparisons() {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
+        val stored = prefs.getStringSet(PREF_SUBMITTED_COMPARISONS, emptySet()).orEmpty()
+        submittedComparisons.clear()
+        stored.mapNotNull(CompareKey.Companion::fromStorage)
+            .forEach(submittedComparisons::add)
+    }
+
+    private fun saveSubmittedComparisons() {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
+        val serialized = submittedComparisons.map(CompareKey::toStorage).toSet()
+        prefs.edit().putStringSet(PREF_SUBMITTED_COMPARISONS, serialized).apply()
+    }
+
     private class MissingTokenException : RuntimeException()
-    private data class CompareKey(val lastUid: String, val currentUid: String)
+    private data class CompareKey(val lastUid: String, val currentUid: String) {
+        fun toStorage(): String {
+            return "${encode(lastUid)}|${encode(currentUid)}"
+        }
+
+        companion object {
+            fun fromStorage(value: String): CompareKey? {
+                val parts = value.split('|', limit = 2)
+                if (parts.size != 2) {
+                    return null
+                }
+                val lastUid = decode(parts[0]) ?: return null
+                val currentUid = decode(parts[1]) ?: return null
+                return CompareKey(lastUid, currentUid)
+            }
+
+            private fun encode(value: String): String {
+                return Base64.encodeToString(value.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
+            }
+
+            private fun decode(value: String): String? {
+                return try {
+                    String(Base64.decode(value, Base64.NO_WRAP), Charsets.UTF_8)
+                } catch (_: IllegalArgumentException) {
+                    null
+                }
+            }
+        }
+    }
 
     companion object {
+        private const val PREF_SUBMITTED_COMPARISONS = "compare_submitted_pairs_v1"
+
         @JvmStatic
         fun getInstance(info: StreamInfo): CompareFragment {
             return CompareFragment().apply {
