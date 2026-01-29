@@ -22,6 +22,7 @@ import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
+import org.json.JSONObject
 import org.schabi.newpipe.R
 import org.schabi.newpipe.database.history.model.StreamHistoryEntry
 import org.schabi.newpipe.extractor.stream.StreamInfo
@@ -50,11 +51,13 @@ class CompareFragment : Fragment() {
     private var loginDisposable: Disposable? = null
     private var checkDisposable: Disposable? = null
     private val submittedComparisons = LinkedHashSet<CompareKey>()
+    private val storedScores = LinkedHashMap<String, ComparisonScores>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         currentInfo = arguments?.serializable<StreamInfo>(KEY_INFO)
         loadSubmittedComparisons()
+        loadStoredScores()
     }
 
     override fun onCreateView(
@@ -157,8 +160,7 @@ class CompareFragment : Fragment() {
         val newSelectedId = filtered.getOrNull(newIndex)?.streamId
         selectedIndex = newIndex
         if (newSelectedId != selectedStreamId) {
-            submitInProgress = false
-            resetExtraCriteriaState()
+            resetSelectionState()
             selectedStreamId = newSelectedId
             refreshSubmittedState()
         }
@@ -174,8 +176,7 @@ class CompareFragment : Fragment() {
         }
         selectedIndex = clampedIndex
         selectedStreamId = historyEntries[clampedIndex].streamId
-        submitInProgress = false
-        resetExtraCriteriaState()
+        resetSelectionState()
         refreshSubmittedState()
     }
 
@@ -294,6 +295,10 @@ class CompareFragment : Fragment() {
                     { messageRes ->
                         submitInProgress = false
                         markSubmitted(lastUid, currentUid)
+                        storeSubmittedScores(
+                            CompareKey(lastUid, currentUid),
+                            mainScore = score
+                        )
                         Toast.makeText(
                             requireContext(),
                             getString(messageRes),
@@ -388,6 +393,10 @@ class CompareFragment : Fragment() {
                 .subscribe(
                     { messageRes ->
                         submitMoreInProgress = false
+                        storeSubmittedScores(
+                            CompareKey(lastUid, currentUid),
+                            extraScores = extraScores
+                        )
                         Toast.makeText(
                             requireContext(),
                             getString(messageRes),
@@ -423,9 +432,25 @@ class CompareFragment : Fragment() {
         extraScores = updated
     }
 
-    private fun resetExtraCriteriaState() {
-        extraScores = defaultExtraScores()
+    private fun resetSelectionState() {
+        submitInProgress = false
         submitMoreInProgress = false
+        score = 0
+        extraScores = defaultExtraScores()
+        applyStoredScoresForSelection()
+    }
+
+    private fun applyStoredScoresForSelection() {
+        val key = compareKeyForSelection() ?: return
+        val stored = storedScores[key.toStorage()] ?: return
+        stored.mainScore?.let { score = it }
+        if (stored.extraScores.isNotEmpty()) {
+            val updated = defaultExtraScores().toMutableMap()
+            stored.extraScores.forEach { (criteria, value) ->
+                updated[criteria] = value
+            }
+            extraScores = updated
+        }
     }
 
     private fun updateSubmittedState() {
@@ -504,7 +529,85 @@ class CompareFragment : Fragment() {
         prefs.edit().putStringSet(PREF_SUBMITTED_COMPARISONS, serialized).apply()
     }
 
+    private fun loadStoredScores() {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
+        val raw = prefs.getString(PREF_COMPARISON_SCORES, null)
+        storedScores.clear()
+        if (raw.isNullOrBlank()) {
+            return
+        }
+        try {
+            val root = JSONObject(raw)
+            val keys = root.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                val entry = root.optJSONObject(key) ?: continue
+                val mainScore = if (entry.has("mainScore")) {
+                    entry.optInt("mainScore")
+                } else {
+                    null
+                }
+                val extraScores = mutableMapOf<String, Int>()
+                val extras = entry.optJSONObject("extraScores")
+                if (extras != null) {
+                    val extraKeys = extras.keys()
+                    while (extraKeys.hasNext()) {
+                        val criteria = extraKeys.next()
+                        extraScores[criteria] = extras.optInt(criteria)
+                    }
+                }
+                storedScores[key] = ComparisonScores(
+                    mainScore = mainScore,
+                    extraScores = extraScores
+                )
+            }
+        } catch (_: Exception) {
+            storedScores.clear()
+        }
+    }
+
+    private fun saveStoredScores() {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
+        val root = JSONObject()
+        storedScores.forEach { (key, scores) ->
+            val entry = JSONObject()
+            scores.mainScore?.let { entry.put("mainScore", it) }
+            if (scores.extraScores.isNotEmpty()) {
+                val extras = JSONObject()
+                scores.extraScores.forEach { (criteria, value) ->
+                    extras.put(criteria, value)
+                }
+                entry.put("extraScores", extras)
+            }
+            root.put(key, entry)
+        }
+        prefs.edit().putString(PREF_COMPARISON_SCORES, root.toString()).apply()
+    }
+
+    private fun storeSubmittedScores(
+        key: CompareKey,
+        mainScore: Int? = null,
+        extraScores: Map<String, Int>? = null
+    ) {
+        val storageKey = key.toStorage()
+        val existing = storedScores[storageKey]
+        val mergedMain = mainScore ?: existing?.mainScore
+        val mergedExtra = extraScores ?: existing?.extraScores.orEmpty()
+        if (mergedMain == null && mergedExtra.isEmpty()) {
+            return
+        }
+        storedScores[storageKey] = ComparisonScores(
+            mainScore = mergedMain,
+            extraScores = mergedExtra
+        )
+        saveStoredScores()
+    }
+
     private class MissingTokenException : RuntimeException()
+    private data class ComparisonScores(
+        val mainScore: Int? = null,
+        val extraScores: Map<String, Int> = emptyMap()
+    )
     private data class CompareKey(val lastUid: String, val currentUid: String) {
         fun toStorage(): String {
             return "${encode(lastUid)}|${encode(currentUid)}"
@@ -537,6 +640,7 @@ class CompareFragment : Fragment() {
 
     companion object {
         private const val PREF_SUBMITTED_COMPARISONS = "compare_submitted_pairs_v1"
+        private const val PREF_COMPARISON_SCORES = "compare_submitted_scores_v1"
 
         @JvmStatic
         fun getInstance(info: StreamInfo): CompareFragment {
