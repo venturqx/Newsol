@@ -58,6 +58,29 @@ object CompareRepository {
         }
     }.subscribeOn(Schedulers.io())
 
+    fun checkComparison(
+        token: String,
+        uidA: String,
+        uidB: String
+    ): Single<Boolean> = Single.fromCallable {
+        val url = "$COMPARE_URL/$uidA/$uidB/"
+        val request = Request.Builder()
+            .url(url)
+            .get()
+            .addHeader("Authorization", "Bearer $token")
+            .build()
+
+        val client = getHttpClient()
+        client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            return@fromCallable when (response.code) {
+                200 -> true
+                404 -> false
+                else -> throw IOException("HTTP ${response.code} $responseBody")
+            }
+        }
+    }.subscribeOn(Schedulers.io())
+
     private fun getTournesolServicePrefix(serviceId: Int): String? {
         return when (serviceId) {
             ServiceList.YouTube.serviceId -> "yt"

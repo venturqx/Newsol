@@ -46,6 +46,7 @@ class CompareFragment : Fragment() {
     private var loginInProgress by mutableStateOf(false)
     private var loginError by mutableStateOf<String?>(null)
     private var loginDisposable: Disposable? = null
+    private var checkDisposable: Disposable? = null
     private val submittedComparisons = LinkedHashSet<CompareKey>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -150,7 +151,7 @@ class CompareFragment : Fragment() {
         if (newSelectedId != selectedStreamId) {
             submitInProgress = false
             selectedStreamId = newSelectedId
-            updateSubmittedState()
+            refreshSubmittedState()
         }
     }
 
@@ -165,7 +166,7 @@ class CompareFragment : Fragment() {
         selectedIndex = clampedIndex
         selectedStreamId = historyEntries[clampedIndex].streamId
         submitInProgress = false
-        updateSubmittedState()
+        refreshSubmittedState()
     }
 
     private fun isHistoryEnabled(): Boolean {
@@ -314,6 +315,42 @@ class CompareFragment : Fragment() {
 
     private fun updateSubmittedState() {
         submitted = compareKeyForSelection()?.let(submittedComparisons::contains) == true
+    }
+
+    private fun refreshSubmittedState() {
+        updateSubmittedState()
+        requestRemoteSubmittedCheck()
+    }
+
+    private fun requestRemoteSubmittedCheck() {
+        val key = compareKeyForSelection() ?: return
+        checkDisposable?.dispose()
+        checkDisposable = TournesolAuthManager.getValidAccessToken(requireContext())
+            .subscribeOn(Schedulers.io())
+            .flatMapSingle { token ->
+                CompareRepository.checkComparison(token, key.currentUid, key.lastUid)
+            }
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(
+                { exists -> applyRemoteSubmittedResult(key, exists) },
+                { /* ignore auto-check errors */ },
+                { /* no token, keep local state */ }
+            )
+        checkDisposable?.let { disposables.add(it) }
+    }
+
+    private fun applyRemoteSubmittedResult(key: CompareKey, exists: Boolean) {
+        if (compareKeyForSelection() != key) {
+            return
+        }
+        if (exists) {
+            markSubmitted(key.lastUid, key.currentUid)
+        } else {
+            if (submittedComparisons.remove(key)) {
+                saveSubmittedComparisons()
+            }
+            submitted = false
+        }
     }
 
     private fun compareKeyForSelection(): CompareKey? {
