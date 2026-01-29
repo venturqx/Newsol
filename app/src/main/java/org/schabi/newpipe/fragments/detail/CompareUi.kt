@@ -47,6 +47,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -83,7 +84,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import org.schabi.newpipe.R
 import org.schabi.newpipe.database.history.model.StreamHistoryEntry
@@ -378,6 +378,7 @@ private fun HistoryWheel(
         initialPage = selectedIndex.coerceIn(0, entries.lastIndex)
     ) { entries.size }
     val coroutineScope = rememberCoroutineScope()
+    val latestSelectedIndex by rememberUpdatedState(selectedIndex)
     val cameraDistance = with(density) { 22.dp.toPx() }
     val depthShift = with(density) { 18.dp.toPx() }
     val pageSizePx = with(density) { itemHeight.toPx() }
@@ -392,11 +393,10 @@ private fun HistoryWheel(
     }
 
     LaunchedEffect(pagerState, entries) {
-        snapshotFlow { pagerState.isScrollInProgress }
-            .filter { !it }
-            .collect {
-                val newIndex = pagerState.currentPage.coerceIn(0, entries.lastIndex)
-                if (newIndex != selectedIndex) {
+        snapshotFlow { pagerState.currentPage }
+            .collect { page ->
+                val newIndex = page.coerceIn(0, entries.lastIndex)
+                if (newIndex != latestSelectedIndex) {
                     onSelectIndex(newIndex)
                 }
             }

@@ -45,6 +45,7 @@ class CompareFragment : Fragment() {
     private var loginInProgress by mutableStateOf(false)
     private var loginError by mutableStateOf<String?>(null)
     private var loginDisposable: Disposable? = null
+    private val submittedComparisons = LinkedHashSet<CompareKey>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -143,12 +144,12 @@ class CompareFragment : Fragment() {
         }
 
         val newSelectedId = filtered.getOrNull(newIndex)?.streamId
+        selectedIndex = newIndex
         if (newSelectedId != selectedStreamId) {
-            submitted = false
             submitInProgress = false
             selectedStreamId = newSelectedId
+            updateSubmittedState()
         }
-        selectedIndex = newIndex
     }
 
     private fun selectIndex(newIndex: Int) {
@@ -161,8 +162,8 @@ class CompareFragment : Fragment() {
         }
         selectedIndex = clampedIndex
         selectedStreamId = historyEntries[clampedIndex].streamId
-        submitted = false
         submitInProgress = false
+        updateSubmittedState()
     }
 
     private fun isHistoryEnabled(): Boolean {
@@ -279,7 +280,7 @@ class CompareFragment : Fragment() {
                 .subscribe(
                     { messageRes ->
                         submitInProgress = false
-                        submitted = true
+                        markSubmitted(lastUid, currentUid)
                         Toast.makeText(
                             requireContext(),
                             getString(messageRes),
@@ -309,7 +310,31 @@ class CompareFragment : Fragment() {
         )
     }
 
+    private fun updateSubmittedState() {
+        submitted = compareKeyForSelection()?.let(submittedComparisons::contains) == true
+    }
+
+    private fun compareKeyForSelection(): CompareKey? {
+        val info = currentInfo ?: return null
+        val selectedEntry = historyEntries.getOrNull(selectedIndex) ?: return null
+        val lastUid = CompareRepository.buildTournesolUid(
+            selectedEntry.streamEntity.url,
+            selectedEntry.streamEntity.serviceId
+        ) ?: return null
+        val currentUid = CompareRepository.buildTournesolUid(
+            info.url,
+            info.serviceId
+        ) ?: return null
+        return CompareKey(lastUid, currentUid)
+    }
+
+    private fun markSubmitted(lastUid: String, currentUid: String) {
+        submittedComparisons.add(CompareKey(lastUid, currentUid))
+        submitted = true
+    }
+
     private class MissingTokenException : RuntimeException()
+    private data class CompareKey(val lastUid: String, val currentUid: String)
 
     companion object {
         @JvmStatic
