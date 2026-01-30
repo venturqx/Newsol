@@ -369,7 +369,7 @@ private val COMPACT_DIMENSIONS = listOf(
     CompareCriterion(
         id = COMPACT_MAIN_CRITERION_ID,
         labelRes = R.string.compare_criteria_largely_recommended,
-        iconRes = R.drawable.ic_wb_sunny
+        iconRes = R.drawable.logo_small
     )
 ) + EXTRA_CRITERIA
 
@@ -493,7 +493,8 @@ fun CompareCompactScreen(
             CompactHeader(
                 label = activeLabel,
                 score = displayScore,
-                description = activeDescription
+                description = activeDescription,
+                iconRes = activeDimension.iconRes
             )
 
             CompactDimensionList(
@@ -544,7 +545,8 @@ private fun dimensionScore(state: CompareUiState, criterion: CompareCriterion): 
 private fun CompactHeader(
     label: String,
     score: Int,
-    description: String
+    description: String,
+    iconRes: Int
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -560,11 +562,21 @@ private fun CompactHeader(
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Text(
-                text = formatSignedScore(score),
-                style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.primary
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Image(
+                    painter = painterResource(iconRes),
+                    contentDescription = null,
+                    modifier = Modifier.size(30.dp)
+                )
+                Text(
+                    text = formatSignedScore(score),
+                    style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
         Text(
             text = description,
@@ -604,7 +616,7 @@ private fun CompactDimensionList(
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(1.dp)
+        verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
         dimensions.forEachIndexed { index, criterion ->
             val score = dimensionScore(scores, criterion)
@@ -640,13 +652,13 @@ private fun CompactDimensionRow(
             .fillMaxWidth()
             .background(highlight, RoundedCornerShape(12.dp))
             .clickable { onClick() }
-            .padding(horizontal = 10.dp, vertical = 2.dp),
+            .padding(horizontal = 10.dp, vertical = 1.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
             painter = painterResource(criterion.iconRes),
             contentDescription = null,
-            modifier = Modifier.size(14.dp)
+            modifier = Modifier.size(12.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
@@ -664,7 +676,7 @@ private fun CompactDimensionRow(
             isActive = isActive,
             modifier = Modifier
                 .width(88.dp)
-                .height(4.dp)
+                .height(3.dp)
         )
     }
 }
