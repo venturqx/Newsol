@@ -402,11 +402,12 @@ fun CompareCompactScreen(
     )
     val displayScore = animatedScore.roundToInt()
     val activeLabel = stringResource(activeDimension.labelRes)
+    val activeDescription = stringResource(compactDescriptionRes(activeDimension.id))
     val currentEntry = state.selectedEntry
     val maxIndex = dimensions.lastIndex
     val density = LocalDensity.current
-    val pxPerScore = with(density) { 4.dp.toPx() }
-    val verticalStepPx = with(density) { 28.dp.toPx() }
+    val pxPerScore = with(density) { 4.dp.toPx() } / 2f
+    val verticalStepPx = with(density) { 28.dp.toPx() } / 0.6f
     val onActiveScoreChange: (Int) -> Unit = { newValue ->
         val clamped = newValue.coerceIn(SCORE_MIN, SCORE_MAX)
         if (activeDimension.id == COMPACT_MAIN_CRITERION_ID) {
@@ -491,7 +492,8 @@ fun CompareCompactScreen(
         ) {
             CompactHeader(
                 label = activeLabel,
-                score = displayScore
+                score = displayScore,
+                description = activeDescription
             )
 
             CompactDimensionList(
@@ -541,19 +543,54 @@ private fun dimensionScore(state: CompareUiState, criterion: CompareCriterion): 
 @Composable
 private fun CompactHeader(
     label: String,
-    score: Int
+    score: Int,
+    description: String
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = formatSignedScore(score),
+                style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
         Text(
-            text = label,
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface
+            text = description,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            textAlign = TextAlign.Start,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
         )
-        Text(
-            text = formatSignedScore(score),
-            style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.primary
-        )
+    }
+}
+
+private fun compactDescriptionRes(criterionId: String): Int {
+    return when (criterionId) {
+        COMPACT_MAIN_CRITERION_ID -> R.string.compare_criteria_desc_largely_recommended
+        "reliability" -> R.string.compare_criteria_desc_reliability
+        "pedagogy" -> R.string.compare_criteria_desc_pedagogy
+        "importance" -> R.string.compare_criteria_desc_importance
+        "layman_friendly" -> R.string.compare_criteria_desc_layman_friendly
+        "entertaining_relaxing" -> R.string.compare_criteria_desc_entertaining_relaxing
+        "engaging" -> R.string.compare_criteria_desc_engaging
+        "diversity_inclusion" -> R.string.compare_criteria_desc_diversity_inclusion
+        "better_habits" -> R.string.compare_criteria_desc_better_habits
+        "backfire_risk" -> R.string.compare_criteria_desc_backfire_risk
+        else -> R.string.compare_criteria_desc_largely_recommended
     }
 }
 

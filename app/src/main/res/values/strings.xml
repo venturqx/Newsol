@@ -491,6 +491,16 @@
     <string name="compare_failed">Compare failed</string>
     <string name="compare_failed_with_message">Compare failed: %1$s</string>
     <string name="compare_criteria_largely_recommended">Largely recommended</string>
+    <string name="compare_criteria_desc_largely_recommended">Overall, should be recommended widely to a broad audience.</string>
+    <string name="compare_criteria_desc_reliability">Information is trustworthy, well-supported, nuanced, and not misleading.</string>
+    <string name="compare_criteria_desc_pedagogy">Guides understanding step-by-step with clear, helpful explanations.</string>
+    <string name="compare_criteria_desc_importance">Focuses on topics with significant impact and actionable relevance.</string>
+    <string name="compare_criteria_desc_layman_friendly">Understandable without prior knowledge; accessible to non-experts.</string>
+    <string name="compare_criteria_desc_entertaining_relaxing">Makes viewers feel good; entertaining and relaxing to watch.</string>
+    <string name="compare_criteria_desc_engaging">Grabs attention, sparks curiosity, and encourages reflection.</string>
+    <string name="compare_criteria_desc_diversity_inclusion">Promotes tolerance, inclusion, and respect for diverse groups.</string>
+    <string name="compare_criteria_desc_better_habits">Encourages healthier, kinder, or more responsible habits.</string>
+    <string name="compare_criteria_desc_backfire_risk">Safe for varied audiences; low risk of misunderstanding or backlash.</string>
     <string name="compare_criteria_reliability">Reliability</string>
     <string name="compare_criteria_pedagogy">Pedagogy</string>
     <string name="compare_criteria_importance">Importance</string>
