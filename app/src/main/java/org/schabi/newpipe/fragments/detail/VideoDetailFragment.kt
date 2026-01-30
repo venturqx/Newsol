@@ -974,7 +974,7 @@ class VideoDetailFragment :
         childFragmentManager.beginTransaction()
             .replace(
                 R.id.compare_full_container,
-                CompareFragment.getInstance(info),
+                CompareFragment.getInstance(info, true),
                 COMPARE_FULL_FRAGMENT_TAG
             )
             .commitAllowingStateLoss()

@@ -34,6 +34,7 @@ import org.schabi.newpipe.util.TournesolAuthManager
 
 class CompareFragment : Fragment() {
     private var currentInfo: StreamInfo? = null
+    private var useCompactUi = false
     private val disposables = CompositeDisposable()
 
     private var historyEntries by mutableStateOf<List<StreamHistoryEntry>>(emptyList())
@@ -61,6 +62,7 @@ class CompareFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         currentInfo = arguments?.serializable<StreamInfo>(KEY_INFO)
+        useCompactUi = arguments?.getBoolean(KEY_COMPACT_UI) == true
         loadSubmittedComparisons()
         loadStoredScores()
     }
@@ -97,37 +99,54 @@ class CompareFragment : Fragment() {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 AppTheme {
-                    CompareScreen(
-                        state = CompareUiState(
-                            historyEntries = historyEntries,
-                            selectedIndex = selectedIndex,
-                            historyMessageRes = historyMessageRes,
-                            score = score,
-                            extraScores = extraScores,
-                            storedMainScore = storedMainScore,
-                            storedExtraScores = storedExtraScores,
-                            submitted = submitted,
-                            submittedConfirmed = submittedConfirmed,
-                            extraSubmitted = extraSubmitted,
-                            submitInProgress = submitInProgress,
-                            changeInProgress = changeInProgress,
-                            submitMoreInProgress = submitMoreInProgress,
-                            showLoginDialog = showLoginDialog,
-                            loginInProgress = loginInProgress,
-                            loginError = loginError
-                        ),
-                        onSelectIndex = { selectIndex(it) },
-                        onScoreChange = { score = it },
-                        onSubmit = { sendComparison(score) },
-                        onChangeMainScore = { sendMainScoreChange() },
-                        onExtraScoreChange = { criteria, value ->
-                            updateExtraScore(criteria, value)
-                        },
-                        onSubmitMore = { sendAdditionalCriteria() },
-                        onDismissLogin = { dismissLoginDialog() },
-                        onRegister = { openRegisterPage() },
-                        onLogin = { username, password -> performLogin(username, password) }
+                    val uiState = CompareUiState(
+                        historyEntries = historyEntries,
+                        selectedIndex = selectedIndex,
+                        historyMessageRes = historyMessageRes,
+                        score = score,
+                        extraScores = extraScores,
+                        storedMainScore = storedMainScore,
+                        storedExtraScores = storedExtraScores,
+                        submitted = submitted,
+                        submittedConfirmed = submittedConfirmed,
+                        extraSubmitted = extraSubmitted,
+                        submitInProgress = submitInProgress,
+                        changeInProgress = changeInProgress,
+                        submitMoreInProgress = submitMoreInProgress,
+                        showLoginDialog = showLoginDialog,
+                        loginInProgress = loginInProgress,
+                        loginError = loginError
                     )
+                    val onExtraScoreChange = { criteria: String, value: Int ->
+                        updateExtraScore(criteria, value)
+                    }
+                    if (useCompactUi) {
+                        CompareCompactScreen(
+                            state = uiState,
+                            onSelectIndex = { selectIndex(it) },
+                            onScoreChange = { score = it },
+                            onSubmit = { sendComparison(score) },
+                            onChangeMainScore = { sendMainScoreChange() },
+                            onExtraScoreChange = onExtraScoreChange,
+                            onSubmitMore = { sendAdditionalCriteria() },
+                            onDismissLogin = { dismissLoginDialog() },
+                            onRegister = { openRegisterPage() },
+                            onLogin = { username, password -> performLogin(username, password) }
+                        )
+                    } else {
+                        CompareScreen(
+                            state = uiState,
+                            onSelectIndex = { selectIndex(it) },
+                            onScoreChange = { score = it },
+                            onSubmit = { sendComparison(score) },
+                            onChangeMainScore = { sendMainScoreChange() },
+                            onExtraScoreChange = onExtraScoreChange,
+                            onSubmitMore = { sendAdditionalCriteria() },
+                            onDismissLogin = { dismissLoginDialog() },
+                            onRegister = { openRegisterPage() },
+                            onLogin = { username, password -> performLogin(username, password) }
+                        )
+                    }
                 }
             }
         }
@@ -735,11 +754,15 @@ class CompareFragment : Fragment() {
     companion object {
         private const val PREF_SUBMITTED_COMPARISONS = "compare_submitted_pairs_v1"
         private const val PREF_COMPARISON_SCORES = "compare_submitted_scores_v1"
+        private const val KEY_COMPACT_UI = "compare_compact_ui"
 
         @JvmStatic
-        fun getInstance(info: StreamInfo): CompareFragment {
+        fun getInstance(info: StreamInfo, useCompactUi: Boolean = false): CompareFragment {
             return CompareFragment().apply {
-                arguments = bundleOf(KEY_INFO to info)
+                arguments = bundleOf(
+                    KEY_INFO to info,
+                    KEY_COMPACT_UI to useCompactUi
+                )
             }
         }
     }

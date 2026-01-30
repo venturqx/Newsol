@@ -490,6 +490,7 @@
     <string name="compare_already_submitted">Comparison already submitted</string>
     <string name="compare_failed">Compare failed</string>
     <string name="compare_failed_with_message">Compare failed: %1$s</string>
+    <string name="compare_criteria_largely_recommended">Largely recommended</string>
     <string name="compare_criteria_reliability">Reliability</string>
     <string name="compare_criteria_pedagogy">Pedagogy</string>
     <string name="compare_criteria_importance">Importance</string>

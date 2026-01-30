@@ -4,6 +4,7 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -11,6 +12,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -35,6 +37,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -44,15 +47,19 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -355,6 +362,574 @@ fun CompareScreen(
             onRegister = onRegister,
             onLogin = onLogin
         )
+    }
+}
+
+private const val COMPACT_MAIN_CRITERION_ID = "largely_recommended"
+private val COMPACT_DIMENSIONS = listOf(
+    CompareCriterion(
+        id = COMPACT_MAIN_CRITERION_ID,
+        labelRes = R.string.compare_criteria_largely_recommended,
+        iconRes = R.drawable.ic_wb_sunny
+    )
+) + EXTRA_CRITERIA
+
+@Composable
+fun CompareCompactScreen(
+    state: CompareUiState,
+    onSelectIndex: (Int) -> Unit,
+    onScoreChange: (Int) -> Unit,
+    onSubmit: () -> Unit,
+    onChangeMainScore: () -> Unit,
+    onExtraScoreChange: (String, Int) -> Unit,
+    onSubmitMore: () -> Unit,
+    onDismissLogin: () -> Unit,
+    onRegister: () -> Unit,
+    onLogin: (String, String) -> Unit
+) {
+    val dimensions = remember { COMPACT_DIMENSIONS }
+    var activeIndex by rememberSaveable { mutableIntStateOf(0) }
+    LaunchedEffect(dimensions.size) {
+        if (activeIndex !in dimensions.indices) {
+            activeIndex = 0
+        }
+    }
+    val activeIndexSafe = activeIndex.coerceIn(0, dimensions.lastIndex)
+    val activeDimension = dimensions[activeIndexSafe]
+    val activeScore = dimensionScore(state, activeDimension)
+    val animatedScore by animateFloatAsState(
+        targetValue = activeScore.toFloat(),
+        animationSpec = tween(durationMillis = 90),
+        label = "compactScore"
+    )
+    val displayScore = animatedScore.roundToInt()
+    val activeLabel = stringResource(activeDimension.labelRes)
+    val currentEntry = state.selectedEntry
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        CompactHeader(
+            label = activeLabel,
+            score = displayScore
+        )
+
+        CompactHistorySelector(
+            entries = state.historyEntries,
+            selectedIndex = state.selectedIndex,
+            historyMessageRes = state.historyMessageRes,
+            onSelectIndex = onSelectIndex
+        )
+
+        CompactDimensionList(
+            dimensions = dimensions,
+            activeIndex = activeIndexSafe,
+            scores = state,
+            onSelect = { index -> activeIndex = index },
+            modifier = Modifier.weight(1f)
+        )
+
+        val onActiveScoreChange = { newValue: Int ->
+            val clamped = newValue.coerceIn(SCORE_MIN, SCORE_MAX)
+            if (activeDimension.id == COMPACT_MAIN_CRITERION_ID) {
+                onScoreChange(clamped)
+            } else {
+                onExtraScoreChange(activeDimension.id, clamped)
+            }
+        }
+
+        CompactSwipeArea(
+            value = activeScore,
+            onValueChange = onActiveScoreChange,
+            onVerticalStep = { step ->
+                activeIndex = (activeIndex + step).coerceIn(0, dimensions.lastIndex)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+        )
+
+        CompactSubmitSection(
+            state = state,
+            currentEntry = currentEntry,
+            onSubmit = onSubmit,
+            onChangeMainScore = onChangeMainScore,
+            onSubmitMore = onSubmitMore
+        )
+    }
+
+    if (state.showLoginDialog) {
+        TournesolLoginDialog(
+            inProgress = state.loginInProgress,
+            errorMessage = state.loginError,
+            onDismiss = onDismissLogin,
+            onRegister = onRegister,
+            onLogin = onLogin
+        )
+    }
+}
+
+private fun dimensionScore(state: CompareUiState, criterion: CompareCriterion): Int {
+    return if (criterion.id == COMPACT_MAIN_CRITERION_ID) {
+        state.score
+    } else {
+        state.extraScores[criterion.id] ?: 0
+    }
+}
+
+@Composable
+private fun CompactHeader(
+    label: String,
+    score: Int
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = formatSignedScore(score),
+            style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+}
+
+@Composable
+private fun CompactHistorySelector(
+    entries: List<StreamHistoryEntry>,
+    selectedIndex: Int,
+    historyMessageRes: Int?,
+    onSelectIndex: (Int) -> Unit
+) {
+    if (entries.isEmpty()) {
+        val message = historyMessageRes?.let { stringResource(it) }.orEmpty()
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
+        return
+    }
+
+    val clampedIndex = selectedIndex.coerceIn(0, entries.lastIndex)
+    val entry = entries[clampedIndex]
+    val prevEnabled = clampedIndex > 0
+    val nextEnabled = clampedIndex < entries.lastIndex
+    val header = stringResource(R.string.compare_last_viewed_header)
+    val prevLabel = stringResource(R.string.compare_previous_video)
+    val nextLabel = stringResource(R.string.compare_next_video)
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(
+            onClick = { onSelectIndex((clampedIndex - 1).coerceAtLeast(0)) },
+            enabled = prevEnabled
+        ) {
+            Image(
+                painter = painterResource(R.drawable.ic_arrow_drop_up),
+                contentDescription = prevLabel
+            )
+        }
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 6.dp)
+        ) {
+            Text(
+                text = header,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
+            Text(
+                text = entry.streamEntity.title,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        IconButton(
+            onClick = { onSelectIndex((clampedIndex + 1).coerceAtMost(entries.lastIndex)) },
+            enabled = nextEnabled
+        ) {
+            Image(
+                painter = painterResource(R.drawable.ic_arrow_drop_down),
+                contentDescription = nextLabel
+            )
+        }
+    }
+}
+
+@Composable
+private fun CompactDimensionList(
+    dimensions: List<CompareCriterion>,
+    activeIndex: Int,
+    scores: CompareUiState,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        dimensions.forEachIndexed { index, criterion ->
+            val score = dimensionScore(scores, criterion)
+            CompactDimensionRow(
+                criterion = criterion,
+                score = score,
+                isActive = index == activeIndex,
+                onClick = { onSelect(index) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun CompactDimensionRow(
+    criterion: CompareCriterion,
+    score: Int,
+    isActive: Boolean,
+    onClick: () -> Unit
+) {
+    val highlight = if (isActive) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+    } else {
+        Color.Transparent
+    }
+    val textColor = if (isActive) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(highlight, RoundedCornerShape(12.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Image(
+            painter = painterResource(criterion.iconRes),
+            contentDescription = null,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = stringResource(criterion.labelRes),
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal
+            ),
+            color = textColor,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        MiniScoreBar(
+            value = score,
+            isActive = isActive,
+            modifier = Modifier
+                .width(88.dp)
+                .height(8.dp)
+        )
+    }
+}
+
+@Composable
+private fun MiniScoreBar(
+    value: Int,
+    isActive: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val barColor = if (isActive) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+    }
+    val background = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+    val centerLine = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+    Canvas(modifier = modifier) {
+        val radius = size.height / 2f
+        drawRoundRect(
+            color = background,
+            cornerRadius = CornerRadius(radius, radius)
+        )
+        drawLine(
+            color = centerLine,
+            start = Offset(size.width / 2f, 0f),
+            end = Offset(size.width / 2f, size.height),
+            strokeWidth = 1.dp.toPx()
+        )
+        val ratio = value.toFloat() / SCORE_MAX.toFloat()
+        val fillWidth = (size.width / 2f) * abs(ratio)
+        if (fillWidth > 0f) {
+            val startX = if (ratio >= 0f) size.width / 2f else size.width / 2f - fillWidth
+            drawRoundRect(
+                color = barColor,
+                topLeft = Offset(startX, 0f),
+                size = Size(fillWidth, size.height),
+                cornerRadius = CornerRadius(radius, radius)
+            )
+        }
+    }
+}
+
+private enum class DragAxis {
+    HORIZONTAL,
+    VERTICAL
+}
+
+@Composable
+private fun CompactSwipeArea(
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    onVerticalStep: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current
+    val pxPerScore = with(density) { 4.dp.toPx() }
+    val verticalStepPx = with(density) { 28.dp.toPx() }
+    val lockThreshold = with(density) { 8.dp.toPx() }
+    var dragAxis by remember { mutableStateOf<DragAxis?>(null) }
+    var accumulatedX by remember { mutableFloatStateOf(0f) }
+    var accumulatedY by remember { mutableFloatStateOf(0f) }
+    val latestValue by rememberUpdatedState(value)
+    val latestOnValueChange by rememberUpdatedState(onValueChange)
+    val latestOnVerticalStep by rememberUpdatedState(onVerticalStep)
+
+    Box(
+        modifier = modifier
+            .background(
+                MaterialTheme.colorScheme.surfaceContainerLow,
+                RoundedCornerShape(16.dp)
+            )
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragStart = {
+                        dragAxis = null
+                        accumulatedX = 0f
+                        accumulatedY = 0f
+                    },
+                    onDragCancel = {
+                        dragAxis = null
+                        accumulatedX = 0f
+                        accumulatedY = 0f
+                    },
+                    onDragEnd = {
+                        dragAxis = null
+                        accumulatedX = 0f
+                        accumulatedY = 0f
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        var deltaX = dragAmount.x
+                        var deltaY = dragAmount.y
+                        if (dragAxis == null) {
+                            accumulatedX += deltaX
+                            accumulatedY += deltaY
+                            if (abs(accumulatedX) > lockThreshold || abs(accumulatedY) > lockThreshold) {
+                                dragAxis = if (abs(accumulatedX) >= abs(accumulatedY)) {
+                                    accumulatedY = 0f
+                                    DragAxis.HORIZONTAL
+                                } else {
+                                    accumulatedX = 0f
+                                    DragAxis.VERTICAL
+                                }
+                                deltaX = 0f
+                                deltaY = 0f
+                            }
+                        }
+
+                        when (dragAxis) {
+                            DragAxis.HORIZONTAL -> {
+                                accumulatedX += deltaX
+                                val steps = (accumulatedX / pxPerScore).toInt()
+                                if (steps != 0) {
+                                    val newValue =
+                                        (latestValue + steps).coerceIn(SCORE_MIN, SCORE_MAX)
+                                    latestOnValueChange(newValue)
+                                    accumulatedX -= steps * pxPerScore
+                                }
+                            }
+                            DragAxis.VERTICAL -> {
+                                accumulatedY += deltaY
+                                while (abs(accumulatedY) >= verticalStepPx) {
+                                    val step = if (accumulatedY > 0f) 1 else -1
+                                    latestOnVerticalStep(step)
+                                    accumulatedY -= step * verticalStepPx
+                                }
+                            }
+                            null -> Unit
+                        }
+                    }
+                )
+            }
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = stringResource(R.string.compare_score_label, value),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            CompactScoreTrack(value = value)
+        }
+    }
+}
+
+@Composable
+private fun CompactScoreTrack(
+    value: Int,
+    modifier: Modifier = Modifier
+) {
+    val trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+    val fillColor = MaterialTheme.colorScheme.primary
+    val centerLine = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+    Canvas(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(28.dp)
+    ) {
+        val trackHeight = size.height * 0.35f
+        val centerY = size.height / 2f
+        val radius = trackHeight / 2f
+        val top = centerY - trackHeight / 2f
+        drawRoundRect(
+            color = trackColor,
+            topLeft = Offset(0f, top),
+            size = Size(size.width, trackHeight),
+            cornerRadius = CornerRadius(radius, radius)
+        )
+        drawLine(
+            color = centerLine,
+            start = Offset(size.width / 2f, top),
+            end = Offset(size.width / 2f, top + trackHeight),
+            strokeWidth = 1.dp.toPx()
+        )
+        val ratio = value.toFloat() / SCORE_MAX.toFloat()
+        val fillWidth = (size.width / 2f) * abs(ratio)
+        if (fillWidth > 0f) {
+            val startX = if (ratio >= 0f) size.width / 2f else size.width / 2f - fillWidth
+            drawRoundRect(
+                color = fillColor,
+                topLeft = Offset(startX, top),
+                size = Size(fillWidth, trackHeight),
+                cornerRadius = CornerRadius(radius, radius)
+            )
+        }
+    }
+}
+
+@Composable
+private fun CompactSubmitSection(
+    state: CompareUiState,
+    currentEntry: StreamHistoryEntry?,
+    onSubmit: () -> Unit,
+    onChangeMainScore: () -> Unit,
+    onSubmitMore: () -> Unit
+) {
+    val submitEnabled = currentEntry != null && !state.submitted && !state.submitInProgress
+    val showChange = state.submittedConfirmed
+    val changeEnabled = showChange &&
+        currentEntry != null &&
+        !state.changeInProgress &&
+        (state.storedMainScore == null || state.score != state.storedMainScore)
+    val submitLabel = stringResource(
+        if (state.submitInProgress) {
+            R.string.compare_submitting_label
+        } else if (state.submitted) {
+            R.string.compare_submitted_label
+        } else {
+            R.string.compare_submit_label
+        }
+    )
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Button(
+                onClick = onSubmit,
+                enabled = submitEnabled,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(text = submitLabel)
+            }
+            if (showChange) {
+                OutlinedButton(
+                    onClick = onChangeMainScore,
+                    enabled = changeEnabled,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(text = stringResource(R.string.compare_change_label))
+                }
+            }
+        }
+
+        if (state.submitted) {
+            val submitMoreEnabled = currentEntry != null &&
+                !state.submitMoreInProgress &&
+                !state.extraSubmitted
+            val showUpdate = state.extraSubmitted
+            val extraChanged = EXTRA_CRITERIA.any { criterion ->
+                state.extraScores[criterion.id] != state.storedExtraScores[criterion.id]
+            }
+            val updateEnabled = showUpdate &&
+                currentEntry != null &&
+                !state.submitMoreInProgress &&
+                extraChanged
+            val submitMoreLabel = stringResource(
+                if (state.submitMoreInProgress) {
+                    R.string.compare_submitting_label
+                } else if (state.extraSubmitted) {
+                    R.string.compare_submitted_label
+                } else {
+                    R.string.compare_submit_more_label
+                }
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = onSubmitMore,
+                    enabled = submitMoreEnabled,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(text = submitMoreLabel)
+                }
+                if (showUpdate) {
+                    OutlinedButton(
+                        onClick = onSubmitMore,
+                        enabled = updateEnabled,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(text = stringResource(R.string.compare_update_label))
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun formatSignedScore(score: Int): String {
+    return if (score > 0) {
+        "+$score"
+    } else {
+        score.toString()
     }
 }
 
