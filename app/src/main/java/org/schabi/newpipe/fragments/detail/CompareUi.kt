@@ -87,9 +87,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.schabi.newpipe.R
 import org.schabi.newpipe.database.history.model.StreamHistoryEntry
@@ -403,7 +405,24 @@ fun CompareCompactScreen(
     val displayScore = animatedScore.roundToInt()
     val activeLabel = stringResource(activeDimension.labelRes)
     val activeDescription = stringResource(compactDescriptionRes(activeDimension.id))
+    var selectedIds by remember { mutableStateOf(setOf<String>()) }
     val currentEntry = state.selectedEntry
+    var hasRatedMain by rememberSaveable(currentEntry?.streamId) {
+        mutableStateOf(state.storedMainScore != null)
+    }
+    val onSelectionChange: (String, Boolean) -> Unit = { id, selected ->
+        selectedIds = if (selected) {
+            selectedIds + id
+        } else {
+            selectedIds - id
+        }
+    }
+    val latestSelectionUpdater by rememberUpdatedState(onSelectionChange)
+    val latestActiveDimensionId by rememberUpdatedState(activeDimension.id)
+    var showRateFirstMessage by remember { mutableStateOf(false) }
+    val triggerRateFirstMessage by rememberUpdatedState {
+        showRateFirstMessage = true
+    }
     val maxIndex = dimensions.lastIndex
     val density = LocalDensity.current
     val pxPerScore = with(density) { 4.dp.toPx() } / 2f
@@ -422,6 +441,23 @@ fun CompareCompactScreen(
     val latestIndexUpdater by rememberUpdatedState { index: Int -> activeIndex = index }
     val latestMaxIndex by rememberUpdatedState(maxIndex)
 
+    LaunchedEffect(state.storedMainScore) {
+        if (state.storedMainScore != null) {
+            hasRatedMain = true
+        }
+    }
+    LaunchedEffect(hasRatedMain) {
+        if (!hasRatedMain && activeIndex != 0) {
+            activeIndex = 0
+        }
+    }
+    LaunchedEffect(showRateFirstMessage) {
+        if (showRateFirstMessage) {
+            delay(1600)
+            showRateFirstMessage = false
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -431,6 +467,7 @@ fun CompareCompactScreen(
                 var accumulatedY = 0f
                 var currentIndex = 0
                 var currentValue = 0
+                var markedSelected = false
                 detectDragGestures(
                     onDragStart = {
                         dragAxis = null
@@ -438,6 +475,7 @@ fun CompareCompactScreen(
                         accumulatedY = 0f
                         currentIndex = latestActiveIndex
                         currentValue = latestActiveScore
+                        markedSelected = false
                     },
                     onDragEnd = {
                         dragAxis = null
@@ -457,6 +495,13 @@ fun CompareCompactScreen(
                             } else {
                                 DragAxis.VERTICAL
                             }
+                            if (dragAxis == DragAxis.HORIZONTAL && !markedSelected) {
+                                if (latestActiveDimensionId == COMPACT_MAIN_CRITERION_ID) {
+                                    hasRatedMain = true
+                                }
+                                latestSelectionUpdater(latestActiveDimensionId, true)
+                                markedSelected = true
+                            }
                         }
                         when (dragAxis) {
                             DragAxis.HORIZONTAL -> {
@@ -466,10 +511,21 @@ fun CompareCompactScreen(
                                     currentValue =
                                         (currentValue + steps).coerceIn(SCORE_MIN, SCORE_MAX)
                                     latestScoreUpdater(currentValue)
+                                    if (!markedSelected) {
+                                        if (latestActiveDimensionId == COMPACT_MAIN_CRITERION_ID) {
+                                            hasRatedMain = true
+                                        }
+                                        latestSelectionUpdater(latestActiveDimensionId, true)
+                                        markedSelected = true
+                                    }
                                     accumulatedX -= steps * pxPerScore
                                 }
                             }
                             DragAxis.VERTICAL -> {
+                                if (!hasRatedMain) {
+                                    triggerRateFirstMessage()
+                                    return@detectDragGestures
+                                }
                                 accumulatedY += dragAmount.y
                                 while (abs(accumulatedY) >= verticalStepPx) {
                                     val step = if (accumulatedY > 0f) 1 else -1
@@ -501,7 +557,13 @@ fun CompareCompactScreen(
                 dimensions = dimensions,
                 activeIndex = activeIndexSafe,
                 scores = state,
-                onSelect = { index -> activeIndex = index },
+                selectedIds = selectedIds,
+                onToggleSelected = { id, selected -> onSelectionChange(id, selected) },
+                onSelect = { index ->
+                    if (hasRatedMain) {
+                        activeIndex = index
+                    }
+                },
                 modifier = Modifier.weight(1f)
             )
 
@@ -519,6 +581,17 @@ fun CompareCompactScreen(
                 onChangeMainScore = onChangeMainScore,
                 onSubmitMore = onSubmitMore
             )
+            if (showRateFirstMessage) {
+                Text(
+                    text = "Please rate the first dimension first.",
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 2.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 
@@ -611,6 +684,8 @@ private fun CompactDimensionList(
     dimensions: List<CompareCriterion>,
     activeIndex: Int,
     scores: CompareUiState,
+    selectedIds: Set<String>,
+    onToggleSelected: (String, Boolean) -> Unit,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -624,6 +699,8 @@ private fun CompactDimensionList(
                 criterion = criterion,
                 score = score,
                 isActive = index == activeIndex,
+                isSelected = selectedIds.contains(criterion.id),
+                onToggleSelected = { selected -> onToggleSelected(criterion.id, selected) },
                 onClick = { onSelect(index) }
             )
         }
@@ -635,6 +712,8 @@ private fun CompactDimensionRow(
     criterion: CompareCriterion,
     score: Int,
     isActive: Boolean,
+    isSelected: Boolean,
+    onToggleSelected: (Boolean) -> Unit,
     onClick: () -> Unit
 ) {
     val highlight = if (isActive) {
@@ -655,6 +734,23 @@ private fun CompactDimensionRow(
             .padding(horizontal = 10.dp, vertical = 1.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Box(
+            modifier = Modifier
+                .width(18.dp)
+                .padding(end = 4.dp)
+                .then(
+                    if (isSelected) Modifier.clickable { onToggleSelected(false) } else Modifier
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isSelected) {
+                Image(
+                    painter = painterResource(R.drawable.ic_close),
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp)
+                )
+            }
+        }
         Image(
             painter = painterResource(criterion.iconRes),
             contentDescription = null,
