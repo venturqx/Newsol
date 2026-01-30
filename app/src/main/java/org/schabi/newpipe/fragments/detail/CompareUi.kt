@@ -604,7 +604,7 @@ private fun CompactDimensionList(
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(1.dp)
     ) {
         dimensions.forEachIndexed { index, criterion ->
             val score = dimensionScore(scores, criterion)
@@ -640,13 +640,13 @@ private fun CompactDimensionRow(
             .fillMaxWidth()
             .background(highlight, RoundedCornerShape(12.dp))
             .clickable { onClick() }
-            .padding(horizontal = 10.dp, vertical = 8.dp),
+            .padding(horizontal = 10.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
             painter = painterResource(criterion.iconRes),
             contentDescription = null,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(14.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
@@ -664,7 +664,7 @@ private fun CompactDimensionRow(
             isActive = isActive,
             modifier = Modifier
                 .width(88.dp)
-                .height(8.dp)
+                .height(4.dp)
         )
     }
 }
