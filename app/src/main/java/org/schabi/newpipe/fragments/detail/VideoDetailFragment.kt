@@ -158,6 +158,12 @@ class VideoDetailFragment :
     @StringRes val tabContentDescriptions = ArrayList<Int>()
     private var tabSettingsChanged = false
     private var lastAppBarVerticalOffset = Int.Companion.MAX_VALUE // prevents useless updates
+    private var isCompareFullViewVisible = false
+    private var savedDetailContentVisibility = View.VISIBLE
+    private var savedViewPagerVisibility = View.VISIBLE
+    private var savedTabLayoutVisibility = View.VISIBLE
+    private var savedRelatedItemsVisibility = View.VISIBLE
+    private var compareFullInfoUrl: String? = null
 
     private val preferenceChangeListener =
         OnSharedPreferenceChangeListener { sharedPreferences, key ->
@@ -429,6 +435,11 @@ class VideoDetailFragment :
                 openDownloadDialog()
             }
         }
+        binding.detailControlsCompare.setOnClickListener(
+            makeOnClickListener { info ->
+                showCompareFullView(info)
+            }
+        )
         binding.detailControlsShare.setOnClickListener(
             makeOnClickListener { info ->
                 ShareUtils.shareText(requireContext(), info.name, info.url, info.thumbnails)
@@ -625,6 +636,11 @@ class VideoDetailFragment :
     override fun onBackPressed(): Boolean {
         if (DEBUG) {
             Log.d(TAG, "onBackPressed() called")
+        }
+
+        if (isCompareFullViewVisible) {
+            hideCompareFullView()
+            return true
         }
 
         // If we are in fullscreen mode just exit from it via first back press
@@ -882,7 +898,7 @@ class VideoDetailFragment :
                     getChildFragmentManager().beginTransaction()
                         .replace(R.id.relatedItemsLayout, fragment)
                         .commitAllowingStateLoss()
-                    relatedItemsLayout.isVisible = !this.isFullscreen
+                    relatedItemsLayout.isVisible = !this.isFullscreen && !isCompareFullViewVisible
                 }
             }
         }
@@ -891,12 +907,77 @@ class VideoDetailFragment :
             pageAdapter.updateItem(DESCRIPTION_TAB_TAG, DescriptionFragment(info))
         }
 
-        binding.viewPager.visibility = View.VISIBLE
-        // make sure the tab layout is visible
-        updateTabLayoutVisibility()
+        if (isCompareFullViewVisible) {
+            updateCompareFullFragment(info)
+            binding.viewPager.visibility = View.GONE
+            binding.tabLayout.visibility = View.GONE
+        } else {
+            binding.viewPager.visibility = View.VISIBLE
+            // make sure the tab layout is visible
+            updateTabLayoutVisibility()
+        }
         pageAdapter.notifyDataSetUpdate()
         updateTabIconsAndContentDescriptions()
         updateTitleBorderForTab(pageAdapter.getItemTitle(binding.viewPager.currentItem))
+    }
+
+    private fun showCompareFullView(info: StreamInfo) {
+        if (isCompareFullViewVisible) {
+            updateCompareFullFragment(info)
+            return
+        }
+
+        isCompareFullViewVisible = true
+        savedDetailContentVisibility = binding.detailContentRootLayout.visibility
+        savedViewPagerVisibility = binding.viewPager.visibility
+        savedTabLayoutVisibility = binding.tabLayout.visibility
+        savedRelatedItemsVisibility = binding.relatedItemsLayout?.visibility ?: View.VISIBLE
+
+        binding.detailContentRootLayout.visibility = View.GONE
+        binding.viewPager.visibility = View.GONE
+        binding.tabLayout.visibility = View.GONE
+        binding.relatedItemsLayout?.visibility = View.GONE
+        binding.compareFullContainer.visibility = View.VISIBLE
+
+        scrollToTop()
+        updateCompareFullFragment(info)
+    }
+
+    private fun hideCompareFullView() {
+        if (!isCompareFullViewVisible) {
+            return
+        }
+
+        isCompareFullViewVisible = false
+        binding.compareFullContainer.visibility = View.GONE
+        binding.detailContentRootLayout.visibility = savedDetailContentVisibility
+        binding.viewPager.visibility = savedViewPagerVisibility
+        binding.tabLayout.visibility = savedTabLayoutVisibility
+        binding.relatedItemsLayout?.visibility = savedRelatedItemsVisibility
+        updateTabLayoutVisibility()
+    }
+
+    private fun updateCompareFullFragment(info: StreamInfo, force: Boolean = false) {
+        if (!isCompareFullViewVisible) {
+            return
+        }
+
+        val infoUrl = info.originalUrl ?: info.url ?: return
+        if (!force &&
+            compareFullInfoUrl == infoUrl &&
+            childFragmentManager.findFragmentByTag(COMPARE_FULL_FRAGMENT_TAG) != null
+        ) {
+            return
+        }
+
+        compareFullInfoUrl = infoUrl
+        childFragmentManager.beginTransaction()
+            .replace(
+                R.id.compare_full_container,
+                CompareFragment.getInstance(info),
+                COMPARE_FULL_FRAGMENT_TAG
+            )
+            .commitAllowingStateLoss()
     }
 
     private fun updateTitleBorderForTab(tabTag: String?) {
@@ -1946,6 +2027,7 @@ class VideoDetailFragment :
             binding.detailControlsBackground.setBackgroundColor(transparent)
             binding.detailControlsPopup.setBackgroundColor(transparent)
             binding.detailControlsDownload.setBackgroundColor(transparent)
+            binding.detailControlsCompare.setBackgroundColor(transparent)
             binding.detailControlsShare.setBackgroundColor(transparent)
             binding.detailControlsOpenInBrowser.setBackgroundColor(transparent)
             binding.detailControlsPlayWithKodi.setBackgroundColor(transparent)
@@ -2333,6 +2415,7 @@ class VideoDetailFragment :
         private const val COMPARE_TAB_TAG = "COMPARE"
         private const val DESCRIPTION_TAB_TAG = "DESCRIPTION TAB"
         private const val EMPTY_TAB_TAG = "EMPTY TAB"
+        private const val COMPARE_FULL_FRAGMENT_TAG = "COMPARE_FULL"
 
         /*//////////////////////////////////////////////////////////////////////// */
         @JvmStatic

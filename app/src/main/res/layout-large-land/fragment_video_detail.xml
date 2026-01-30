@@ -424,7 +424,7 @@
 
                             <org.schabi.newpipe.views.NewPipeTextView
                                 android:id="@+id/detail_controls_playlist_append"
-                                android:layout_width="@dimen/detail_control_width"
+                                android:layout_width="0dp"
                                 android:layout_height="@dimen/detail_control_height"
                                 android:layout_gravity="center_vertical"
                                 android:layout_weight="1"
@@ -440,7 +440,7 @@
 
                             <org.schabi.newpipe.views.NewPipeTextView
                                 android:id="@+id/detail_controls_background"
-                                android:layout_width="@dimen/detail_control_width"
+                                android:layout_width="0dp"
                                 android:layout_height="@dimen/detail_control_height"
                                 android:layout_gravity="center_vertical"
                                 android:layout_weight="1"
@@ -456,7 +456,7 @@
 
                             <org.schabi.newpipe.views.NewPipeTextView
                                 android:id="@+id/detail_controls_popup"
-                                android:layout_width="@dimen/detail_control_width"
+                                android:layout_width="0dp"
                                 android:layout_height="@dimen/detail_control_height"
                                 android:layout_gravity="center_vertical"
                                 android:layout_weight="1"
@@ -472,7 +472,7 @@
 
                             <org.schabi.newpipe.views.NewPipeTextView
                                 android:id="@+id/detail_controls_download"
-                                android:layout_width="@dimen/detail_control_width"
+                                android:layout_width="0dp"
                                 android:layout_height="@dimen/detail_control_height"
                                 android:layout_gravity="center_vertical"
                                 android:layout_weight="1"
@@ -484,6 +484,22 @@
                                 android:gravity="center"
                                 android:paddingVertical="@dimen/detail_control_padding"
                                 android:text="@string/download"
+                                android:textSize="@dimen/detail_control_text_size" />
+
+                            <org.schabi.newpipe.views.NewPipeTextView
+                                android:id="@+id/detail_controls_compare"
+                                android:layout_width="0dp"
+                                android:layout_height="@dimen/detail_control_height"
+                                android:layout_gravity="center_vertical"
+                                android:layout_weight="1"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:clickable="true"
+                                android:contentDescription="@string/compare_title"
+                                android:drawableTop="@drawable/ic_wb_sunny"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:paddingVertical="@dimen/detail_control_padding"
+                                android:text="@string/compare_title"
                                 android:textSize="@dimen/detail_control_text_size" />
 
                         </LinearLayout>
@@ -600,6 +616,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:paddingBottom="48dp"
+                app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+
+            <androidx.fragment.app.FragmentContainerView
+                android:id="@+id/compare_full_container"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone"
                 app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
             <com.google.android.material.tabs.TabLayout
