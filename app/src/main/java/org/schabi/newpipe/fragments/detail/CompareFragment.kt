@@ -123,7 +123,6 @@ class CompareFragment : Fragment() {
                     if (useCompactUi) {
                         CompareCompactScreen(
                             state = uiState,
-                            onSelectIndex = { selectIndex(it) },
                             onScoreChange = { score = it },
                             onSubmit = { sendComparison(score) },
                             onChangeMainScore = { sendMainScoreChange() },

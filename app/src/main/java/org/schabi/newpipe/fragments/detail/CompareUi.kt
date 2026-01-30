@@ -37,7 +37,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -47,7 +46,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -70,6 +68,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.consumeAllChanges
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.onSizeChanged
@@ -377,7 +376,6 @@ private val COMPACT_DIMENSIONS = listOf(
 @Composable
 fun CompareCompactScreen(
     state: CompareUiState,
-    onSelectIndex: (Int) -> Unit,
     onScoreChange: (Int) -> Unit,
     onSubmit: () -> Unit,
     onChangeMainScore: () -> Unit,
@@ -405,60 +403,120 @@ fun CompareCompactScreen(
     val displayScore = animatedScore.roundToInt()
     val activeLabel = stringResource(activeDimension.labelRes)
     val currentEntry = state.selectedEntry
+    val maxIndex = dimensions.lastIndex
+    val density = LocalDensity.current
+    val pxPerScore = with(density) { 4.dp.toPx() }
+    val verticalStepPx = with(density) { 28.dp.toPx() }
+    val onActiveScoreChange: (Int) -> Unit = { newValue ->
+        val clamped = newValue.coerceIn(SCORE_MIN, SCORE_MAX)
+        if (activeDimension.id == COMPACT_MAIN_CRITERION_ID) {
+            onScoreChange(clamped)
+        } else {
+            onExtraScoreChange(activeDimension.id, clamped)
+        }
+    }
+    val latestActiveScore by rememberUpdatedState(activeScore)
+    val latestActiveIndex by rememberUpdatedState(activeIndexSafe)
+    val latestScoreUpdater by rememberUpdatedState(onActiveScoreChange)
+    val latestIndexUpdater by rememberUpdatedState { index: Int -> activeIndex = index }
+    val latestMaxIndex by rememberUpdatedState(maxIndex)
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        CompactHeader(
-            label = activeLabel,
-            score = displayScore
-        )
-
-        CompactHistorySelector(
-            entries = state.historyEntries,
-            selectedIndex = state.selectedIndex,
-            historyMessageRes = state.historyMessageRes,
-            onSelectIndex = onSelectIndex
-        )
-
-        CompactDimensionList(
-            dimensions = dimensions,
-            activeIndex = activeIndexSafe,
-            scores = state,
-            onSelect = { index -> activeIndex = index },
-            modifier = Modifier.weight(1f)
-        )
-
-        val onActiveScoreChange = { newValue: Int ->
-            val clamped = newValue.coerceIn(SCORE_MIN, SCORE_MAX)
-            if (activeDimension.id == COMPACT_MAIN_CRITERION_ID) {
-                onScoreChange(clamped)
-            } else {
-                onExtraScoreChange(activeDimension.id, clamped)
+            .pointerInput(Unit) {
+                var dragAxis: DragAxis? = null
+                var accumulatedX = 0f
+                var accumulatedY = 0f
+                var currentIndex = 0
+                var currentValue = 0
+                detectDragGestures(
+                    onDragStart = {
+                        dragAxis = null
+                        accumulatedX = 0f
+                        accumulatedY = 0f
+                        currentIndex = latestActiveIndex
+                        currentValue = latestActiveScore
+                    },
+                    onDragEnd = {
+                        dragAxis = null
+                        accumulatedX = 0f
+                        accumulatedY = 0f
+                    },
+                    onDragCancel = {
+                        dragAxis = null
+                        accumulatedX = 0f
+                        accumulatedY = 0f
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consumeAllChanges()
+                        if (dragAxis == null) {
+                            dragAxis = if (abs(dragAmount.x) >= abs(dragAmount.y)) {
+                                DragAxis.HORIZONTAL
+                            } else {
+                                DragAxis.VERTICAL
+                            }
+                        }
+                        when (dragAxis) {
+                            DragAxis.HORIZONTAL -> {
+                                accumulatedX += dragAmount.x
+                                val steps = (accumulatedX / pxPerScore).toInt()
+                                if (steps != 0) {
+                                    currentValue =
+                                        (currentValue + steps).coerceIn(SCORE_MIN, SCORE_MAX)
+                                    latestScoreUpdater(currentValue)
+                                    accumulatedX -= steps * pxPerScore
+                                }
+                            }
+                            DragAxis.VERTICAL -> {
+                                accumulatedY += dragAmount.y
+                                while (abs(accumulatedY) >= verticalStepPx) {
+                                    val step = if (accumulatedY > 0f) 1 else -1
+                                    currentIndex =
+                                        (currentIndex + step).coerceIn(0, latestMaxIndex)
+                                    latestIndexUpdater(currentIndex)
+                                    accumulatedY -= step * verticalStepPx
+                                }
+                            }
+                            null -> Unit
+                        }
+                    }
+                )
             }
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            CompactHeader(
+                label = activeLabel,
+                score = displayScore
+            )
+
+            CompactDimensionList(
+                dimensions = dimensions,
+                activeIndex = activeIndexSafe,
+                scores = state,
+                onSelect = { index -> activeIndex = index },
+                modifier = Modifier.weight(1f)
+            )
+
+            CompactSwipeArea(
+                value = activeScore,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+            )
+
+            CompactSubmitSection(
+                state = state,
+                currentEntry = currentEntry,
+                onSubmit = onSubmit,
+                onChangeMainScore = onChangeMainScore,
+                onSubmitMore = onSubmitMore
+            )
         }
-
-        CompactSwipeArea(
-            value = activeScore,
-            onValueChange = onActiveScoreChange,
-            onVerticalStep = { step ->
-                activeIndex = (activeIndex + step).coerceIn(0, dimensions.lastIndex)
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp)
-        )
-
-        CompactSubmitSection(
-            state = state,
-            currentEntry = currentEntry,
-            onSubmit = onSubmit,
-            onChangeMainScore = onChangeMainScore,
-            onSubmitMore = onSubmitMore
-        )
     }
 
     if (state.showLoginDialog) {
@@ -496,73 +554,6 @@ private fun CompactHeader(
             style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.primary
         )
-    }
-}
-
-@Composable
-private fun CompactHistorySelector(
-    entries: List<StreamHistoryEntry>,
-    selectedIndex: Int,
-    historyMessageRes: Int?,
-    onSelectIndex: (Int) -> Unit
-) {
-    if (entries.isEmpty()) {
-        val message = historyMessageRes?.let { stringResource(it) }.orEmpty()
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-        )
-        return
-    }
-
-    val clampedIndex = selectedIndex.coerceIn(0, entries.lastIndex)
-    val entry = entries[clampedIndex]
-    val prevEnabled = clampedIndex > 0
-    val nextEnabled = clampedIndex < entries.lastIndex
-    val header = stringResource(R.string.compare_last_viewed_header)
-    val prevLabel = stringResource(R.string.compare_previous_video)
-    val nextLabel = stringResource(R.string.compare_next_video)
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(
-            onClick = { onSelectIndex((clampedIndex - 1).coerceAtLeast(0)) },
-            enabled = prevEnabled
-        ) {
-            Image(
-                painter = painterResource(R.drawable.ic_arrow_drop_up),
-                contentDescription = prevLabel
-            )
-        }
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 6.dp)
-        ) {
-            Text(
-                text = header,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
-            Text(
-                text = entry.streamEntity.title,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-        IconButton(
-            onClick = { onSelectIndex((clampedIndex + 1).coerceAtMost(entries.lastIndex)) },
-            enabled = nextEnabled
-        ) {
-            Image(
-                painter = painterResource(R.drawable.ic_arrow_drop_down),
-                contentDescription = nextLabel
-            )
-        }
     }
 }
 
@@ -688,88 +679,14 @@ private enum class DragAxis {
 @Composable
 private fun CompactSwipeArea(
     value: Int,
-    onValueChange: (Int) -> Unit,
-    onVerticalStep: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val density = LocalDensity.current
-    val pxPerScore = with(density) { 4.dp.toPx() }
-    val verticalStepPx = with(density) { 28.dp.toPx() }
-    val lockThreshold = with(density) { 8.dp.toPx() }
-    var dragAxis by remember { mutableStateOf<DragAxis?>(null) }
-    var accumulatedX by remember { mutableFloatStateOf(0f) }
-    var accumulatedY by remember { mutableFloatStateOf(0f) }
-    val latestValue by rememberUpdatedState(value)
-    val latestOnValueChange by rememberUpdatedState(onValueChange)
-    val latestOnVerticalStep by rememberUpdatedState(onVerticalStep)
-
     Box(
         modifier = modifier
             .background(
                 MaterialTheme.colorScheme.surfaceContainerLow,
                 RoundedCornerShape(16.dp)
             )
-            .pointerInput(Unit) {
-                detectDragGestures(
-                    onDragStart = {
-                        dragAxis = null
-                        accumulatedX = 0f
-                        accumulatedY = 0f
-                    },
-                    onDragCancel = {
-                        dragAxis = null
-                        accumulatedX = 0f
-                        accumulatedY = 0f
-                    },
-                    onDragEnd = {
-                        dragAxis = null
-                        accumulatedX = 0f
-                        accumulatedY = 0f
-                    },
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        var deltaX = dragAmount.x
-                        var deltaY = dragAmount.y
-                        if (dragAxis == null) {
-                            accumulatedX += deltaX
-                            accumulatedY += deltaY
-                            if (abs(accumulatedX) > lockThreshold || abs(accumulatedY) > lockThreshold) {
-                                dragAxis = if (abs(accumulatedX) >= abs(accumulatedY)) {
-                                    accumulatedY = 0f
-                                    DragAxis.HORIZONTAL
-                                } else {
-                                    accumulatedX = 0f
-                                    DragAxis.VERTICAL
-                                }
-                                deltaX = 0f
-                                deltaY = 0f
-                            }
-                        }
-
-                        when (dragAxis) {
-                            DragAxis.HORIZONTAL -> {
-                                accumulatedX += deltaX
-                                val steps = (accumulatedX / pxPerScore).toInt()
-                                if (steps != 0) {
-                                    val newValue =
-                                        (latestValue + steps).coerceIn(SCORE_MIN, SCORE_MAX)
-                                    latestOnValueChange(newValue)
-                                    accumulatedX -= steps * pxPerScore
-                                }
-                            }
-                            DragAxis.VERTICAL -> {
-                                accumulatedY += deltaY
-                                while (abs(accumulatedY) >= verticalStepPx) {
-                                    val step = if (accumulatedY > 0f) 1 else -1
-                                    latestOnVerticalStep(step)
-                                    accumulatedY -= step * verticalStepPx
-                                }
-                            }
-                            null -> Unit
-                        }
-                    }
-                )
-            }
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Column(
@@ -1156,7 +1073,7 @@ private fun HistoryWheel(
                         dragDistance = 0f
                     },
                     onDrag = { change, dragAmount ->
-                        change.consume()
+                        change.consumeAllChanges()
                         velocityTracker.addPosition(change.uptimeMillis, change.position)
                         dragDistance += dragAmount.y
                         val rawDelta = -dragDistance / pageStepPx
