@@ -53,7 +53,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -81,6 +80,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.consumeAllChanges
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
@@ -484,16 +484,7 @@ fun CompareCompactScreen(
     var leftHistoryBounds by remember { mutableStateOf<Rect?>(null) }
     var rightHistoryBounds by remember { mutableStateOf<Rect?>(null) }
     val historyListState = rememberLazyListState()
-    var historyRowHeightPx by remember { mutableIntStateOf(0) }
-    val overlayRowHeightDp by remember {
-        derivedStateOf {
-            if (historyRowHeightPx > 0) {
-                with(density) { historyRowHeightPx.toDp() }
-            } else {
-                0.dp
-            }
-        }
-    }
+    val overlayRowHeight = 88.dp
     LaunchedEffect(leftEntries, rightEntries) {
         if (leftEntries.isEmpty() && rightEntries.isEmpty()) {
             leftHistoryIndex = 0
@@ -549,7 +540,7 @@ fun CompareCompactScreen(
     }
     val buttonAlpha = if (canSubmit) 1f else 0.55f
 
-    LaunchedEffect(showHistoryOverlay, historyRowHeightPx) {
+    LaunchedEffect(showHistoryOverlay, activeOverlayTarget) {
         if (showHistoryOverlay) {
             historyListState.scrollToItem(historyOverlayIndex)
         }
@@ -819,7 +810,11 @@ fun CompareCompactScreen(
         }
 
         if (showHistoryOverlay) {
-            val accentBlue = Color(0xFF42A5F5)
+            val accentColor = if (activeOverlayTarget == OverlayTarget.RIGHT) {
+                Color(0xFFE57373)
+            } else {
+                Color(0xFF42A5F5)
+            }
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -833,27 +828,21 @@ fun CompareCompactScreen(
                 } else {
                     leftEntries
                 }
-                val highlightId =
-                    overlayEntries.getOrNull(historyOverlayIndex)?.streamId
                 BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 16.dp)
                 ) {
                     val overlayHeightPx = with(density) { maxHeight.toPx() }
-                    val rowHeightPx = historyRowHeightPx.takeIf { it > 0 } ?: 0
+                    val rowHeightPx = with(density) { overlayRowHeight.toPx() }
                     val activeBounds = when (activeOverlayTarget) {
                         OverlayTarget.LEFT -> leftHistoryBounds
                         OverlayTarget.RIGHT -> rightHistoryBounds
                     }
                     val targetCenterPx = activeBounds?.center?.y
                         ?: overlayHeightPx / 2f
-                    val topPaddingPx = if (rowHeightPx > 0) {
-                        (targetCenterPx - rowHeightPx / 2f)
-                            .coerceIn(0f, overlayHeightPx - rowHeightPx)
-                    } else {
-                        (overlayHeightPx / 2f).coerceAtLeast(0f)
-                    }
+                    val topPaddingPx = (targetCenterPx - rowHeightPx / 2f)
+                        .coerceIn(0f, overlayHeightPx - rowHeightPx)
                     val bottomPaddingPx =
                         (overlayHeightPx - topPaddingPx - rowHeightPx).coerceAtLeast(0f)
                     val topPadding = with(density) { topPaddingPx.toDp() }
@@ -869,54 +858,41 @@ fun CompareCompactScreen(
                             verticalArrangement = Arrangement.spacedBy(0.dp)
                         ) {
                             items(overlayEntries, key = { it.streamId }) { entry ->
-                                val isHighlight = entry.streamId == highlightId
-                                if (isHighlight && overlayRowHeightDp > 0.dp) {
-                                    Spacer(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(overlayRowHeightDp)
-                                    )
-                                } else {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .onSizeChanged { size ->
-                                                if (historyRowHeightPx != size.height) {
-                                                    historyRowHeightPx = size.height
-                                                }
-                                            }
-                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(overlayRowHeight)
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    val stream = remember(entry) { entry.toStreamInfoItem() }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        val stream = remember(entry) { entry.toStreamInfoItem() }
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            StreamThumbnail(
-                                                stream = stream,
-                                                showProgress = false,
-                                                showDuration = true,
-                                                durationTextStyle = MaterialTheme.typography.labelSmall
-                                                    .copy(fontSize = 10.sp),
-                                                modifier = Modifier.size(width = 144.dp, height = 80.dp)
+                                        StreamThumbnail(
+                                            stream = stream,
+                                            showProgress = false,
+                                            showDuration = true,
+                                            durationTextStyle = MaterialTheme.typography.labelSmall
+                                                .copy(fontSize = 10.sp),
+                                            modifier = Modifier.size(width = 144.dp, height = 80.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = entry.streamEntity.title,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
                                             )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(
-                                                    text = entry.streamEntity.title,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurface,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                                Text(
-                                                    text = entry.streamEntity.uploader,
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                            }
+                                            Text(
+                                                text = entry.streamEntity.uploader,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
                                         }
                                     }
                                 }
@@ -933,7 +909,7 @@ fun CompareCompactScreen(
                                     .fillMaxWidth()
                                     .padding(horizontal = 8.dp),
                                 shape = RoundedCornerShape(8.dp),
-                                color = accentBlue
+                                color = accentColor
                             ) {
                                 val stream = remember(selectedEntry) {
                                     selectedEntry.toStreamInfoItem()
@@ -2193,8 +2169,9 @@ private fun CompareVideoThumbnailCard(entry: StreamHistoryEntry) {
         StreamThumbnail(
             stream = stream,
             showProgress = false,
-            durationAlignment = Alignment.BottomStart,
+            durationAlignment = Alignment.BottomEnd,
             durationTextStyle = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+            contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(72.dp)

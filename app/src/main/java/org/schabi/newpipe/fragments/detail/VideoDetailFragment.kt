@@ -2276,6 +2276,10 @@ class VideoDetailFragment :
                         moveFocusToMainFragment(true)
                         manageSpaceAtTheBottom(true)
 
+                        if (isCompareFullViewVisible) {
+                            hideCompareFullView()
+                        }
+
                         bottomSheetBehavior.peekHeight = 0
                         cleanUp()
                     }
@@ -2301,6 +2305,9 @@ class VideoDetailFragment :
                     }
 
                     BottomSheetBehavior.STATE_COLLAPSED -> {
+                        if (isCompareFullViewVisible) {
+                            hideCompareFullView()
+                        }
                         moveFocusToMainFragment(true)
                         manageSpaceAtTheBottom(false)
 
