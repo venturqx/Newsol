@@ -608,14 +608,14 @@ fun CompareCompactScreen(
                 modifier = Modifier
                     .background(Color(0xFFFFD54F), RoundedCornerShape(10.dp))
                     .clickable(onClick = {})
-                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
                     .zIndex(2f),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "TEST BUTTON",
                     style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 9.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold
                     ),
                     color = Color(0xFF1A1A1A)
