@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -90,6 +91,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -440,6 +443,8 @@ fun CompareCompactScreen(
     val latestScoreUpdater by rememberUpdatedState(onActiveScoreChange)
     val latestIndexUpdater by rememberUpdatedState { index: Int -> activeIndex = index }
     val latestMaxIndex by rememberUpdatedState(maxIndex)
+    val swipeAreaHeight = 120.dp
+    val bottomOverlayPadding = swipeAreaHeight + 8.dp
 
     LaunchedEffect(state.storedMainScore) {
         if (state.storedMainScore != null) {
@@ -458,92 +463,99 @@ fun CompareCompactScreen(
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                var dragAxis: DragAxis? = null
-                var accumulatedX = 0f
-                var accumulatedY = 0f
-                var currentIndex = 0
-                var currentValue = 0
-                var markedSelected = false
-                detectDragGestures(
-                    onDragStart = {
-                        dragAxis = null
-                        accumulatedX = 0f
-                        accumulatedY = 0f
-                        currentIndex = latestActiveIndex
-                        currentValue = latestActiveScore
-                        markedSelected = false
-                    },
-                    onDragEnd = {
-                        dragAxis = null
-                        accumulatedX = 0f
-                        accumulatedY = 0f
-                    },
-                    onDragCancel = {
-                        dragAxis = null
-                        accumulatedX = 0f
-                        accumulatedY = 0f
-                    },
-                    onDrag = { change, dragAmount ->
-                        change.consumeAllChanges()
-                        if (dragAxis == null) {
-                            dragAxis = if (abs(dragAmount.x) >= abs(dragAmount.y)) {
-                                DragAxis.HORIZONTAL
-                            } else {
-                                DragAxis.VERTICAL
-                            }
-                            if (dragAxis == DragAxis.HORIZONTAL && !markedSelected) {
-                                if (latestActiveDimensionId == COMPACT_MAIN_CRITERION_ID) {
+    val gestureModifier = Modifier.pointerInput(Unit) {
+        var dragAxis: DragAxis? = null
+        var accumulatedX = 0f
+        var accumulatedY = 0f
+        var currentIndex = 0
+        var currentValue = 0
+        var markedSelected = false
+        detectDragGestures(
+            onDragStart = {
+                dragAxis = null
+                accumulatedX = 0f
+                accumulatedY = 0f
+                currentIndex = latestActiveIndex
+                currentValue = latestActiveScore
+                markedSelected = false
+            },
+            onDragEnd = {
+                dragAxis = null
+                accumulatedX = 0f
+                accumulatedY = 0f
+            },
+            onDragCancel = {
+                dragAxis = null
+                accumulatedX = 0f
+                accumulatedY = 0f
+            },
+            onDrag = { change, dragAmount ->
+                change.consumeAllChanges()
+                if (dragAxis == null) {
+                    dragAxis = if (abs(dragAmount.x) >= abs(dragAmount.y)) {
+                        DragAxis.HORIZONTAL
+                    } else {
+                        DragAxis.VERTICAL
+                    }
+                    if (dragAxis == DragAxis.HORIZONTAL && !markedSelected) {
+                        if (latestActiveDimensionId == COMPACT_MAIN_CRITERION_ID) {
+                            hasRatedMain = true
+                        }
+                        latestSelectionUpdater(latestActiveDimensionId, true)
+                        markedSelected = true
+                    }
+                }
+                when (dragAxis) {
+                    DragAxis.HORIZONTAL -> {
+                        accumulatedX += dragAmount.x
+                        val steps = (accumulatedX / pxPerScore).toInt()
+                        if (steps != 0) {
+                            currentValue =
+                                (currentValue + steps).coerceIn(SCORE_MIN, SCORE_MAX)
+                            latestScoreUpdater(currentValue)
+                            if (!markedSelected) {
+                                if (latestActiveDimensionId ==
+                                    COMPACT_MAIN_CRITERION_ID
+                                ) {
                                     hasRatedMain = true
                                 }
                                 latestSelectionUpdater(latestActiveDimensionId, true)
                                 markedSelected = true
                             }
-                        }
-                        when (dragAxis) {
-                            DragAxis.HORIZONTAL -> {
-                                accumulatedX += dragAmount.x
-                                val steps = (accumulatedX / pxPerScore).toInt()
-                                if (steps != 0) {
-                                    currentValue =
-                                        (currentValue + steps).coerceIn(SCORE_MIN, SCORE_MAX)
-                                    latestScoreUpdater(currentValue)
-                                    if (!markedSelected) {
-                                        if (latestActiveDimensionId == COMPACT_MAIN_CRITERION_ID) {
-                                            hasRatedMain = true
-                                        }
-                                        latestSelectionUpdater(latestActiveDimensionId, true)
-                                        markedSelected = true
-                                    }
-                                    accumulatedX -= steps * pxPerScore
-                                }
-                            }
-                            DragAxis.VERTICAL -> {
-                                if (!hasRatedMain) {
-                                    triggerRateFirstMessage()
-                                    return@detectDragGestures
-                                }
-                                accumulatedY += dragAmount.y
-                                while (abs(accumulatedY) >= verticalStepPx) {
-                                    val step = if (accumulatedY > 0f) 1 else -1
-                                    currentIndex =
-                                        (currentIndex + step).coerceIn(0, latestMaxIndex)
-                                    latestIndexUpdater(currentIndex)
-                                    accumulatedY -= step * verticalStepPx
-                                }
-                            }
-                            null -> Unit
+                            accumulatedX -= steps * pxPerScore
                         }
                     }
-                )
+                    DragAxis.VERTICAL -> {
+                        if (!hasRatedMain) {
+                            triggerRateFirstMessage()
+                            return@detectDragGestures
+                        }
+                        accumulatedY += dragAmount.y
+                        while (abs(accumulatedY) >= verticalStepPx) {
+                            val step = if (accumulatedY > 0f) 1 else -1
+                            currentIndex =
+                                (currentIndex + step).coerceIn(0, latestMaxIndex)
+                            latestIndexUpdater(currentIndex)
+                            accumulatedY -= step * verticalStepPx
+                        }
+                    }
+                    null -> Unit
+                }
             }
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .then(gestureModifier)
+            .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = bottomOverlayPadding),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             CompactHeader(
@@ -566,30 +578,47 @@ fun CompareCompactScreen(
                 },
                 modifier = Modifier.weight(1f)
             )
+        }
 
-            CompactSwipeArea(
-                value = activeScore,
+        CompactSwipeArea(
+            value = activeScore,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(swipeAreaHeight)
+        )
+    }
+
+    Popup(
+        alignment = Alignment.BottomCenter,
+        properties = PopupProperties(
+            focusable = false,
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .navigationBarsPadding()
+                .fillMaxWidth()
+                .padding(bottom = 10.dp),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp)
-            )
-
-            CompactSubmitSection(
-                state = state,
-                currentEntry = currentEntry,
-                onSubmit = onSubmit,
-                onChangeMainScore = onChangeMainScore,
-                onSubmitMore = onSubmitMore
-            )
-            if (showRateFirstMessage) {
+                    .background(Color(0xFFFFD54F), RoundedCornerShape(10.dp))
+                    .clickable(onClick = {})
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                    .zIndex(2f),
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
-                    text = "Please rate the first dimension first.",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 2.dp),
-                    textAlign = TextAlign.Center
+                    text = "TEST BUTTON",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = Color(0xFF1A1A1A)
                 )
             }
         }
@@ -836,7 +865,7 @@ private fun CompactSwipeArea(
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = stringResource(R.string.compare_score_label, value),
@@ -920,23 +949,67 @@ private fun CompactSubmitSection(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Button(
-                onClick = onSubmit,
-                enabled = submitEnabled,
-                modifier = Modifier.weight(1f)
+            Row(
+                modifier = Modifier.clickable(enabled = submitEnabled) { onSubmit() },
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = submitLabel)
+                Text(
+                    text = submitLabel,
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = if (submitEnabled) {
+                        lerp(MaterialTheme.colorScheme.onSurface, Color(0xFFFFD54F), 0.35f)
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                if (state.submitInProgress) {
+                    SubmitSpinner(
+                        modifier = Modifier.size(18.dp),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(R.drawable.logo_small),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
             if (showChange) {
-                OutlinedButton(
-                    onClick = onChangeMainScore,
-                    enabled = changeEnabled,
-                    modifier = Modifier.weight(1f)
+                Spacer(modifier = Modifier.width(14.dp))
+                Row(
+                    modifier = Modifier.clickable(enabled = changeEnabled) { onChangeMainScore() },
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = stringResource(R.string.compare_change_label))
+                    Text(
+                        text = stringResource(R.string.compare_change_label),
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = if (changeEnabled) {
+                            lerp(MaterialTheme.colorScheme.onSurface, Color(0xFFFFD54F), 0.35f)
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    if (state.changeInProgress) {
+                        SubmitSpinner(
+                            modifier = Modifier.size(18.dp),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(R.drawable.ic_refresh),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
         }
@@ -963,23 +1036,67 @@ private fun CompactSubmitSection(
                 }
             )
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Button(
-                    onClick = onSubmitMore,
-                    enabled = submitMoreEnabled,
-                    modifier = Modifier.weight(1f)
+                Row(
+                    modifier = Modifier.clickable(enabled = submitMoreEnabled) { onSubmitMore() },
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = submitMoreLabel)
+                    Text(
+                        text = submitMoreLabel,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = if (submitMoreEnabled) {
+                            lerp(MaterialTheme.colorScheme.onSurface, Color(0xFFFFD54F), 0.35f)
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    if (state.submitMoreInProgress) {
+                        SubmitSpinner(
+                            modifier = Modifier.size(18.dp),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(R.drawable.logo_small),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
                 if (showUpdate) {
-                    OutlinedButton(
-                        onClick = onSubmitMore,
-                        enabled = updateEnabled,
-                        modifier = Modifier.weight(1f)
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Row(
+                        modifier = Modifier.clickable(enabled = updateEnabled) { onSubmitMore() },
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = stringResource(R.string.compare_update_label))
+                        Text(
+                            text = stringResource(R.string.compare_update_label),
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            color = if (updateEnabled) {
+                                lerp(MaterialTheme.colorScheme.onSurface, Color(0xFFFFD54F), 0.35f)
+                            } else {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        if (state.submitMoreInProgress) {
+                            SubmitSpinner(
+                                modifier = Modifier.size(18.dp),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        } else {
+                            Image(
+                                painter = painterResource(R.drawable.ic_refresh),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             }

@@ -4,10 +4,13 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Base64
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.Toast
+import androidx.appcompat.widget.AppCompatButton
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -90,8 +93,14 @@ class CompareFragment : Fragment() {
             historyEntries = emptyList()
             historyMessageRes = R.string.compare_history_unavailable
         }
-        return ComposeView(requireContext()).apply {
+        val root = FrameLayout(requireContext()).apply {
             layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        }
+        val composeView = ComposeView(requireContext()).apply {
+            layoutParams = FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
@@ -149,6 +158,46 @@ class CompareFragment : Fragment() {
                 }
             }
         }
+        root.addView(composeView)
+
+        if (useCompactUi) {
+            val buttonHeight = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                22f,
+                resources.displayMetrics
+            ).toInt()
+            val sidePadding = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                16f,
+                resources.displayMetrics
+            ).toInt()
+            val bottomOffset = resources.getDimensionPixelSize(R.dimen.mini_player_height) +
+                TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP,
+                    6f,
+                    resources.displayMetrics
+                ).toInt()
+            val testButton = AppCompatButton(requireContext()).apply {
+                text = "TEST BUTTON"
+                isAllCaps = false
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+                setBackgroundColor(0xFFFFD54F.toInt())
+                setTextColor(0xFF1A1A1A.toInt())
+                layoutParams = FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    buttonHeight,
+                    android.view.Gravity.BOTTOM
+                ).apply {
+                    leftMargin = sidePadding
+                    rightMargin = sidePadding
+                    bottomMargin = bottomOffset
+                }
+                setOnClickListener { }
+            }
+            root.addView(testButton)
+        }
+
+        return root
     }
 
     override fun onDestroyView() {
