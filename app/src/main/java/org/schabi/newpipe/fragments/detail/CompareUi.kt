@@ -793,13 +793,13 @@ fun CompareCompactScreen(
             }
         }
 
-        Column(
+        Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = miniPlayerHeight + 10.dp)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxWidth()
+                .height(swipeAreaHeight),
+            contentAlignment = Alignment.Center
         ) {
             CompactSwipeArea(
                 value = activeScore,
@@ -807,6 +807,13 @@ fun CompareCompactScreen(
                     .fillMaxWidth()
                     .height(swipeAreaHeight)
             )
+            Button(
+                onClick = {},
+                modifier = Modifier
+                    .align(Alignment.Center)
+            ) {
+                Text(text = "TEST")
+            }
         }
 
         if (showHistoryOverlay) {
