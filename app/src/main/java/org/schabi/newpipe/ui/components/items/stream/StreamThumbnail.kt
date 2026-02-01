@@ -39,11 +39,12 @@ fun StreamThumbnail(
     showProgress: Boolean,
     showDuration: Boolean = true,
     durationTextStyle: TextStyle? = null,
+    durationAlignment: Alignment = Alignment.BottomEnd,
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Fit
 ) {
     Column(modifier = modifier) {
-        Box(contentAlignment = Alignment.BottomEnd) {
+        Box(contentAlignment = durationAlignment) {
             AsyncImage(
                 model = ImageStrategy.choosePreferredImage(stream.thumbnails),
                 contentDescription = null,

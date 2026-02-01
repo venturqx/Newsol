@@ -2149,6 +2149,8 @@ private fun CompareVideoThumbnailCard(entry: StreamHistoryEntry) {
         StreamThumbnail(
             stream = stream,
             showProgress = false,
+            durationAlignment = Alignment.BottomStart,
+            durationTextStyle = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(72.dp)
