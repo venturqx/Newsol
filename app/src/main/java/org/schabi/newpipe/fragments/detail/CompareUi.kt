@@ -804,16 +804,29 @@ fun CompareCompactScreen(
                 ) {
                     val overlayHeightPx = with(density) { maxHeight.toPx() }
                     val rowHeightPx = historyRowHeightPx.takeIf { it > 0 } ?: 0
-                    val halfPaddingPx =
-                        ((overlayHeightPx - rowHeightPx) / 2f).coerceAtLeast(0f)
-                    val halfPadding = with(density) { halfPaddingPx.toDp() }
+                    val activeBounds = when (activeOverlayTarget) {
+                        OverlayTarget.LEFT -> leftHistoryBounds
+                        OverlayTarget.RIGHT -> rightHistoryBounds
+                    }
+                    val targetCenterPx = activeBounds?.center?.y
+                        ?: overlayHeightPx / 2f
+                    val topPaddingPx = if (rowHeightPx > 0) {
+                        (targetCenterPx - rowHeightPx / 2f)
+                            .coerceIn(0f, overlayHeightPx - rowHeightPx)
+                    } else {
+                        (overlayHeightPx / 2f).coerceAtLeast(0f)
+                    }
+                    val bottomPaddingPx =
+                        (overlayHeightPx - topPaddingPx - rowHeightPx).coerceAtLeast(0f)
+                    val topPadding = with(density) { topPaddingPx.toDp() }
+                    val bottomPadding = with(density) { bottomPaddingPx.toDp() }
                     Box(modifier = Modifier.fillMaxSize()) {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             state = historyListState,
                             contentPadding = PaddingValues(
-                                top = halfPadding,
-                                bottom = halfPadding
+                                top = topPadding,
+                                bottom = bottomPadding
                             ),
                             verticalArrangement = Arrangement.spacedBy(0.dp)
                         ) {
@@ -871,7 +884,8 @@ fun CompareCompactScreen(
                         if (selectedEntry != null) {
                             Surface(
                                 modifier = Modifier
-                                    .align(Alignment.Center)
+                                    .align(Alignment.TopCenter)
+                                    .padding(top = topPadding)
                                     .fillMaxWidth()
                                     .padding(horizontal = 8.dp),
                                 shape = RoundedCornerShape(8.dp),
