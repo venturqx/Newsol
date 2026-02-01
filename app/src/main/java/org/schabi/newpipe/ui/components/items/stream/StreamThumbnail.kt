@@ -36,6 +36,7 @@ import kotlin.time.Duration.Companion.seconds
 fun StreamThumbnail(
     stream: StreamInfoItem,
     showProgress: Boolean,
+    showDuration: Boolean = true,
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Fit
 ) {
@@ -50,20 +51,22 @@ fun StreamThumbnail(
                 modifier = modifier
             )
 
-            val isLive = StreamTypeUtil.isLiveStream(stream.streamType)
-            Text(
-                modifier = Modifier
-                    .padding(2.dp)
-                    .background(if (isLive) Color.Red else Color.Black.copy(alpha = 0.5f))
-                    .padding(2.dp),
-                text = if (isLive) {
-                    stringResource(R.string.duration_live)
-                } else {
-                    Localization.getDurationString(stream.duration)
-                },
-                color = Color.White,
-                style = MaterialTheme.typography.bodySmall
-            )
+            if (showDuration) {
+                val isLive = StreamTypeUtil.isLiveStream(stream.streamType)
+                Text(
+                    modifier = Modifier
+                        .padding(2.dp)
+                        .background(if (isLive) Color.Red else Color.Black.copy(alpha = 0.5f))
+                        .padding(2.dp),
+                    text = if (isLive) {
+                        stringResource(R.string.duration_live)
+                    } else {
+                        Localization.getDurationString(stream.duration)
+                    },
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         }
 
         if (showProgress) {
