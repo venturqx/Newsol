@@ -458,7 +458,7 @@ fun CompareCompactScreen(
     val latestMaxIndex by rememberUpdatedState(maxIndex)
     val swipeAreaHeight = 120.dp
     val miniPlayerHeight = dimensionResource(R.dimen.mini_player_height)
-    val bottomOverlayPadding = swipeAreaHeight + miniPlayerHeight + 60.dp
+    val bottomContentPadding = miniPlayerHeight + 12.dp
     var showHistoryOverlay by remember { mutableStateOf(false) }
     val leftEntries = state.historyEntries
     val rightEntries = remember(state.historyEntries, state.currentEntry) {
@@ -483,6 +483,7 @@ fun CompareCompactScreen(
     var lastRightStreamId by remember { mutableStateOf(rightStreamId) }
     var leftHistoryBounds by remember { mutableStateOf<Rect?>(null) }
     var rightHistoryBounds by remember { mutableStateOf<Rect?>(null) }
+    var rectanglesBottomPx by remember { mutableStateOf<Float?>(null) }
     val historyListState = rememberLazyListState()
     val overlayRowHeight = 88.dp
     LaunchedEffect(leftEntries, rightEntries) {
@@ -513,6 +514,11 @@ fun CompareCompactScreen(
     LaunchedEffect(selectedHistoryEntryRight) {
         if (selectedHistoryEntryRight == null) {
             rightHistoryBounds = null
+        }
+    }
+    LaunchedEffect(selectedHistoryEntryLeft, selectedHistoryEntryRight) {
+        if (selectedHistoryEntryLeft == null && selectedHistoryEntryRight == null) {
+            rectanglesBottomPx = null
         }
     }
     LaunchedEffect(leftStreamId, rightStreamId) {
@@ -706,10 +712,43 @@ fun CompareCompactScreen(
             .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .zIndex(0f)
+        ) {
+            val maxHeightPx = with(density) { maxHeight.toPx() }
+            val bottomPad = miniPlayerHeight + 10.dp
+            val bottomPadPx = with(density) { bottomPad.toPx() }
+            val fallbackTopPx =
+                (maxHeightPx - bottomPadPx - with(density) { swipeAreaHeight.toPx() })
+                    .coerceAtLeast(0f)
+            val topPx = rectanglesBottomPx ?: fallbackTopPx
+            val topDp = with(density) { topPx.toDp() }
+            val swipeAreaModifier = Modifier
+                .fillMaxSize()
+                .padding(top = topDp, bottom = bottomPad)
+            Box(modifier = swipeAreaModifier) {
+                CompactSwipeArea(
+                    value = activeScore,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            Box(
+                modifier = swipeAreaModifier,
+                contentAlignment = Alignment.Center
+            ) {
+                Button(onClick = {}) {
+                    Text(text = "TEST")
+                }
+            }
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = bottomOverlayPadding),
+                .padding(bottom = bottomContentPadding)
+                .zIndex(1f),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             CompactHeader(
@@ -731,7 +770,13 @@ fun CompareCompactScreen(
             )
 
             if (selectedHistoryEntryLeft != null || selectedHistoryEntryRight != null) {
-                Box(modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onGloballyPositioned { coordinates ->
+                            rectanglesBottomPx = coordinates.boundsInRoot().bottom
+                        }
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -793,29 +838,6 @@ fun CompareCompactScreen(
             }
         }
 
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = miniPlayerHeight + 10.dp)
-                .fillMaxWidth()
-                .height(swipeAreaHeight),
-            contentAlignment = Alignment.Center
-        ) {
-            CompactSwipeArea(
-                value = activeScore,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(swipeAreaHeight)
-            )
-            Button(
-                onClick = {},
-                modifier = Modifier
-                    .align(Alignment.Center)
-            ) {
-                Text(text = "TEST")
-            }
-        }
-
         if (showHistoryOverlay) {
             val accentColor = if (activeOverlayTarget == OverlayTarget.RIGHT) {
                 Color(0xFFE57373)
@@ -827,7 +849,7 @@ fun CompareCompactScreen(
                     .fillMaxSize()
                     .background(Color.Black.copy(alpha = 0.7f))
                     .zIndex(4f)
-                    .padding(bottom = bottomOverlayPadding),
+                    .padding(bottom = bottomContentPadding),
                 contentAlignment = Alignment.Center
             ) {
                 val overlayEntries = if (activeOverlayTarget == OverlayTarget.RIGHT) {
@@ -2181,7 +2203,7 @@ private fun CompareVideoThumbnailCard(entry: StreamHistoryEntry) {
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(72.dp)
+                .height(88.dp)
                 .semantics {
                     contentDescription = thumbnailDescription
                 }
