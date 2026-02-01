@@ -732,6 +732,15 @@ fun CompareCompactScreen(
                         Spacer(modifier = Modifier.weight(1f))
                     }
 
+                    Text(
+                        text = "VS",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        modifier = Modifier.align(Alignment.CenterVertically)
+                    )
+
                     if (selectedHistoryEntryRight != null) {
                         Surface(
                             modifier = Modifier
@@ -740,7 +749,7 @@ fun CompareCompactScreen(
                                     rightHistoryBounds = coordinates.boundsInRoot()
                                 },
                             shape = RoundedCornerShape(6.dp),
-                            border = BorderStroke(1.dp, Color(0xFF42A5F5)),
+                            border = BorderStroke(1.dp, Color(0xFFE57373)),
                             color = MaterialTheme.colorScheme.surface
                         ) {
                             Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
@@ -1113,10 +1122,15 @@ private fun CompactDimensionRow(
         )
         val valueText =
             if (score == 0 && !isSelected && !isActive) "" else formatSignedScore(score)
+        val scoreColor = when {
+            score > 0 -> Color(0xFFE57373)
+            score < 0 -> Color(0xFF64B5F6)
+            else -> textColor.copy(alpha = 0.7f)
+        }
         Text(
             text = valueText,
             style = MaterialTheme.typography.labelSmall,
-            color = textColor.copy(alpha = 0.85f),
+            color = scoreColor,
             textAlign = TextAlign.End,
             modifier = Modifier.width(28.dp)
         )
@@ -1137,10 +1151,15 @@ private fun MiniScoreBar(
     isActive: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val barColor = if (isActive) {
-        MaterialTheme.colorScheme.primary
+    val baseBarColor = if (value >= 0) {
+        Color(0xFFE57373)
     } else {
-        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        Color(0xFF64B5F6)
+    }
+    val barColor = if (isActive) {
+        baseBarColor
+    } else {
+        baseBarColor.copy(alpha = 0.7f)
     }
     val background = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
     val centerLine = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
