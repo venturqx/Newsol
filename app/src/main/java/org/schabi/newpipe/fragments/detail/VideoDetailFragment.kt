@@ -940,6 +940,7 @@ class VideoDetailFragment :
         binding.compareFullContainer.visibility = View.VISIBLE
 
         scrollToTop()
+        setCompareFullPopupVisible(true)
         updateCompareFullFragment(info)
     }
 
@@ -949,6 +950,7 @@ class VideoDetailFragment :
         }
 
         isCompareFullViewVisible = false
+        setCompareFullPopupVisible(false)
         binding.compareFullContainer.visibility = View.GONE
         binding.detailContentRootLayout.visibility = savedDetailContentVisibility
         binding.viewPager.visibility = savedViewPagerVisibility
@@ -971,13 +973,22 @@ class VideoDetailFragment :
         }
 
         compareFullInfoUrl = infoUrl
+        val fragment = CompareFragment.getInstance(info, true).apply {
+            setCompactPopupVisibleState(true)
+        }
         childFragmentManager.beginTransaction()
             .replace(
                 R.id.compare_full_container,
-                CompareFragment.getInstance(info, true),
+                fragment,
                 COMPARE_FULL_FRAGMENT_TAG
             )
             .commitAllowingStateLoss()
+    }
+
+    private fun setCompareFullPopupVisible(visible: Boolean) {
+        val fragment =
+            childFragmentManager.findFragmentByTag(COMPARE_FULL_FRAGMENT_TAG) as? CompareFragment
+        fragment?.setCompactPopupVisibleState(visible)
     }
 
     private fun updateTitleBorderForTab(tabTag: String?) {

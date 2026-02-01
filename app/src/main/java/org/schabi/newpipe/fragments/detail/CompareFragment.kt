@@ -51,6 +51,7 @@ class CompareFragment : Fragment() {
     private var submitInProgress by mutableStateOf(false)
     private var changeInProgress by mutableStateOf(false)
     private var submitMoreInProgress by mutableStateOf(false)
+    private var compactPopupVisible by mutableStateOf(false)
     private var showLoginDialog by mutableStateOf(false)
     private var loginInProgress by mutableStateOf(false)
     private var loginError by mutableStateOf<String?>(null)
@@ -127,6 +128,7 @@ class CompareFragment : Fragment() {
                             onExtraScoreChange = onExtraScoreChange,
                             onSubmitSelected = { selected -> sendCompactSubmit(selected) },
                             onUpdateSelected = { selected -> sendCompactUpdate(selected) },
+                            showSubmitButton = compactPopupVisible,
                             onDismissLogin = { dismissLoginDialog() },
                             onRegister = { openRegisterPage() },
                             onLogin = { username, password -> performLogin(username, password) }
@@ -926,6 +928,9 @@ class CompareFragment : Fragment() {
         val mainScore: Int? = null,
         val extraScores: Map<String, Int> = emptyMap()
     )
+    fun setCompactPopupVisibleState(visible: Boolean) {
+        compactPopupVisible = visible
+    }
     private data class CompactCriteriaPayload(
         val criteriaScores: List<CriteriaScore>,
         val mainScore: Int?,

@@ -75,6 +75,7 @@ import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
+import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -385,6 +386,7 @@ fun CompareCompactScreen(
     onExtraScoreChange: (String, Int) -> Unit,
     onSubmitSelected: (Set<String>) -> Unit,
     onUpdateSelected: (Set<String>) -> Unit,
+    showSubmitButton: Boolean,
     onDismissLogin: () -> Unit,
     onRegister: () -> Unit,
     onLogin: (String, String) -> Unit
@@ -443,7 +445,8 @@ fun CompareCompactScreen(
     val latestIndexUpdater by rememberUpdatedState { index: Int -> activeIndex = index }
     val latestMaxIndex by rememberUpdatedState(maxIndex)
     val swipeAreaHeight = 120.dp
-    val bottomOverlayPadding = swipeAreaHeight + 8.dp
+    val miniPlayerHeight = dimensionResource(R.dimen.mini_player_height)
+    val bottomOverlayPadding = swipeAreaHeight + miniPlayerHeight + 60.dp
     val hasStoredScores = state.storedMainScore != null || state.storedExtraScores.isNotEmpty()
     val isBusy = state.submitInProgress || state.submitMoreInProgress
     val canSubmit = selectedIds.isNotEmpty() && !isBusy
@@ -588,54 +591,64 @@ fun CompareCompactScreen(
             )
         }
 
-        CompactSwipeArea(
-            value = activeScore,
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .height(swipeAreaHeight)
-        )
+                .padding(bottom = miniPlayerHeight + 10.dp)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            CompactSwipeArea(
+                value = activeScore,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(swipeAreaHeight)
+            )
+        }
     }
 
-    Popup(
-        alignment = Alignment.BottomCenter,
-        properties = PopupProperties(
-            focusable = false,
-            dismissOnBackPress = false,
-            dismissOnClickOutside = false
-        )
-    ) {
-        Box(
-            modifier = Modifier
-                .navigationBarsPadding()
-                .fillMaxWidth()
-                .padding(bottom = 10.dp),
-            contentAlignment = Alignment.BottomCenter
+    if (showSubmitButton) {
+        Popup(
+            alignment = Alignment.BottomCenter,
+            properties = PopupProperties(
+                focusable = false,
+                dismissOnBackPress = false,
+                dismissOnClickOutside = false
+            )
         ) {
             Box(
                 modifier = Modifier
-                    .background(Color(0xFFFFD54F), RoundedCornerShape(10.dp))
-                    .graphicsLayer(alpha = buttonAlpha)
-                    .clickable(enabled = canSubmit) {
-                        val snapshot = selectedIds.toSet()
-                        if (hasStoredScores) {
-                            onUpdateSelected(snapshot)
-                        } else {
-                            onSubmitSelected(snapshot)
-                        }
-                    }
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .zIndex(2f),
-                contentAlignment = Alignment.Center
+                    .navigationBarsPadding()
+                    .fillMaxWidth()
+                    .padding(bottom = 10.dp),
+                contentAlignment = Alignment.BottomCenter
             ) {
-                Text(
-                    text = buttonLabel,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = Color(0xFF1A1A1A)
-                )
+                Box(
+                    modifier = Modifier
+                        .background(Color(0xFFFFD54F), RoundedCornerShape(10.dp))
+                        .graphicsLayer(alpha = buttonAlpha)
+                        .clickable(enabled = canSubmit) {
+                            val snapshot = selectedIds.toSet()
+                            if (hasStoredScores) {
+                                onUpdateSelected(snapshot)
+                            } else {
+                                onSubmitSelected(snapshot)
+                            }
+                        }
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .zIndex(2f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = buttonLabel,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = Color(0xFF1A1A1A)
+                    )
+                }
             }
         }
     }
