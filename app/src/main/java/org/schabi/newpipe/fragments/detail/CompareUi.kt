@@ -420,15 +420,18 @@ fun CompareCompactScreen(
     val activeLabel = stringResource(activeDimension.labelRes)
     val activeDescription = stringResource(compactDescriptionRes(activeDimension.id))
     var selectedIds by remember { mutableStateOf(setOf<String>()) }
-    val currentEntry = state.selectedEntry
-    var hasRatedMain by rememberSaveable(currentEntry?.streamId) {
-        mutableStateOf(state.storedMainScore != null)
-    }
     val onSelectionChange: (String, Boolean) -> Unit = { id, selected ->
         selectedIds = if (selected) {
             selectedIds + id
         } else {
             selectedIds - id
+        }
+        if (!selected) {
+            if (id == COMPACT_MAIN_CRITERION_ID) {
+                onScoreChange(0)
+            } else {
+                onExtraScoreChange(id, 0)
+            }
         }
     }
     val latestSelectionUpdater by rememberUpdatedState(onSelectionChange)
@@ -515,11 +518,6 @@ fun CompareCompactScreen(
     }
     val buttonAlpha = if (canSubmit) 1f else 0.55f
 
-    LaunchedEffect(state.storedMainScore) {
-        if (state.storedMainScore != null) {
-            hasRatedMain = true
-        }
-    }
     LaunchedEffect(showHistoryOverlay, historyRowHeightPx) {
         if (showHistoryOverlay) {
             historyListState.scrollToItem(historyOverlayIndex)
@@ -561,9 +559,6 @@ fun CompareCompactScreen(
                         DragAxis.VERTICAL
                     }
                     if (dragAxis == DragAxis.HORIZONTAL && !markedSelected) {
-                        if (latestActiveDimensionId == COMPACT_MAIN_CRITERION_ID) {
-                            hasRatedMain = true
-                        }
                         latestSelectionUpdater(latestActiveDimensionId, true)
                         markedSelected = true
                     }
@@ -577,11 +572,6 @@ fun CompareCompactScreen(
                                 (currentValue + steps).coerceIn(SCORE_MIN, SCORE_MAX)
                             latestScoreUpdater(currentValue)
                             if (!markedSelected) {
-                                if (latestActiveDimensionId ==
-                                    COMPACT_MAIN_CRITERION_ID
-                                ) {
-                                    hasRatedMain = true
-                                }
                                 latestSelectionUpdater(latestActiveDimensionId, true)
                                 markedSelected = true
                             }
