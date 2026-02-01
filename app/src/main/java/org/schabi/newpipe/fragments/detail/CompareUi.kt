@@ -458,28 +458,45 @@ fun CompareCompactScreen(
     val miniPlayerHeight = dimensionResource(R.dimen.mini_player_height)
     val bottomOverlayPadding = swipeAreaHeight + miniPlayerHeight + 60.dp
     var showHistoryOverlay by remember { mutableStateOf(false) }
+    val leftEntries = state.historyEntries
+    val rightEntries = remember(state.historyEntries, state.currentEntry) {
+        val current = state.currentEntry
+        if (current == null) {
+            state.historyEntries
+        } else {
+            listOf(current) + state.historyEntries
+        }
+    }
     var leftHistoryIndex by rememberSaveable { mutableIntStateOf(0) }
     var rightHistoryIndex by rememberSaveable { mutableIntStateOf(0) }
     var historyOverlayIndex by rememberSaveable { mutableIntStateOf(0) }
     var activeOverlayTarget by remember { mutableStateOf(OverlayTarget.LEFT) }
-    val selectedHistoryEntryLeft = state.historyEntries.getOrNull(leftHistoryIndex)
-        ?: state.historyEntries.firstOrNull()
-    val selectedHistoryEntryRight = state.historyEntries.getOrNull(rightHistoryIndex)
-        ?: state.historyEntries.firstOrNull()
+    val selectedHistoryEntryLeft = leftEntries.getOrNull(leftHistoryIndex)
+        ?: leftEntries.firstOrNull()
+    val selectedHistoryEntryRight = rightEntries.getOrNull(rightHistoryIndex)
+        ?: rightEntries.firstOrNull()
     var leftHistoryBounds by remember { mutableStateOf<Rect?>(null) }
     var rightHistoryBounds by remember { mutableStateOf<Rect?>(null) }
     val historyListState = rememberLazyListState()
     var historyRowHeightPx by remember { mutableIntStateOf(0) }
-    LaunchedEffect(state.historyEntries) {
-        if (state.historyEntries.isEmpty()) {
+    LaunchedEffect(leftEntries, rightEntries) {
+        if (leftEntries.isEmpty() && rightEntries.isEmpty()) {
             leftHistoryIndex = 0
             rightHistoryIndex = 0
             historyOverlayIndex = 0
         } else {
-            val maxIndex = state.historyEntries.lastIndex
-            leftHistoryIndex = leftHistoryIndex.coerceIn(0, maxIndex)
-            rightHistoryIndex = rightHistoryIndex.coerceIn(0, maxIndex)
-            historyOverlayIndex = historyOverlayIndex.coerceIn(0, maxIndex)
+            if (leftEntries.isNotEmpty()) {
+                val leftMax = leftEntries.lastIndex
+                leftHistoryIndex = leftHistoryIndex.coerceIn(0, leftMax)
+            } else {
+                leftHistoryIndex = 0
+            }
+            if (rightEntries.isNotEmpty()) {
+                val rightMax = rightEntries.lastIndex
+                rightHistoryIndex = rightHistoryIndex.coerceIn(0, rightMax)
+            } else {
+                rightHistoryIndex = 0
+            }
         }
     }
     LaunchedEffect(selectedHistoryEntryLeft) {
@@ -609,7 +626,8 @@ fun CompareCompactScreen(
         Modifier.pointerInput(
             leftHistoryBounds,
             rightHistoryBounds,
-            state.historyEntries.size,
+            leftEntries.size,
+            rightEntries.size,
             leftHistoryIndex,
             rightHistoryIndex
         ) {
@@ -620,6 +638,13 @@ fun CompareCompactScreen(
                     rightHistoryBounds?.contains(down.position) == true -> OverlayTarget.RIGHT
                     else -> null
                 } ?: return@awaitEachGesture
+                val overlayEntries = when (target) {
+                    OverlayTarget.LEFT -> leftEntries
+                    OverlayTarget.RIGHT -> rightEntries
+                }
+                if (overlayEntries.isEmpty()) {
+                    return@awaitEachGesture
+                }
                 val pointerId = down.id
                 var lastY = down.position.y
                 val overlaySensitivity = 1.5f
@@ -627,7 +652,7 @@ fun CompareCompactScreen(
                 historyOverlayIndex = when (target) {
                     OverlayTarget.LEFT -> leftHistoryIndex
                     OverlayTarget.RIGHT -> rightHistoryIndex
-                }.coerceAtLeast(0)
+                }.coerceIn(0, overlayEntries.lastIndex)
                 showHistoryOverlay = true
                 try {
                     while (true) {
@@ -637,7 +662,7 @@ fun CompareCompactScreen(
                         if (!change.pressed) {
                             break
                         }
-                        val entriesCount = state.historyEntries.size
+                        val entriesCount = overlayEntries.size
                         val deltaY = (change.position.y - lastY) * overlaySensitivity
                         lastY = change.position.y
                         if (entriesCount > 0) {
@@ -789,8 +814,13 @@ fun CompareCompactScreen(
                     .padding(bottom = bottomOverlayPadding),
                 contentAlignment = Alignment.Center
             ) {
+                val overlayEntries = if (activeOverlayTarget == OverlayTarget.RIGHT) {
+                    rightEntries
+                } else {
+                    leftEntries
+                }
                 val highlightId =
-                    state.historyEntries.getOrNull(historyOverlayIndex)?.streamId
+                    overlayEntries.getOrNull(historyOverlayIndex)?.streamId
                 BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxSize()
@@ -811,7 +841,7 @@ fun CompareCompactScreen(
                             ),
                             verticalArrangement = Arrangement.spacedBy(0.dp)
                         ) {
-                            items(state.historyEntries, key = { it.streamId }) { entry ->
+                            items(overlayEntries, key = { it.streamId }) { entry ->
                                 val isHighlight = entry.streamId == highlightId
                                 val rowAlpha = if (isHighlight) 0f else 1f
                                 Column(
@@ -859,7 +889,7 @@ fun CompareCompactScreen(
                         }
 
                         val selectedEntry =
-                            state.historyEntries.getOrNull(historyOverlayIndex)
+                            overlayEntries.getOrNull(historyOverlayIndex)
                         if (selectedEntry != null) {
                             Surface(
                                 modifier = Modifier

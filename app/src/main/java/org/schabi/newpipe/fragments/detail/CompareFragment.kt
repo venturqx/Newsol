@@ -25,18 +25,22 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import org.json.JSONObject
 import org.schabi.newpipe.R
 import org.schabi.newpipe.database.history.model.StreamHistoryEntry
+import org.schabi.newpipe.database.stream.model.StreamEntity
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import org.schabi.newpipe.ktx.serializable
 import org.schabi.newpipe.local.history.HistoryRecordManager
 import org.schabi.newpipe.ui.theme.AppTheme
 import org.schabi.newpipe.util.KEY_INFO
 import org.schabi.newpipe.util.TournesolAuthManager
+import java.time.OffsetDateTime
+import kotlin.math.abs
 
 class CompareFragment : Fragment() {
     private var currentInfo: StreamInfo? = null
     private var useCompactUi = false
     private val disposables = CompositeDisposable()
 
+    private var currentHistoryEntry: StreamHistoryEntry? = null
     private var historyEntries by mutableStateOf<List<StreamHistoryEntry>>(emptyList())
     private var historyMessageRes by mutableStateOf<Int?>(R.string.compare_loading_history)
     private var selectedIndex by mutableIntStateOf(0)
@@ -64,6 +68,7 @@ class CompareFragment : Fragment() {
         super.onCreate(savedInstanceState)
         currentInfo = arguments?.serializable<StreamInfo>(KEY_INFO)
         useCompactUi = arguments?.getBoolean(KEY_COMPACT_UI) == true
+        currentHistoryEntry = currentInfo?.let { buildCurrentEntry(it) }
         loadSubmittedComparisons()
         loadStoredScores()
     }
@@ -102,6 +107,7 @@ class CompareFragment : Fragment() {
                 AppTheme {
                     val uiState = CompareUiState(
                         historyEntries = historyEntries,
+                        currentEntry = currentHistoryEntry,
                         selectedIndex = selectedIndex,
                         historyMessageRes = historyMessageRes,
                         score = score,
@@ -214,6 +220,18 @@ class CompareFragment : Fragment() {
         val prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
         val key = getString(R.string.enable_watch_history_key)
         return prefs.getBoolean(key, false)
+    }
+
+    private fun buildCurrentEntry(info: StreamInfo): StreamHistoryEntry {
+        val entity = StreamEntity(info)
+        val hash = info.url.hashCode().toLong()
+        val syntheticId = if (hash == 0L) -1L else -abs(hash)
+        return StreamHistoryEntry(
+            streamEntity = entity,
+            streamId = syntheticId,
+            accessDate = OffsetDateTime.now(),
+            repeatCount = 0
+        )
     }
 
     private fun showLoginDialog() {

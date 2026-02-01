@@ -4,6 +4,7 @@ import org.schabi.newpipe.database.history.model.StreamHistoryEntry
 
 data class CompareUiState(
     val historyEntries: List<StreamHistoryEntry> = emptyList(),
+    val currentEntry: StreamHistoryEntry? = null,
     val selectedIndex: Int = 0,
     val historyMessageRes: Int? = null,
     val score: Int = 0,
