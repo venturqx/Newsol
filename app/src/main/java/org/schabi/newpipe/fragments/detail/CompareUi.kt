@@ -115,6 +115,7 @@ import org.schabi.newpipe.R
 import org.schabi.newpipe.database.history.model.StreamHistoryEntry
 import org.schabi.newpipe.ui.components.items.stream.StreamThumbnail
 import kotlin.math.abs
+import kotlin.math.floor
 import kotlin.math.roundToInt
 import android.graphics.Paint as AndroidPaint
 
@@ -474,6 +475,11 @@ fun CompareCompactScreen(
     var rightHistoryIndex by rememberSaveable { mutableIntStateOf(0) }
     var historyOverlayIndex by rememberSaveable { mutableIntStateOf(0) }
     var activeOverlayTarget by remember { mutableStateOf(OverlayTarget.LEFT) }
+    val overlayEntries = if (activeOverlayTarget == OverlayTarget.RIGHT) {
+        rightEntries
+    } else {
+        leftEntries
+    }
     val selectedHistoryEntryLeft = leftEntries.getOrNull(leftHistoryIndex)
         ?: leftEntries.firstOrNull()
     val selectedHistoryEntryRight = rightEntries.getOrNull(rightHistoryIndex)
@@ -575,17 +581,24 @@ fun CompareCompactScreen(
             }
         }
     }
-    LaunchedEffect(showHistoryOverlay, historyListState, overlayTargetCenterPx) {
+    val overlayRowHeightPx = with(density) { overlayRowHeight.toPx() }
+    LaunchedEffect(
+        showHistoryOverlay,
+        historyListState,
+        overlayTargetCenterPx,
+        overlayEntries,
+        overlayRowHeightPx
+    ) {
         if (!showHistoryOverlay) return@LaunchedEffect
         snapshotFlow { historyListState.layoutInfo.visibleItemsInfo }
             .map { items ->
                 if (items.isEmpty()) {
                     null
                 } else {
-                    items.minByOrNull { item ->
-                        val itemCenter = item.offset + item.size / 2
-                        abs(itemCenter - overlayTargetCenterPx)
-                    }?.index
+                    val first = items.first()
+                    val centerOffset = overlayTargetCenterPx - first.offset
+                    val steps = floor(centerOffset / overlayRowHeightPx).toInt()
+                    (first.index + steps).coerceIn(0, overlayEntries.lastIndex)
                 }
             }
             .distinctUntilChanged()
@@ -831,19 +844,23 @@ fun CompareCompactScreen(
             } else {
                 Color(0xFF42A5F5)
             }
+            val overlayBackground = Color(0xFF0B0B0B)
+            val selectedBackground = if (activeOverlayTarget == OverlayTarget.RIGHT) {
+                Color(0xFF1A0D0D)
+            } else {
+                Color(0xFF0D1420)
+            }
+            val listTitleColor = Color(0xFFEAEAEA)
+            val listSubtitleColor = Color(0xFFB0B0B0)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.7f))
-                    .zIndex(4f)
-                    .padding(bottom = bottomContentPadding),
+                    .background(overlayBackground)
+                    .zIndex(4f),
                 contentAlignment = Alignment.Center
             ) {
-                val overlayEntries = if (activeOverlayTarget == OverlayTarget.RIGHT) {
-                    rightEntries
-                } else {
-                    leftEntries
-                }
+                val highlightId =
+                    overlayEntries.getOrNull(historyOverlayIndex)?.streamId
                 BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxSize()
@@ -880,41 +897,51 @@ fun CompareCompactScreen(
                             verticalArrangement = Arrangement.spacedBy(0.dp)
                         ) {
                             items(overlayEntries, key = { it.streamId }) { entry ->
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(overlayRowHeight)
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                                ) {
-                                    val stream = remember(entry) { entry.toStreamInfoItem() }
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically
+                                val isHighlight = entry.streamId == highlightId
+                                if (isHighlight) {
+                                    Spacer(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(overlayRowHeight)
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(overlayRowHeight)
                                     ) {
-                                        StreamThumbnail(
-                                            stream = stream,
-                                            showProgress = false,
-                                            showDuration = true,
-                                            durationTextStyle = MaterialTheme.typography.labelSmall
-                                                .copy(fontSize = 10.sp),
-                                            modifier = Modifier.size(width = 144.dp, height = 80.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = entry.streamEntity.title,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurface,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
+                                        val stream = remember(entry) { entry.toStreamInfoItem() }
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            StreamThumbnail(
+                                                stream = stream,
+                                                showProgress = false,
+                                                showDuration = true,
+                                                durationTextStyle = MaterialTheme.typography.labelSmall
+                                                    .copy(fontSize = 10.sp),
+                                                modifier = Modifier.size(width = 144.dp, height = 80.dp)
                                             )
-                                            Text(
-                                                text = entry.streamEntity.uploader,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = entry.streamEntity.title,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = listTitleColor,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Text(
+                                                    text = entry.streamEntity.uploader,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = listSubtitleColor,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -930,43 +957,49 @@ fun CompareCompactScreen(
                                     .padding(top = topPadding)
                                     .fillMaxWidth()
                                     .padding(horizontal = 8.dp),
-                                shape = RoundedCornerShape(8.dp),
-                                color = accentColor
+                                shape = RoundedCornerShape(10.dp),
+                                color = selectedBackground,
+                                border = BorderStroke(1.dp, accentColor)
                             ) {
                                 val stream = remember(selectedEntry) {
                                     selectedEntry.toStreamInfoItem()
                                 }
-                                Row(
+                                Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(overlayRowHeight)
-                                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    StreamThumbnail(
-                                        stream = stream,
-                                        showProgress = false,
-                                        showDuration = true,
-                                        durationTextStyle = MaterialTheme.typography.labelSmall
-                                            .copy(fontSize = 10.sp),
-                                        modifier = Modifier.size(width = 144.dp, height = 80.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = selectedEntry.streamEntity.title,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = Color.White,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        StreamThumbnail(
+                                            stream = stream,
+                                            showProgress = false,
+                                            showDuration = true,
+                                            durationTextStyle = MaterialTheme.typography.labelSmall
+                                                .copy(fontSize = 10.sp),
+                                            modifier = Modifier.size(width = 144.dp, height = 80.dp)
                                         )
-                                        Text(
-                                            text = selectedEntry.streamEntity.uploader,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = Color.White.copy(alpha = 0.85f),
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = selectedEntry.streamEntity.title,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = Color.White,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                text = selectedEntry.streamEntity.uploader,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = Color.White.copy(alpha = 0.85f),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -990,33 +1023,51 @@ fun CompareCompactScreen(
                 modifier = Modifier
                     .navigationBarsPadding()
                     .fillMaxWidth()
-                    .padding(bottom = 10.dp),
-                contentAlignment = Alignment.BottomCenter
+                    .padding(bottom = 10.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .background(Color(0xFFFFD54F), RoundedCornerShape(10.dp))
-                        .graphicsLayer(alpha = buttonAlpha)
-                        .clickable(enabled = canSubmit) {
-                            val snapshot = selectedIds.toSet()
-                            if (hasStoredScores) {
-                                onUpdateSelected(snapshot)
-                            } else {
-                                onSubmitSelected(snapshot)
-                            }
-                        }
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
-                        .zIndex(2f),
-                    contentAlignment = Alignment.Center
+                Column(
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text(
-                        text = buttonLabel,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = Color(0xFF1A1A1A)
-                    )
+                    Button(
+                        onClick = {},
+                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = "TEST",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFFFFD54F), RoundedCornerShape(10.dp))
+                            .graphicsLayer(alpha = buttonAlpha)
+                            .clickable(enabled = canSubmit) {
+                                val snapshot = selectedIds.toSet()
+                                if (hasStoredScores) {
+                                    onUpdateSelected(snapshot)
+                                } else {
+                                    onSubmitSelected(snapshot)
+                                }
+                            }
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .zIndex(2f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = buttonLabel,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = Color(0xFF1A1A1A)
+                        )
+                    }
                 }
             }
         }
