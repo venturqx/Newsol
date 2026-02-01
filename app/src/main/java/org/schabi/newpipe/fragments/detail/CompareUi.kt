@@ -577,6 +577,20 @@ fun CompareCompactScreen(
                 iconRes = activeDimension.iconRes
             )
 
+            val lastViewed = state.historyEntries.firstOrNull()
+            if (lastViewed != null) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(6.dp),
+                    border = BorderStroke(1.dp, Color(0xFF42A5F5)),
+                    color = MaterialTheme.colorScheme.surface
+                ) {
+                    Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
+                        CompareVideoRow(entry = lastViewed)
+                    }
+                }
+            }
+
             CompactDimensionList(
                 dimensions = dimensions,
                 activeIndex = activeIndexSafe,
