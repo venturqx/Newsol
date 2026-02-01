@@ -474,6 +474,10 @@ fun CompareCompactScreen(
         ?: leftEntries.firstOrNull()
     val selectedHistoryEntryRight = rightEntries.getOrNull(rightHistoryIndex)
         ?: rightEntries.firstOrNull()
+    val leftStreamId = selectedHistoryEntryLeft?.streamId
+    val rightStreamId = selectedHistoryEntryRight?.streamId
+    var lastLeftStreamId by remember { mutableStateOf(leftStreamId) }
+    var lastRightStreamId by remember { mutableStateOf(rightStreamId) }
     var leftHistoryBounds by remember { mutableStateOf<Rect?>(null) }
     var rightHistoryBounds by remember { mutableStateOf<Rect?>(null) }
     val historyListState = rememberLazyListState()
@@ -506,6 +510,21 @@ fun CompareCompactScreen(
     LaunchedEffect(selectedHistoryEntryRight) {
         if (selectedHistoryEntryRight == null) {
             rightHistoryBounds = null
+        }
+    }
+    LaunchedEffect(leftStreamId, rightStreamId) {
+        val hasChanged =
+            leftStreamId != lastLeftStreamId || rightStreamId != lastRightStreamId
+        if (hasChanged) {
+            lastLeftStreamId = leftStreamId
+            lastRightStreamId = rightStreamId
+            onScoreChange(0)
+            COMPACT_DIMENSIONS.forEach { criterion ->
+                if (criterion.id != COMPACT_MAIN_CRITERION_ID) {
+                    onExtraScoreChange(criterion.id, 0)
+                }
+            }
+            selectedIds = emptySet()
         }
     }
     val hasStoredScores = state.storedMainScore != null || state.storedExtraScores.isNotEmpty()
