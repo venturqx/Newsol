@@ -458,16 +458,17 @@ fun CompareCompactScreen(
     val miniPlayerHeight = dimensionResource(R.dimen.mini_player_height)
     val bottomOverlayPadding = swipeAreaHeight + miniPlayerHeight + 60.dp
     var showHistoryOverlay by remember { mutableStateOf(false) }
-    val lastViewed = state.historyEntries.firstOrNull()
-    var lastViewedBounds by remember { mutableStateOf<Rect?>(null) }
     var historyOverlayIndex by rememberSaveable { mutableIntStateOf(0) }
+    val selectedHistoryEntry = state.historyEntries.getOrNull(historyOverlayIndex)
+        ?: state.historyEntries.firstOrNull()
+    var lastViewedBounds by remember { mutableStateOf<Rect?>(null) }
     val historyListState = rememberLazyListState()
     var historyRowHeightPx by remember { mutableIntStateOf(0) }
     LaunchedEffect(state.historyEntries) {
         historyOverlayIndex = 0
     }
-    LaunchedEffect(lastViewed) {
-        if (lastViewed == null) {
+    LaunchedEffect(selectedHistoryEntry) {
+        if (selectedHistoryEntry == null) {
             lastViewedBounds = null
         }
     }
@@ -596,7 +597,10 @@ fun CompareCompactScreen(
                 var lastY = down.position.y
                 val overlaySensitivity = 1.5f
                 showHistoryOverlay = true
-                historyOverlayIndex = 0
+                historyOverlayIndex =
+                    state.historyEntries.indexOfFirst { entry ->
+                        entry.streamId == selectedHistoryEntry?.streamId
+                    }.takeIf { it >= 0 } ?: 0
                 try {
                     while (true) {
                         val event = awaitPointerEvent()
@@ -672,7 +676,7 @@ fun CompareCompactScreen(
                 modifier = Modifier
             )
 
-            if (lastViewed != null) {
+            if (selectedHistoryEntry != null) {
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -684,7 +688,7 @@ fun CompareCompactScreen(
                     color = MaterialTheme.colorScheme.surface
                 ) {
                     Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
-                        CompareVideoRow(entry = lastViewed)
+                        CompareVideoThumbnailCard(entry = selectedHistoryEntry)
                     }
                 }
             }
@@ -2027,6 +2031,38 @@ private fun CompareVideoRow(entry: StreamHistoryEntry) {
                 overflow = TextOverflow.Ellipsis
             )
         }
+    }
+}
+
+@Composable
+private fun CompareVideoThumbnailCard(entry: StreamHistoryEntry) {
+    val stream = remember(entry) { entry.toStreamInfoItem() }
+    val thumbnailDescription = stringResource(R.string.compare_thumbnail_description)
+    Column(modifier = Modifier.fillMaxWidth()) {
+        StreamThumbnail(
+            stream = stream,
+            showProgress = false,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(72.dp)
+                .semantics {
+                    contentDescription = thumbnailDescription
+                }
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = stream.name,
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Text(
+            text = stream.uploaderName.orEmpty(),
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+            color = Color(0xFF64B5F6),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
