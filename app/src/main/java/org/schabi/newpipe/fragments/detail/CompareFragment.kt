@@ -4,13 +4,10 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Base64
-import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
 import android.widget.Toast
-import androidx.appcompat.widget.AppCompatButton
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -93,14 +90,8 @@ class CompareFragment : Fragment() {
             historyEntries = emptyList()
             historyMessageRes = R.string.compare_history_unavailable
         }
-        val root = FrameLayout(requireContext()).apply {
+        return ComposeView(requireContext()).apply {
             layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
-        }
-        val composeView = ComposeView(requireContext()).apply {
-            layoutParams = FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
@@ -133,10 +124,9 @@ class CompareFragment : Fragment() {
                         CompareCompactScreen(
                             state = uiState,
                             onScoreChange = { score = it },
-                            onSubmit = { sendComparison(score) },
-                            onChangeMainScore = { sendMainScoreChange() },
                             onExtraScoreChange = onExtraScoreChange,
-                            onSubmitMore = { sendAdditionalCriteria() },
+                            onSubmitSelected = { selected -> sendCompactSubmit(selected) },
+                            onUpdateSelected = { selected -> sendCompactUpdate(selected) },
                             onDismissLogin = { dismissLoginDialog() },
                             onRegister = { openRegisterPage() },
                             onLogin = { username, password -> performLogin(username, password) }
@@ -158,46 +148,6 @@ class CompareFragment : Fragment() {
                 }
             }
         }
-        root.addView(composeView)
-
-        if (useCompactUi) {
-            val buttonHeight = TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP,
-                22f,
-                resources.displayMetrics
-            ).toInt()
-            val sidePadding = TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP,
-                16f,
-                resources.displayMetrics
-            ).toInt()
-            val bottomOffset = resources.getDimensionPixelSize(R.dimen.mini_player_height) +
-                TypedValue.applyDimension(
-                    TypedValue.COMPLEX_UNIT_DIP,
-                    6f,
-                    resources.displayMetrics
-                ).toInt()
-            val testButton = AppCompatButton(requireContext()).apply {
-                text = "TEST BUTTON"
-                isAllCaps = false
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
-                setBackgroundColor(0xFFFFD54F.toInt())
-                setTextColor(0xFF1A1A1A.toInt())
-                layoutParams = FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    buttonHeight,
-                    android.view.Gravity.BOTTOM
-                ).apply {
-                    leftMargin = sidePadding
-                    rightMargin = sidePadding
-                    bottomMargin = bottomOffset
-                }
-                setOnClickListener { }
-            }
-            root.addView(testButton)
-        }
-
-        return root
     }
 
     override fun onDestroyView() {
@@ -385,6 +335,213 @@ class CompareFragment : Fragment() {
                     },
                     { throwable ->
                         submitInProgress = false
+                        if (throwable is MissingTokenException) {
+                            Toast.makeText(
+                                requireContext(),
+                                getString(R.string.compare_login_required),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            showLoginDialog()
+                            return@subscribe
+                        }
+                        val message = throwable.message
+                        val errorText = if (message.isNullOrBlank()) {
+                            getString(R.string.compare_failed)
+                        } else {
+                            getString(R.string.compare_failed_with_message, message)
+                        }
+                        Toast.makeText(requireContext(), errorText, Toast.LENGTH_LONG).show()
+                    }
+                )
+        )
+    }
+
+    private fun sendCompactSubmit(selectedIds: Set<String>) {
+        if (submitInProgress) {
+            return
+        }
+        val payload = buildCompactCriteriaPayload(selectedIds) ?: run {
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.compare_select_criteria),
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+        val info = currentInfo
+        if (info == null) {
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.compare_current_unavailable),
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+        val selectedEntry = historyEntries.getOrNull(selectedIndex)
+        if (selectedEntry == null) {
+            val messageRes = historyMessageRes ?: R.string.compare_history_unavailable
+            Toast.makeText(
+                requireContext(),
+                getString(messageRes),
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
+        val lastUid = CompareRepository.buildTournesolUid(
+            selectedEntry.streamEntity.url,
+            selectedEntry.streamEntity.serviceId
+        )
+        val currentUid = CompareRepository.buildTournesolUid(
+            info.url,
+            info.serviceId
+        )
+
+        if (lastUid == null || currentUid == null) {
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.compare_service_not_supported),
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
+        submitInProgress = true
+        disposables.add(
+            TournesolAuthManager.getValidAccessToken(requireContext())
+                .subscribeOn(Schedulers.io())
+                .switchIfEmpty(
+                    io.reactivex.rxjava3.core.Maybe.error(MissingTokenException())
+                )
+                .flatMapSingle { token ->
+                    CompareRepository.submitComparisonWithCriteria(
+                        token,
+                        lastUid,
+                        currentUid,
+                        payload.criteriaScores
+                    )
+                }
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                    { messageRes ->
+                        submitInProgress = false
+                        markSubmitted(lastUid, currentUid)
+                        storeSubmittedScores(
+                            CompareKey(lastUid, currentUid),
+                            mainScore = payload.mainScore,
+                            extraScores = payload.extraScores
+                        )
+                        Toast.makeText(
+                            requireContext(),
+                            getString(messageRes),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    },
+                    { throwable ->
+                        submitInProgress = false
+                        if (throwable is MissingTokenException) {
+                            Toast.makeText(
+                                requireContext(),
+                                getString(R.string.compare_login_required),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            showLoginDialog()
+                            return@subscribe
+                        }
+                        val message = throwable.message
+                        val errorText = if (message.isNullOrBlank()) {
+                            getString(R.string.compare_failed)
+                        } else {
+                            getString(R.string.compare_failed_with_message, message)
+                        }
+                        Toast.makeText(requireContext(), errorText, Toast.LENGTH_LONG).show()
+                    }
+                )
+        )
+    }
+
+    private fun sendCompactUpdate(selectedIds: Set<String>) {
+        if (submitMoreInProgress) {
+            return
+        }
+        val payload = buildCompactCriteriaPayload(selectedIds) ?: run {
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.compare_select_criteria),
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+        val info = currentInfo
+        if (info == null) {
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.compare_current_unavailable),
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+        val selectedEntry = historyEntries.getOrNull(selectedIndex)
+        if (selectedEntry == null) {
+            val messageRes = historyMessageRes ?: R.string.compare_history_unavailable
+            Toast.makeText(
+                requireContext(),
+                getString(messageRes),
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
+        val lastUid = CompareRepository.buildTournesolUid(
+            selectedEntry.streamEntity.url,
+            selectedEntry.streamEntity.serviceId
+        )
+        val currentUid = CompareRepository.buildTournesolUid(
+            info.url,
+            info.serviceId
+        )
+
+        if (lastUid == null || currentUid == null) {
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.compare_service_not_supported),
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
+        submitMoreInProgress = true
+        disposables.add(
+            TournesolAuthManager.getValidAccessToken(requireContext())
+                .subscribeOn(Schedulers.io())
+                .switchIfEmpty(
+                    io.reactivex.rxjava3.core.Maybe.error(MissingTokenException())
+                )
+                .flatMapSingle { token ->
+                    CompareRepository.patchComparison(
+                        token,
+                        lastUid,
+                        currentUid,
+                        payload.criteriaScores
+                    )
+                }
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                    { messageRes ->
+                        submitMoreInProgress = false
+                        storeSubmittedScores(
+                            CompareKey(lastUid, currentUid),
+                            mainScore = payload.mainScore,
+                            extraScores = payload.extraScores
+                        )
+                        Toast.makeText(
+                            requireContext(),
+                            getString(messageRes),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    },
+                    { throwable ->
+                        submitMoreInProgress = false
                         if (throwable is MissingTokenException) {
                             Toast.makeText(
                                 requireContext(),
@@ -769,6 +926,41 @@ class CompareFragment : Fragment() {
         val mainScore: Int? = null,
         val extraScores: Map<String, Int> = emptyMap()
     )
+    private data class CompactCriteriaPayload(
+        val criteriaScores: List<CriteriaScore>,
+        val mainScore: Int?,
+        val extraScores: Map<String, Int>
+    )
+
+    private fun buildCompactCriteriaPayload(
+        selectedIds: Set<String>
+    ): CompactCriteriaPayload? {
+        if (selectedIds.isEmpty()) {
+            return null
+        }
+        val criteriaScores = ArrayList<CriteriaScore>(selectedIds.size)
+        val extras = LinkedHashMap<String, Int>()
+        var mainScore: Int? = null
+        selectedIds.forEach { criteria ->
+            val value = if (criteria == "largely_recommended") {
+                mainScore = score
+                score
+            } else {
+                val extraValue = extraScores[criteria] ?: 0
+                extras[criteria] = extraValue
+                extraValue
+            }
+            criteriaScores.add(CriteriaScore(criteria, value))
+        }
+        if (criteriaScores.isEmpty()) {
+            return null
+        }
+        return CompactCriteriaPayload(
+            criteriaScores = criteriaScores,
+            mainScore = mainScore,
+            extraScores = extras
+        )
+    }
     private data class CompareKey(val lastUid: String, val currentUid: String) {
         fun toStorage(): String {
             return "${encode(lastUid)}|${encode(currentUid)}"

@@ -35,7 +35,40 @@ object CompareRepository {
         currentUid: String,
         score: Int
     ): Single<Int> = Single.fromCallable {
-        val payload = buildComparisonPayload(lastUid, currentUid, score)
+        val payload = buildComparisonPayload(
+            lastUid,
+            currentUid,
+            listOf(CriteriaScore(COMPARE_CRITERIA, score))
+        )
+        val mediaType = "application/json; charset=utf-8".toMediaType()
+        val body = payload.toString().toRequestBody(mediaType)
+        val request = Request.Builder()
+            .url(COMPARE_URL)
+            .post(body)
+            .addHeader("Authorization", "Bearer $token")
+            .addHeader("Content-Type", "application/json")
+            .build()
+
+        val client = getHttpClient()
+        client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (response.isSuccessful) {
+                return@fromCallable R.string.compare_submitted
+            }
+            if (response.code == 400 && responseBody.contains("already compared")) {
+                return@fromCallable R.string.compare_already_submitted
+            }
+            throw IOException("HTTP ${response.code} $responseBody")
+        }
+    }.subscribeOn(Schedulers.io())
+
+    internal fun submitComparisonWithCriteria(
+        token: String,
+        lastUid: String,
+        currentUid: String,
+        criteriaScores: List<CriteriaScore>
+    ): Single<Int> = Single.fromCallable {
+        val payload = buildComparisonPayload(lastUid, currentUid, criteriaScores)
         val mediaType = "application/json; charset=utf-8".toMediaType()
         val body = payload.toString().toRequestBody(mediaType)
         val request = Request.Builder()
@@ -119,17 +152,14 @@ object CompareRepository {
     private fun buildComparisonPayload(
         lastUid: String,
         currentUid: String,
-        score: Int
+        criteriaScores: List<CriteriaScore>
     ): JSONObject {
         val payload = JSONObject()
         payload.put("pollName", COMPARE_POLL)
         payload.put("entity_a", JSONObject().put("uid", lastUid))
         payload.put("entity_b", JSONObject().put("uid", currentUid))
 
-        val criteriaScores = buildCriteriaScores(
-            listOf(CriteriaScore(COMPARE_CRITERIA, score))
-        )
-        payload.put("criteria_scores", criteriaScores)
+        payload.put("criteria_scores", buildCriteriaScores(criteriaScores))
         return payload
     }
 

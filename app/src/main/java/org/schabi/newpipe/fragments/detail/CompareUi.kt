@@ -382,10 +382,9 @@ private val COMPACT_DIMENSIONS = listOf(
 fun CompareCompactScreen(
     state: CompareUiState,
     onScoreChange: (Int) -> Unit,
-    onSubmit: () -> Unit,
-    onChangeMainScore: () -> Unit,
     onExtraScoreChange: (String, Int) -> Unit,
-    onSubmitMore: () -> Unit,
+    onSubmitSelected: (Set<String>) -> Unit,
+    onUpdateSelected: (Set<String>) -> Unit,
     onDismissLogin: () -> Unit,
     onRegister: () -> Unit,
     onLogin: (String, String) -> Unit
@@ -445,6 +444,15 @@ fun CompareCompactScreen(
     val latestMaxIndex by rememberUpdatedState(maxIndex)
     val swipeAreaHeight = 120.dp
     val bottomOverlayPadding = swipeAreaHeight + 8.dp
+    val hasStoredScores = state.storedMainScore != null || state.storedExtraScores.isNotEmpty()
+    val isBusy = state.submitInProgress || state.submitMoreInProgress
+    val canSubmit = selectedIds.isNotEmpty() && !isBusy
+    val buttonLabel = if (hasStoredScores) {
+        stringResource(R.string.compare_update_label)
+    } else {
+        stringResource(R.string.compare_submit_label)
+    }
+    val buttonAlpha = if (canSubmit) 1f else 0.55f
 
     LaunchedEffect(state.storedMainScore) {
         if (state.storedMainScore != null) {
@@ -607,13 +615,21 @@ fun CompareCompactScreen(
             Box(
                 modifier = Modifier
                     .background(Color(0xFFFFD54F), RoundedCornerShape(10.dp))
-                    .clickable(onClick = {})
+                    .graphicsLayer(alpha = buttonAlpha)
+                    .clickable(enabled = canSubmit) {
+                        val snapshot = selectedIds.toSet()
+                        if (hasStoredScores) {
+                            onUpdateSelected(snapshot)
+                        } else {
+                            onSubmitSelected(snapshot)
+                        }
+                    }
                     .padding(horizontal = 16.dp, vertical = 6.dp)
                     .zIndex(2f),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "TEST BUTTON",
+                    text = buttonLabel,
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold
