@@ -53,6 +53,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -484,6 +485,8 @@ fun CompareCompactScreen(
     var leftHistoryBounds by remember { mutableStateOf<Rect?>(null) }
     var rightHistoryBounds by remember { mutableStateOf<Rect?>(null) }
     var rectanglesBottomPx by remember { mutableStateOf<Float?>(null) }
+    var overlayTopPx by remember { mutableStateOf(0f) }
+    var overlayHeightPxState by remember { mutableStateOf(0f) }
     val historyListState = rememberLazyListState()
     val overlayRowHeight = 88.dp
     LaunchedEffect(leftEntries, rightEntries) {
@@ -551,21 +554,37 @@ fun CompareCompactScreen(
             historyListState.scrollToItem(historyOverlayIndex)
         }
     }
-    LaunchedEffect(showHistoryOverlay, historyListState) {
+    val overlayTargetCenterPx by remember(
+        activeOverlayTarget,
+        leftHistoryBounds,
+        rightHistoryBounds,
+        overlayTopPx,
+        overlayHeightPxState
+    ) {
+        derivedStateOf {
+            val bounds = when (activeOverlayTarget) {
+                OverlayTarget.LEFT -> leftHistoryBounds
+                OverlayTarget.RIGHT -> rightHistoryBounds
+            }
+            val heightPx = overlayHeightPxState
+            if (heightPx <= 0f) {
+                0f
+            } else {
+                val raw = bounds?.center?.y?.minus(overlayTopPx) ?: heightPx / 2f
+                raw.coerceIn(0f, heightPx)
+            }
+        }
+    }
+    LaunchedEffect(showHistoryOverlay, historyListState, overlayTargetCenterPx) {
         if (!showHistoryOverlay) return@LaunchedEffect
         snapshotFlow { historyListState.layoutInfo.visibleItemsInfo }
             .map { items ->
                 if (items.isEmpty()) {
                     null
                 } else {
-                    val center =
-                        (
-                            historyListState.layoutInfo.viewportStartOffset +
-                            historyListState.layoutInfo.viewportEndOffset
-                        ) / 2
                     items.minByOrNull { item ->
                         val itemCenter = item.offset + item.size / 2
-                        abs(itemCenter - center)
+                        abs(itemCenter - overlayTargetCenterPx)
                     }?.index
                 }
             }
@@ -861,15 +880,21 @@ fun CompareCompactScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 16.dp)
+                        .onGloballyPositioned { coordinates ->
+                            overlayTopPx = coordinates.boundsInRoot().top
+                        }
                 ) {
                     val overlayHeightPx = with(density) { maxHeight.toPx() }
-                    val rowHeightPx = with(density) { overlayRowHeight.toPx() }
-                    val activeBounds = when (activeOverlayTarget) {
-                        OverlayTarget.LEFT -> leftHistoryBounds
-                        OverlayTarget.RIGHT -> rightHistoryBounds
+                    if (overlayHeightPx != overlayHeightPxState) {
+                        overlayHeightPxState = overlayHeightPx
                     }
-                    val targetCenterPx = activeBounds?.center?.y
-                        ?: overlayHeightPx / 2f
+                    val rowHeightPx = with(density) { overlayRowHeight.toPx() }
+                    val targetCenterPx =
+                        if (overlayTargetCenterPx > 0f) {
+                            overlayTargetCenterPx
+                        } else {
+                            overlayHeightPx / 2f
+                        }
                     val topPaddingPx = (targetCenterPx - rowHeightPx / 2f)
                         .coerceIn(0f, overlayHeightPx - rowHeightPx)
                     val bottomPaddingPx =
