@@ -594,6 +594,7 @@ fun CompareCompactScreen(
                 }
                 val pointerId = down.id
                 var lastY = down.position.y
+                val overlaySensitivity = 1.5f
                 showHistoryOverlay = true
                 historyOverlayIndex = 0
                 try {
@@ -605,7 +606,7 @@ fun CompareCompactScreen(
                             break
                         }
                         val entriesCount = state.historyEntries.size
-                        val deltaY = change.position.y - lastY
+                        val deltaY = (change.position.y - lastY) * overlaySensitivity
                         lastY = change.position.y
                         if (entriesCount > 0) {
                             historyListState.dispatchRawDelta(-deltaY)
@@ -657,6 +658,20 @@ fun CompareCompactScreen(
                 iconRes = activeDimension.iconRes
             )
 
+            CompactDimensionList(
+                dimensions = dimensions,
+                activeIndex = activeIndexSafe,
+                scores = state,
+                selectedIds = selectedIds,
+                onToggleSelected = { id, selected -> onSelectionChange(id, selected) },
+                onSelect = { index ->
+                    if (hasRatedMain) {
+                        activeIndex = index
+                    }
+                },
+                modifier = Modifier
+            )
+
             if (lastViewed != null) {
                 Surface(
                     modifier = Modifier
@@ -673,20 +688,6 @@ fun CompareCompactScreen(
                     }
                 }
             }
-
-            CompactDimensionList(
-                dimensions = dimensions,
-                activeIndex = activeIndexSafe,
-                scores = state,
-                selectedIds = selectedIds,
-                onToggleSelected = { id, selected -> onSelectionChange(id, selected) },
-                onSelect = { index ->
-                    if (hasRatedMain) {
-                        activeIndex = index
-                    }
-                },
-                modifier = Modifier.weight(1f)
-            )
         }
 
         Column(
@@ -711,7 +712,8 @@ fun CompareCompactScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black.copy(alpha = 0.7f))
-                    .zIndex(4f),
+                    .zIndex(4f)
+                    .padding(bottom = bottomOverlayPadding),
                 contentAlignment = Alignment.Center
             ) {
                 val highlightId =
@@ -759,7 +761,7 @@ fun CompareCompactScreen(
                                             stream = stream,
                                             showProgress = false,
                                             showDuration = false,
-                                            modifier = Modifier.size(width = 36.dp, height = 20.dp)
+                                            modifier = Modifier.size(width = 144.dp, height = 80.dp)
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Column(modifier = Modifier.weight(1f)) {
@@ -807,7 +809,7 @@ fun CompareCompactScreen(
                                         stream = stream,
                                         showProgress = false,
                                         showDuration = false,
-                                        modifier = Modifier.size(width = 36.dp, height = 20.dp)
+                                        modifier = Modifier.size(width = 144.dp, height = 80.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Column(modifier = Modifier.weight(1f)) {
