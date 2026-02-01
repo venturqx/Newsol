@@ -20,6 +20,7 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -35,6 +36,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -459,6 +461,8 @@ fun CompareCompactScreen(
     val lastViewed = state.historyEntries.firstOrNull()
     var lastViewedBounds by remember { mutableStateOf<Rect?>(null) }
     var historyOverlayIndex by rememberSaveable { mutableIntStateOf(0) }
+    val historyListState = rememberLazyListState()
+    var historyRowHeightPx by remember { mutableIntStateOf(0) }
     LaunchedEffect(state.historyEntries) {
         historyOverlayIndex = 0
     }
@@ -491,6 +495,11 @@ fun CompareCompactScreen(
         if (showRateFirstMessage) {
             delay(1600)
             showRateFirstMessage = false
+        }
+    }
+    LaunchedEffect(showHistoryOverlay, historyOverlayIndex, historyRowHeightPx) {
+        if (showHistoryOverlay) {
+            historyListState.scrollToItem(historyOverlayIndex)
         }
     }
 
@@ -601,14 +610,13 @@ fun CompareCompactScreen(
                         val deltaY = change.position.y - lastY
                         lastY = change.position.y
                         dragAccum += deltaY
-                        if (entriesCount > 0) {
-                            while (abs(dragAccum) >= historyStepThresholdPx) {
-                                val step = if (dragAccum > 0f) 1 else -1
-                                historyOverlayIndex =
-                                    (historyOverlayIndex + step)
-                                        .coerceIn(0, entriesCount - 1)
-                                dragAccum -= step * historyStepThresholdPx
-                            }
+                        if (entriesCount > 0 && abs(dragAccum) >= historyStepThresholdPx) {
+                            val direction = if (dragAccum > 0f) 1 else -1
+                            val step = -direction
+                            historyOverlayIndex =
+                                (historyOverlayIndex + step)
+                                    .coerceIn(0, entriesCount - 1)
+                            dragAccum -= direction * historyStepThresholdPx
                         }
                         change.consumeAllChanges()
                     }
@@ -698,17 +706,23 @@ fun CompareCompactScreen(
             ) {
                 val highlightId =
                     state.historyEntries.getOrNull(historyOverlayIndex)?.streamId
-                Surface(
+                BoxWithConstraints(
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .fillMaxSize()
                         .padding(horizontal = 16.dp)
-                        .heightIn(max = 320.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(1.dp, accentBlue)
                 ) {
+                    val overlayHeightPx = with(density) { maxHeight.toPx() }
+                    val rowHeightPx = historyRowHeightPx.takeIf { it > 0 } ?: 0
+                    val halfPaddingPx =
+                        ((overlayHeightPx - rowHeightPx) / 2f).coerceAtLeast(0f)
+                    val halfPadding = with(density) { halfPaddingPx.toDp() }
                     LazyColumn(
-                        contentPadding = PaddingValues(vertical = 6.dp),
+                        modifier = Modifier.fillMaxSize(),
+                        state = historyListState,
+                        contentPadding = PaddingValues(
+                            top = halfPadding,
+                            bottom = halfPadding
+                        ),
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         items(state.historyEntries, key = { it.streamId }) { entry ->
@@ -722,6 +736,11 @@ fun CompareCompactScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .background(rowColor)
+                                    .onSizeChanged { size ->
+                                        if (historyRowHeightPx != size.height) {
+                                            historyRowHeightPx = size.height
+                                        }
+                                    }
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 val stream = remember(entry) { entry.toStreamInfoItem() }
