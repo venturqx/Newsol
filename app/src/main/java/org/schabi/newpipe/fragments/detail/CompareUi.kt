@@ -458,18 +458,38 @@ fun CompareCompactScreen(
     val miniPlayerHeight = dimensionResource(R.dimen.mini_player_height)
     val bottomOverlayPadding = swipeAreaHeight + miniPlayerHeight + 60.dp
     var showHistoryOverlay by remember { mutableStateOf(false) }
+    var leftHistoryIndex by rememberSaveable { mutableIntStateOf(0) }
+    var rightHistoryIndex by rememberSaveable { mutableIntStateOf(0) }
     var historyOverlayIndex by rememberSaveable { mutableIntStateOf(0) }
-    val selectedHistoryEntry = state.historyEntries.getOrNull(historyOverlayIndex)
+    var activeOverlayTarget by remember { mutableStateOf(OverlayTarget.LEFT) }
+    val selectedHistoryEntryLeft = state.historyEntries.getOrNull(leftHistoryIndex)
         ?: state.historyEntries.firstOrNull()
-    var lastViewedBounds by remember { mutableStateOf<Rect?>(null) }
+    val selectedHistoryEntryRight = state.historyEntries.getOrNull(rightHistoryIndex)
+        ?: state.historyEntries.firstOrNull()
+    var leftHistoryBounds by remember { mutableStateOf<Rect?>(null) }
+    var rightHistoryBounds by remember { mutableStateOf<Rect?>(null) }
     val historyListState = rememberLazyListState()
     var historyRowHeightPx by remember { mutableIntStateOf(0) }
     LaunchedEffect(state.historyEntries) {
-        historyOverlayIndex = 0
+        if (state.historyEntries.isEmpty()) {
+            leftHistoryIndex = 0
+            rightHistoryIndex = 0
+            historyOverlayIndex = 0
+        } else {
+            val maxIndex = state.historyEntries.lastIndex
+            leftHistoryIndex = leftHistoryIndex.coerceIn(0, maxIndex)
+            rightHistoryIndex = rightHistoryIndex.coerceIn(0, maxIndex)
+            historyOverlayIndex = historyOverlayIndex.coerceIn(0, maxIndex)
+        }
     }
-    LaunchedEffect(selectedHistoryEntry) {
-        if (selectedHistoryEntry == null) {
-            lastViewedBounds = null
+    LaunchedEffect(selectedHistoryEntryLeft) {
+        if (selectedHistoryEntryLeft == null) {
+            leftHistoryBounds = null
+        }
+    }
+    LaunchedEffect(selectedHistoryEntryRight) {
+        if (selectedHistoryEntryRight == null) {
+            rightHistoryBounds = null
         }
     }
     val hasStoredScores = state.storedMainScore != null || state.storedExtraScores.isNotEmpty()
@@ -586,21 +606,29 @@ fun CompareCompactScreen(
         )
     }
     val historyOverlayGestureModifier =
-        Modifier.pointerInput(lastViewedBounds, state.historyEntries.size) {
+        Modifier.pointerInput(
+            leftHistoryBounds,
+            rightHistoryBounds,
+            state.historyEntries.size,
+            leftHistoryIndex,
+            rightHistoryIndex
+        ) {
             awaitEachGesture {
                 val down = awaitFirstDown(requireUnconsumed = false)
-                val bounds = lastViewedBounds
-                if (bounds == null || !bounds.contains(down.position)) {
-                    return@awaitEachGesture
-                }
+                val target = when {
+                    leftHistoryBounds?.contains(down.position) == true -> OverlayTarget.LEFT
+                    rightHistoryBounds?.contains(down.position) == true -> OverlayTarget.RIGHT
+                    else -> null
+                } ?: return@awaitEachGesture
                 val pointerId = down.id
                 var lastY = down.position.y
                 val overlaySensitivity = 1.5f
+                activeOverlayTarget = target
+                historyOverlayIndex = when (target) {
+                    OverlayTarget.LEFT -> leftHistoryIndex
+                    OverlayTarget.RIGHT -> rightHistoryIndex
+                }.coerceAtLeast(0)
                 showHistoryOverlay = true
-                historyOverlayIndex =
-                    state.historyEntries.indexOfFirst { entry ->
-                        entry.streamId == selectedHistoryEntry?.streamId
-                    }.takeIf { it >= 0 } ?: 0
                 try {
                     while (true) {
                         val event = awaitPointerEvent()
@@ -636,6 +664,10 @@ fun CompareCompactScreen(
                         change.consumeAllChanges()
                     }
                 } finally {
+                    when (target) {
+                        OverlayTarget.LEFT -> leftHistoryIndex = historyOverlayIndex
+                        OverlayTarget.RIGHT -> rightHistoryIndex = historyOverlayIndex
+                    }
                     showHistoryOverlay = false
                 }
             }
@@ -676,19 +708,47 @@ fun CompareCompactScreen(
                 modifier = Modifier
             )
 
-            if (selectedHistoryEntry != null) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .onGloballyPositioned { coordinates ->
-                            lastViewedBounds = coordinates.boundsInRoot()
-                        },
-                    shape = RoundedCornerShape(6.dp),
-                    border = BorderStroke(1.dp, Color(0xFF42A5F5)),
-                    color = MaterialTheme.colorScheme.surface
+            if (selectedHistoryEntryLeft != null || selectedHistoryEntryRight != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
-                        CompareVideoThumbnailCard(entry = selectedHistoryEntry)
+                    if (selectedHistoryEntryLeft != null) {
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .onGloballyPositioned { coordinates ->
+                                    leftHistoryBounds = coordinates.boundsInRoot()
+                                },
+                            shape = RoundedCornerShape(6.dp),
+                            border = BorderStroke(1.dp, Color(0xFF42A5F5)),
+                            color = MaterialTheme.colorScheme.surface
+                        ) {
+                            Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
+                                CompareVideoThumbnailCard(entry = selectedHistoryEntryLeft)
+                            }
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+
+                    if (selectedHistoryEntryRight != null) {
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .onGloballyPositioned { coordinates ->
+                                    rightHistoryBounds = coordinates.boundsInRoot()
+                                },
+                            shape = RoundedCornerShape(6.dp),
+                            border = BorderStroke(1.dp, Color(0xFF42A5F5)),
+                            color = MaterialTheme.colorScheme.surface
+                        ) {
+                            Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
+                                CompareVideoThumbnailCard(entry = selectedHistoryEntryRight)
+                            }
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -1113,6 +1173,11 @@ private fun MiniScoreBar(
 private enum class DragAxis {
     HORIZONTAL,
     VERTICAL
+}
+
+private enum class OverlayTarget {
+    LEFT,
+    RIGHT
 }
 
 @Composable
