@@ -714,7 +714,6 @@ fun CompareCompactScreen(
         ) {
             CompactHeader(
                 label = activeLabel,
-                score = displayScore,
                 description = activeDescription,
                 iconRes = activeDimension.iconRes
             )
@@ -734,55 +733,63 @@ fun CompareCompactScreen(
             )
 
             if (selectedHistoryEntryLeft != null || selectedHistoryEntryRight != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    if (selectedHistoryEntryLeft != null) {
-                        Surface(
-                            modifier = Modifier
-                                .weight(1f)
-                                .onGloballyPositioned { coordinates ->
-                                    leftHistoryBounds = coordinates.boundsInRoot()
-                                },
-                            shape = RoundedCornerShape(6.dp),
-                            border = BorderStroke(1.dp, Color(0xFF42A5F5)),
-                            color = MaterialTheme.colorScheme.surface
-                        ) {
-                            Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
-                                CompareVideoThumbnailCard(entry = selectedHistoryEntryLeft)
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(0.dp)
+                    ) {
+                        if (selectedHistoryEntryLeft != null) {
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .onGloballyPositioned { coordinates ->
+                                        leftHistoryBounds = coordinates.boundsInRoot()
+                                    },
+                                shape = RoundedCornerShape(6.dp),
+                                border = BorderStroke(1.dp, Color(0xFF42A5F5)),
+                                color = MaterialTheme.colorScheme.surface
+                            ) {
+                                Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
+                                    CompareVideoThumbnailCard(entry = selectedHistoryEntryLeft)
+                                }
                             }
+                        } else {
+                            Spacer(modifier = Modifier.weight(1f))
                         }
-                    } else {
-                        Spacer(modifier = Modifier.weight(1f))
+
+                        if (selectedHistoryEntryRight != null) {
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .onGloballyPositioned { coordinates ->
+                                        rightHistoryBounds = coordinates.boundsInRoot()
+                                    },
+                                shape = RoundedCornerShape(6.dp),
+                                border = BorderStroke(1.dp, Color(0xFFE57373)),
+                                color = MaterialTheme.colorScheme.surface
+                            ) {
+                                Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
+                                    CompareVideoThumbnailCard(entry = selectedHistoryEntryRight)
+                                }
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
                     }
 
-                    Text(
-                        text = "VS",
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        modifier = Modifier.align(Alignment.CenterVertically)
-                    )
-
-                    if (selectedHistoryEntryRight != null) {
-                        Surface(
-                            modifier = Modifier
-                                .weight(1f)
-                                .onGloballyPositioned { coordinates ->
-                                    rightHistoryBounds = coordinates.boundsInRoot()
-                                },
-                            shape = RoundedCornerShape(6.dp),
-                            border = BorderStroke(1.dp, Color(0xFFE57373)),
-                            color = MaterialTheme.colorScheme.surface
-                        ) {
-                            Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
-                                CompareVideoThumbnailCard(entry = selectedHistoryEntryRight)
-                            }
-                        }
-                    } else {
-                        Spacer(modifier = Modifier.weight(1f))
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .background(Color(0xFFFFEB3B), RoundedCornerShape(6.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "VS",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = Color(0xFF1B1B1B)
+                        )
                     }
                 }
             }
@@ -1007,7 +1014,6 @@ private fun dimensionScore(state: CompareUiState, criterion: CompareCriterion): 
 @Composable
 private fun CompactHeader(
     label: String,
-    score: Int,
     description: String,
     iconRes: Int
 ) {
@@ -1030,9 +1036,9 @@ private fun CompactHeader(
             modifier = Modifier.widthIn(max = 150.dp)
         )
         Text(
-            text = formatSignedScore(score),
-            style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.primary
+            text = ":",
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
         Text(
             text = description,
