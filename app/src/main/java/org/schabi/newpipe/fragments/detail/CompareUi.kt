@@ -731,38 +731,6 @@ fun CompareCompactScreen(
             .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .zIndex(0f)
-        ) {
-            val maxHeightPx = with(density) { maxHeight.toPx() }
-            val bottomPad = miniPlayerHeight + 10.dp
-            val bottomPadPx = with(density) { bottomPad.toPx() }
-            val fallbackTopPx =
-                (maxHeightPx - bottomPadPx - with(density) { swipeAreaHeight.toPx() })
-                    .coerceAtLeast(0f)
-            val topPx = rectanglesBottomPx ?: fallbackTopPx
-            val topDp = with(density) { topPx.toDp() }
-            val swipeAreaModifier = Modifier
-                .fillMaxSize()
-                .padding(top = topDp, bottom = bottomPad)
-            Box(modifier = swipeAreaModifier) {
-                CompactSwipeArea(
-                    value = activeScore,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-            Box(
-                modifier = swipeAreaModifier,
-                contentAlignment = Alignment.Center
-            ) {
-                Button(onClick = {}) {
-                    Text(text = "TEST")
-                }
-            }
-        }
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -971,7 +939,8 @@ fun CompareCompactScreen(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                                        .height(overlayRowHeight)
+                                        .padding(horizontal = 8.dp, vertical = 4.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     StreamThumbnail(
@@ -1087,19 +1056,6 @@ private fun CompactHeader(
             painter = painterResource(iconRes),
             contentDescription = null,
             modifier = Modifier.size(28.dp)
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.widthIn(max = 150.dp)
-        )
-        Text(
-            text = ":",
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
         Text(
             text = description,
@@ -1313,11 +1269,6 @@ private fun CompactSwipeArea(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = stringResource(R.string.compare_score_label, value),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
             CompactScoreTrack(value = value)
         }
     }
