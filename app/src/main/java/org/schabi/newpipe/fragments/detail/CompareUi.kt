@@ -53,6 +53,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -106,6 +107,8 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.schabi.newpipe.R
 import org.schabi.newpipe.database.history.model.StreamHistoryEntry
@@ -482,6 +485,15 @@ fun CompareCompactScreen(
     var rightHistoryBounds by remember { mutableStateOf<Rect?>(null) }
     val historyListState = rememberLazyListState()
     var historyRowHeightPx by remember { mutableIntStateOf(0) }
+    val overlayRowHeightDp by remember {
+        derivedStateOf {
+            if (historyRowHeightPx > 0) {
+                with(density) { historyRowHeightPx.toDp() }
+            } else {
+                0.dp
+            }
+        }
+    }
     LaunchedEffect(leftEntries, rightEntries) {
         if (leftEntries.isEmpty() && rightEntries.isEmpty()) {
             leftHistoryIndex = 0
@@ -541,6 +553,31 @@ fun CompareCompactScreen(
         if (showHistoryOverlay) {
             historyListState.scrollToItem(historyOverlayIndex)
         }
+    }
+    LaunchedEffect(showHistoryOverlay, historyListState) {
+        if (!showHistoryOverlay) return@LaunchedEffect
+        snapshotFlow { historyListState.layoutInfo.visibleItemsInfo }
+            .map { items ->
+                if (items.isEmpty()) {
+                    null
+                } else {
+                    val center =
+                        (
+                            historyListState.layoutInfo.viewportStartOffset +
+                            historyListState.layoutInfo.viewportEndOffset
+                        ) / 2
+                    items.minByOrNull { item ->
+                        val itemCenter = item.offset + item.size / 2
+                        abs(itemCenter - center)
+                    }?.index
+                }
+            }
+            .distinctUntilChanged()
+            .collect { index ->
+                if (index != null) {
+                    historyOverlayIndex = index
+                }
+            }
     }
 
     val gestureModifier = Modifier.pointerInput(Unit) {
@@ -657,24 +694,6 @@ fun CompareCompactScreen(
                         lastY = change.position.y
                         if (entriesCount > 0) {
                             historyListState.dispatchRawDelta(-deltaY)
-                            val layoutInfo = historyListState.layoutInfo
-                            val visibleItems = layoutInfo.visibleItemsInfo
-                            if (visibleItems.isNotEmpty()) {
-                                val center =
-                                    (
-                                        layoutInfo.viewportStartOffset +
-                                        layoutInfo.viewportEndOffset
-                                    ) / 2
-                                val centeredIndex = visibleItems.minByOrNull { item ->
-                                    val itemCenter = item.offset + item.size / 2
-                                    abs(itemCenter - center)
-                                }?.index
-                                if (centeredIndex != null &&
-                                    centeredIndex != historyOverlayIndex
-                                ) {
-                                    historyOverlayIndex = centeredIndex
-                                }
-                            }
                         }
                         change.consumeAllChanges()
                     }
@@ -851,47 +870,53 @@ fun CompareCompactScreen(
                         ) {
                             items(overlayEntries, key = { it.streamId }) { entry ->
                                 val isHighlight = entry.streamId == highlightId
-                                val rowAlpha = if (isHighlight) 0f else 1f
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .graphicsLayer(alpha = rowAlpha)
-                                        .onSizeChanged { size ->
-                                            if (historyRowHeightPx != size.height) {
-                                                historyRowHeightPx = size.height
+                                if (isHighlight && overlayRowHeightDp > 0.dp) {
+                                    Spacer(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(overlayRowHeightDp)
+                                    )
+                                } else {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .onSizeChanged { size ->
+                                                if (historyRowHeightPx != size.height) {
+                                                    historyRowHeightPx = size.height
+                                                }
                                             }
-                                        }
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                                ) {
-                                    val stream = remember(entry) { entry.toStreamInfoItem() }
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
                                     ) {
-                                        StreamThumbnail(
-                                            stream = stream,
-                                            showProgress = false,
-                                            showDuration = true,
-                                            durationTextStyle = MaterialTheme.typography.labelSmall
-                                                .copy(fontSize = 10.sp),
-                                            modifier = Modifier.size(width = 144.dp, height = 80.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = entry.streamEntity.title,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurface,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
+                                        val stream = remember(entry) { entry.toStreamInfoItem() }
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            StreamThumbnail(
+                                                stream = stream,
+                                                showProgress = false,
+                                                showDuration = true,
+                                                durationTextStyle = MaterialTheme.typography.labelSmall
+                                                    .copy(fontSize = 10.sp),
+                                                modifier = Modifier.size(width = 144.dp, height = 80.dp)
                                             )
-                                            Text(
-                                                text = entry.streamEntity.uploader,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = entry.streamEntity.title,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Text(
+                                                    text = entry.streamEntity.uploader,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
                                         }
                                     }
                                 }
