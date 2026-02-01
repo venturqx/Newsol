@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
@@ -37,6 +38,7 @@ fun StreamThumbnail(
     stream: StreamInfoItem,
     showProgress: Boolean,
     showDuration: Boolean = true,
+    durationTextStyle: TextStyle? = null,
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Fit
 ) {
@@ -64,7 +66,7 @@ fun StreamThumbnail(
                         Localization.getDurationString(stream.duration)
                     },
                     color = Color.White,
-                    style = MaterialTheme.typography.bodySmall
+                    style = durationTextStyle ?: MaterialTheme.typography.bodySmall
                 )
             }
         }

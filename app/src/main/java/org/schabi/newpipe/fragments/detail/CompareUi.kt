@@ -433,10 +433,6 @@ fun CompareCompactScreen(
     }
     val latestSelectionUpdater by rememberUpdatedState(onSelectionChange)
     val latestActiveDimensionId by rememberUpdatedState(activeDimension.id)
-    var showRateFirstMessage by remember { mutableStateOf(false) }
-    val triggerRateFirstMessage by rememberUpdatedState {
-        showRateFirstMessage = true
-    }
     val maxIndex = dimensions.lastIndex
     val density = LocalDensity.current
     val pxPerScore = with(density) { 4.dp.toPx() } / 2f
@@ -524,17 +520,6 @@ fun CompareCompactScreen(
             hasRatedMain = true
         }
     }
-    LaunchedEffect(hasRatedMain) {
-        if (!hasRatedMain && activeIndex != 0) {
-            activeIndex = 0
-        }
-    }
-    LaunchedEffect(showRateFirstMessage) {
-        if (showRateFirstMessage) {
-            delay(1600)
-            showRateFirstMessage = false
-        }
-    }
     LaunchedEffect(showHistoryOverlay, historyRowHeightPx) {
         if (showHistoryOverlay) {
             historyListState.scrollToItem(historyOverlayIndex)
@@ -604,10 +589,6 @@ fun CompareCompactScreen(
                         }
                     }
                     DragAxis.VERTICAL -> {
-                        if (!hasRatedMain) {
-                            triggerRateFirstMessage()
-                            return@detectDragGestures
-                        }
                         accumulatedY += dragAmount.y
                         while (abs(accumulatedY) >= verticalStepPx) {
                             val step = if (accumulatedY > 0f) 1 else -1
@@ -725,9 +706,7 @@ fun CompareCompactScreen(
                 selectedIds = selectedIds,
                 onToggleSelected = { id, selected -> onSelectionChange(id, selected) },
                 onSelect = { index ->
-                    if (hasRatedMain) {
-                        activeIndex = index
-                    }
+                    activeIndex = index
                 },
                 modifier = Modifier
             )
@@ -736,7 +715,7 @@ fun CompareCompactScreen(
                 Box(modifier = Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(0.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         if (selectedHistoryEntryLeft != null) {
                             Surface(
@@ -870,7 +849,9 @@ fun CompareCompactScreen(
                                         StreamThumbnail(
                                             stream = stream,
                                             showProgress = false,
-                                            showDuration = false,
+                                            showDuration = true,
+                                            durationTextStyle = MaterialTheme.typography.labelSmall
+                                                .copy(fontSize = 10.sp),
                                             modifier = Modifier.size(width = 144.dp, height = 80.dp)
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
@@ -918,7 +899,9 @@ fun CompareCompactScreen(
                                     StreamThumbnail(
                                         stream = stream,
                                         showProgress = false,
-                                        showDuration = false,
+                                        showDuration = true,
+                                        durationTextStyle = MaterialTheme.typography.labelSmall
+                                            .copy(fontSize = 10.sp),
                                         modifier = Modifier.size(width = 144.dp, height = 80.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
