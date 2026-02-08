@@ -635,9 +635,14 @@ fun CompareCompactScreen(
     }
 
     val gestureModifier = Modifier.pointerInput(Unit) {
+        val horizontalSensitivity = 1.2f
+        val verticalSensitivity = 1.3f
         var dragAxis: DragAxis? = null
         var accumulatedX = 0f
         var accumulatedY = 0f
+        var totalDragX = 0f
+        var totalDragY = 0f
+        var verticalStepTriggered = false
         var currentIndex = 0
         var currentValue = 0
         var markedSelected = false
@@ -646,22 +651,45 @@ fun CompareCompactScreen(
                 dragAxis = null
                 accumulatedX = 0f
                 accumulatedY = 0f
+                totalDragX = 0f
+                totalDragY = 0f
+                verticalStepTriggered = false
                 currentIndex = latestActiveIndex
                 currentValue = latestActiveScore
                 markedSelected = false
             },
             onDragEnd = {
+                if (dragAxis == DragAxis.VERTICAL &&
+                    !verticalStepTriggered &&
+                    abs(totalDragY) > abs(totalDragX) &&
+                    abs(totalDragY) > 0f &&
+                    abs(totalDragY) < verticalStepPx
+                ) {
+                    val step = if (totalDragY > 0f) 1 else -1
+                    val fallbackIndex = (currentIndex + step).coerceIn(0, latestMaxIndex)
+                    if (fallbackIndex != currentIndex) {
+                        latestIndexUpdater(fallbackIndex)
+                    }
+                }
                 dragAxis = null
                 accumulatedX = 0f
                 accumulatedY = 0f
+                totalDragX = 0f
+                totalDragY = 0f
+                verticalStepTriggered = false
             },
             onDragCancel = {
                 dragAxis = null
                 accumulatedX = 0f
                 accumulatedY = 0f
+                totalDragX = 0f
+                totalDragY = 0f
+                verticalStepTriggered = false
             },
             onDrag = { change, dragAmount ->
                 change.consumeAllChanges()
+                totalDragX += dragAmount.x
+                totalDragY += dragAmount.y
                 if (dragAxis == null) {
                     dragAxis = if (abs(dragAmount.x) >= abs(dragAmount.y)) {
                         DragAxis.HORIZONTAL
@@ -675,7 +703,7 @@ fun CompareCompactScreen(
                 }
                 when (dragAxis) {
                     DragAxis.HORIZONTAL -> {
-                        accumulatedX += dragAmount.x
+                        accumulatedX += dragAmount.x * horizontalSensitivity
                         val steps = (accumulatedX / pxPerScore).toInt()
                         if (steps != 0) {
                             currentValue =
@@ -689,12 +717,15 @@ fun CompareCompactScreen(
                         }
                     }
                     DragAxis.VERTICAL -> {
-                        accumulatedY += dragAmount.y
+                        accumulatedY += dragAmount.y * verticalSensitivity
                         while (abs(accumulatedY) >= verticalStepPx) {
                             val step = if (accumulatedY > 0f) 1 else -1
-                            currentIndex =
-                                (currentIndex + step).coerceIn(0, latestMaxIndex)
-                            latestIndexUpdater(currentIndex)
+                            val nextIndex = (currentIndex + step).coerceIn(0, latestMaxIndex)
+                            if (nextIndex != currentIndex) {
+                                currentIndex = nextIndex
+                                latestIndexUpdater(currentIndex)
+                                verticalStepTriggered = true
+                            }
                             accumulatedY -= step * verticalStepPx
                         }
                     }

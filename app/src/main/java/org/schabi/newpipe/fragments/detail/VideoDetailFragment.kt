@@ -163,6 +163,10 @@ class VideoDetailFragment :
     private var savedViewPagerVisibility = View.VISIBLE
     private var savedTabLayoutVisibility = View.VISIBLE
     private var savedRelatedItemsVisibility = View.VISIBLE
+    private var isCompareTabChromeHidden = false
+    private var savedDetailRootVisibility = View.VISIBLE
+    private var savedDetailControlPanelVisibility = View.VISIBLE
+    private var savedDetailSecondaryControlPanelVisibility = View.GONE
     private var compareFullInfoUrl: String? = null
 
     private val preferenceChangeListener =
@@ -998,12 +1002,42 @@ class VideoDetailFragment :
         if (nullableBinding == null) {
             return
         }
-        val shouldHighlight = tabTag == COMPARE_TAB_TAG
-        binding.detailTitleRootLayout.background = if (shouldHighlight) {
-            AppCompatResources.getDrawable(requireContext(), R.drawable.bg_detail_title_compare)
-        } else {
-            null
+        binding.detailTitleRootLayout.background = null
+        updateCompareTabChromeVisibility(tabTag)
+    }
+
+    private fun updateCompareTabChromeVisibility(tabTag: String?) {
+        if (isCompareFullViewVisible) {
+            return
         }
+
+        val detailRootView = binding.root.findViewById<View>(R.id.detail_root) ?: return
+        val detailControlPanelView =
+            binding.root.findViewById<View>(R.id.detail_control_panel) ?: return
+        val shouldHideChrome = tabTag == COMPARE_TAB_TAG && binding.viewPager.visibility == View.VISIBLE
+        if (shouldHideChrome) {
+            if (!isCompareTabChromeHidden) {
+                savedDetailRootVisibility = detailRootView.visibility
+                savedDetailControlPanelVisibility = detailControlPanelView.visibility
+                savedDetailSecondaryControlPanelVisibility =
+                    binding.detailSecondaryControlPanel.visibility
+                isCompareTabChromeHidden = true
+            }
+
+            detailRootView.visibility = View.GONE
+            detailControlPanelView.visibility = View.GONE
+            binding.detailSecondaryControlPanel.visibility = View.GONE
+            return
+        }
+
+        if (!isCompareTabChromeHidden) {
+            return
+        }
+
+        detailRootView.visibility = savedDetailRootVisibility
+        detailControlPanelView.visibility = savedDetailControlPanelVisibility
+        binding.detailSecondaryControlPanel.visibility = savedDetailSecondaryControlPanelVisibility
+        isCompareTabChromeHidden = false
     }
 
     private fun shouldShowComments(): Boolean {
