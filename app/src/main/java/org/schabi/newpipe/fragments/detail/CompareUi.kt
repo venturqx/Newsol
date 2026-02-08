@@ -1,5 +1,6 @@
 package org.schabi.newpipe.fragments.detail
 
+import android.view.MotionEvent
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -81,12 +82,14 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.consumeAllChanges
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
@@ -411,7 +414,6 @@ fun CompareCompactScreen(
     onExtraScoreChange: (String, Int) -> Unit,
     onSubmitSelected: (Set<String>) -> Unit,
     onUpdateSelected: (Set<String>) -> Unit,
-    onClose: () -> Unit,
     onDismissLogin: () -> Unit,
     onRegister: () -> Unit,
     onLogin: (String, String) -> Unit
@@ -492,6 +494,15 @@ fun CompareCompactScreen(
         ?: leftEntries.firstOrNull()
     val selectedHistoryEntryRight = rightEntries.getOrNull(rightHistoryIndex)
         ?: rightEntries.firstOrNull()
+    val currentEntry = state.currentEntry
+    val isLeftCurrent = selectedHistoryEntryLeft != null &&
+        currentEntry != null &&
+        selectedHistoryEntryLeft.streamEntity.serviceId == currentEntry.streamEntity.serviceId &&
+        selectedHistoryEntryLeft.streamEntity.url == currentEntry.streamEntity.url
+    val isRightCurrent = selectedHistoryEntryRight != null &&
+        currentEntry != null &&
+        selectedHistoryEntryRight.streamEntity.serviceId == currentEntry.streamEntity.serviceId &&
+        selectedHistoryEntryRight.streamEntity.url == currentEntry.streamEntity.url
     val leftStreamId = selectedHistoryEntryLeft?.streamId
     val rightStreamId = selectedHistoryEntryRight?.streamId
     var lastLeftStreamId by remember { mutableStateOf(leftStreamId) }
@@ -692,6 +703,18 @@ fun CompareCompactScreen(
             }
         )
     }
+    val hostView = LocalView.current
+    val criteriaTouchLockModifier = Modifier.pointerInteropFilter { motionEvent ->
+        when (motionEvent.actionMasked) {
+            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
+                requestDisallowParentIntercept(hostView, true)
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                requestDisallowParentIntercept(hostView, false)
+            }
+        }
+        false
+    }
     val historyOverlayGestureModifier =
         Modifier.pointerInput(
             leftHistoryBounds,
@@ -753,7 +776,6 @@ fun CompareCompactScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .then(gestureModifier)
             .then(historyOverlayGestureModifier)
             .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 12.dp)
@@ -765,12 +787,6 @@ fun CompareCompactScreen(
                 .zIndex(1f),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            CompactHeader(
-                description = activeDescription,
-                iconRes = activeDimension.iconRes,
-                onClose = onClose
-            )
-
             CompactDimensionList(
                 dimensions = dimensions,
                 activeIndex = activeIndexSafe,
@@ -781,67 +797,128 @@ fun CompareCompactScreen(
                     activeIndex = index
                 },
                 modifier = Modifier
+                    .then(criteriaTouchLockModifier)
+                    .then(gestureModifier)
             )
 
             if (selectedHistoryEntryLeft != null || selectedHistoryEntryRight != null) {
-                Box(
-                    modifier = Modifier.fillMaxWidth()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.CenterEnd
                     ) {
-                        if (selectedHistoryEntryLeft != null) {
-                            Surface(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .onGloballyPositioned { coordinates ->
-                                        leftHistoryBounds = coordinates.boundsInRoot()
-                                    },
-                                shape = RoundedCornerShape(6.dp),
-                                border = BorderStroke(1.dp, Color(0xFF42A5F5)),
-                                color = MaterialTheme.colorScheme.surface
-                            ) {
-                                Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
-                                    CompareVideoThumbnailCard(entry = selectedHistoryEntryLeft)
-                                }
-                            }
-                        } else {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
+                        CompareSideLabel(
+                            title = selectedHistoryEntryLeft?.streamEntity?.title.orEmpty(),
+                            uploader = selectedHistoryEntryLeft?.streamEntity?.uploader.orEmpty(),
+                            textAlign = TextAlign.End
+                        )
+                    }
 
-                        if (selectedHistoryEntryRight != null) {
-                            Surface(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .onGloballyPositioned { coordinates ->
-                                        rightHistoryBounds = coordinates.boundsInRoot()
-                                    },
-                                shape = RoundedCornerShape(6.dp),
-                                border = BorderStroke(1.dp, Color(0xFFE57373)),
-                                color = MaterialTheme.colorScheme.surface
+                    Box(
+                        modifier = Modifier.weight(2f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
-                                    CompareVideoThumbnailCard(entry = selectedHistoryEntryRight)
+                                if (selectedHistoryEntryLeft != null) {
+                                    Surface(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .onGloballyPositioned { coordinates ->
+                                                leftHistoryBounds = coordinates.boundsInRoot()
+                                            },
+                                        shape = RoundedCornerShape(6.dp),
+                                        border = BorderStroke(1.dp, Color(0xFF42A5F5)),
+                                        color = MaterialTheme.colorScheme.surface
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.padding(
+                                                horizontal = 8.dp,
+                                                vertical = 2.dp
+                                            )
+                                        ) {
+                                            CompareVideoThumbnailCard(
+                                                entry = selectedHistoryEntryLeft,
+                                                thumbnailHeight = 44.dp,
+                                                showMeta = false
+                                            )
+                                            if (isLeftCurrent) {
+                                                CurrentBadge(
+                                                    modifier = Modifier.align(Alignment.TopEnd)
+                                                )
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+
+                                if (selectedHistoryEntryRight != null) {
+                                    Surface(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .onGloballyPositioned { coordinates ->
+                                                rightHistoryBounds = coordinates.boundsInRoot()
+                                            },
+                                        shape = RoundedCornerShape(6.dp),
+                                        border = BorderStroke(1.dp, Color(0xFFE57373)),
+                                        color = MaterialTheme.colorScheme.surface
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.padding(
+                                                horizontal = 8.dp,
+                                                vertical = 2.dp
+                                            )
+                                        ) {
+                                            CompareVideoThumbnailCard(
+                                                entry = selectedHistoryEntryRight,
+                                                thumbnailHeight = 44.dp,
+                                                showMeta = false
+                                            )
+                                            if (isRightCurrent) {
+                                                CurrentBadge(
+                                                    modifier = Modifier.align(Alignment.TopEnd)
+                                                )
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    Spacer(modifier = Modifier.weight(1f))
                                 }
                             }
-                        } else {
-                            Spacer(modifier = Modifier.weight(1f))
+
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .background(Color(0xFFFFEB3B), RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 4.dp, vertical = 1.dp)
+                            ) {
+                                Text(
+                                    text = "VS",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = Color(0xFF1B1B1B)
+                                )
+                            }
                         }
                     }
 
                     Box(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .background(Color(0xFFFFEB3B), RoundedCornerShape(6.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.CenterStart
                     ) {
-                        Text(
-                            text = "VS",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = Color(0xFF1B1B1B)
+                        CompareSideLabel(
+                            title = selectedHistoryEntryRight?.streamEntity?.title.orEmpty(),
+                            uploader = selectedHistoryEntryRight?.streamEntity?.uploader.orEmpty(),
+                            textAlign = TextAlign.Start
                         )
                     }
                 }
@@ -873,6 +950,15 @@ fun CompareCompactScreen(
                 }
             }
         }
+
+        CompactHeader(
+            description = activeDescription,
+            iconRes = activeDimension.iconRes,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(start = 12.dp, end = 12.dp, bottom = bottomContentPadding)
+                .zIndex(2f)
+        )
 
         if (showHistoryOverlay) {
             val accentColor = if (activeOverlayTarget == OverlayTarget.RIGHT) {
@@ -970,10 +1056,10 @@ private fun dimensionScore(state: CompareUiState, criterion: CompareCriterion): 
 private fun CompactHeader(
     description: String,
     iconRes: Int,
-    onClose: () -> Unit
+    modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -984,21 +1070,43 @@ private fun CompactHeader(
         )
         Text(
             text = description,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             textAlign = TextAlign.Start,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis
         )
-        Image(
-            painter = painterResource(R.drawable.ic_close),
-            contentDescription = stringResource(R.string.close),
-            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)),
-            modifier = Modifier
-                .size(20.dp)
-                .clickable(onClick = onClose)
+    }
+}
+
+@Composable
+private fun CompareSideLabel(
+    title: String,
+    uploader: String,
+    textAlign: TextAlign
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
+            textAlign = textAlign,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
         )
+        if (uploader.isNotBlank()) {
+            Text(
+                text = uploader,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 10.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                textAlign = textAlign,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 
@@ -1015,6 +1123,14 @@ private fun compactDescriptionRes(criterionId: String): Int {
         "better_habits" -> R.string.compare_criteria_desc_better_habits
         "backfire_risk" -> R.string.compare_criteria_desc_backfire_risk
         else -> R.string.compare_criteria_desc_largely_recommended
+    }
+}
+
+private fun requestDisallowParentIntercept(view: android.view.View, disallow: Boolean) {
+    var currentParent = view.parent
+    while (currentParent != null) {
+        currentParent.requestDisallowInterceptTouchEvent(disallow)
+        currentParent = currentParent.parent
     }
 }
 
@@ -2194,7 +2310,11 @@ private fun CompareVideoRow(entry: StreamHistoryEntry) {
 }
 
 @Composable
-private fun CompareVideoThumbnailCard(entry: StreamHistoryEntry) {
+private fun CompareVideoThumbnailCard(
+    entry: StreamHistoryEntry,
+    thumbnailHeight: androidx.compose.ui.unit.Dp = 88.dp,
+    showMeta: Boolean = true
+) {
     val stream = remember(entry) { entry.toStreamInfoItem() }
     val thumbnailDescription = stringResource(R.string.compare_thumbnail_description)
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -2206,24 +2326,45 @@ private fun CompareVideoThumbnailCard(entry: StreamHistoryEntry) {
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(88.dp)
+                .height(thumbnailHeight)
                 .semantics {
                     contentDescription = thumbnailDescription
                 }
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        if (showMeta) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = stream.name,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = stream.uploaderName.orEmpty(),
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                color = Color(0xFF64B5F6),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun CurrentBadge(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .padding(top = 2.dp, end = 2.dp)
+            .background(Color(0xCC1B1B1B), RoundedCornerShape(3.dp))
+            .padding(horizontal = 4.dp, vertical = 1.dp)
+    ) {
         Text(
-            text = stream.name,
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-        Text(
-            text = stream.uploaderName.orEmpty(),
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-            color = Color(0xFF64B5F6),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            text = "CURRENT",
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 8.sp
+            ),
+            color = Color.White
         )
     }
 }
