@@ -45,6 +45,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -509,6 +510,10 @@ fun CompareCompactScreen(
     var lastRightStreamId by remember { mutableStateOf(rightStreamId) }
     var leftHistoryBounds by remember { mutableStateOf<Rect?>(null) }
     var rightHistoryBounds by remember { mutableStateOf<Rect?>(null) }
+    var leftHistorySideBounds by remember { mutableStateOf<Rect?>(null) }
+    var rightHistorySideBounds by remember { mutableStateOf<Rect?>(null) }
+    var leftHistoryHitBounds by remember { mutableStateOf<Rect?>(null) }
+    var rightHistoryHitBounds by remember { mutableStateOf<Rect?>(null) }
     var overlayTopPx by remember { mutableStateOf(0f) }
     var overlayHeightPx by remember { mutableStateOf(0f) }
     val historyListState = rememberLazyListState()
@@ -539,11 +544,15 @@ fun CompareCompactScreen(
     LaunchedEffect(selectedHistoryEntryLeft) {
         if (selectedHistoryEntryLeft == null) {
             leftHistoryBounds = null
+            leftHistorySideBounds = null
+            leftHistoryHitBounds = null
         }
     }
     LaunchedEffect(selectedHistoryEntryRight) {
         if (selectedHistoryEntryRight == null) {
             rightHistoryBounds = null
+            rightHistorySideBounds = null
+            rightHistoryHitBounds = null
         }
     }
     LaunchedEffect(leftStreamId, rightStreamId) {
@@ -748,8 +757,8 @@ fun CompareCompactScreen(
     }
     val historyOverlayGestureModifier =
         Modifier.pointerInput(
-            leftHistoryBounds,
-            rightHistoryBounds,
+            leftHistoryHitBounds,
+            rightHistoryHitBounds,
             leftEntries.size,
             rightEntries.size,
             leftHistoryIndex,
@@ -758,8 +767,8 @@ fun CompareCompactScreen(
             awaitEachGesture {
                 val down = awaitFirstDown(requireUnconsumed = false)
                 val target = when {
-                    leftHistoryBounds?.contains(down.position) == true -> OverlayTarget.LEFT
-                    rightHistoryBounds?.contains(down.position) == true -> OverlayTarget.RIGHT
+                    leftHistoryHitBounds?.contains(down.position) == true -> OverlayTarget.LEFT
+                    rightHistoryHitBounds?.contains(down.position) == true -> OverlayTarget.RIGHT
                     else -> null
                 } ?: return@awaitEachGesture
                 val overlayEntries = when (target) {
@@ -839,7 +848,15 @@ fun CompareCompactScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .onGloballyPositioned { coordinates ->
+                                leftHistorySideBounds = coordinates.boundsInRoot()
+                                leftHistoryHitBounds = expandedHistoryHitBounds(
+                                    leftHistoryBounds,
+                                    leftHistorySideBounds
+                                )
+                            },
                         contentAlignment = Alignment.CenterEnd
                     ) {
                         CompareSideLabel(
@@ -864,6 +881,10 @@ fun CompareCompactScreen(
                                             .weight(1f)
                                             .onGloballyPositioned { coordinates ->
                                                 leftHistoryBounds = coordinates.boundsInRoot()
+                                                leftHistoryHitBounds = expandedHistoryHitBounds(
+                                                    leftHistoryBounds,
+                                                    leftHistorySideBounds
+                                                )
                                             },
                                         shape = RoundedCornerShape(6.dp),
                                         border = BorderStroke(1.dp, Color(0xFF42A5F5)),
@@ -897,6 +918,10 @@ fun CompareCompactScreen(
                                             .weight(1f)
                                             .onGloballyPositioned { coordinates ->
                                                 rightHistoryBounds = coordinates.boundsInRoot()
+                                                rightHistoryHitBounds = expandedHistoryHitBounds(
+                                                    rightHistoryBounds,
+                                                    rightHistorySideBounds
+                                                )
                                             },
                                         shape = RoundedCornerShape(6.dp),
                                         border = BorderStroke(1.dp, Color(0xFFE57373)),
@@ -943,7 +968,15 @@ fun CompareCompactScreen(
                     }
 
                     Box(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .onGloballyPositioned { coordinates ->
+                                rightHistorySideBounds = coordinates.boundsInRoot()
+                                rightHistoryHitBounds = expandedHistoryHitBounds(
+                                    rightHistoryBounds,
+                                    rightHistorySideBounds
+                                )
+                            },
                         contentAlignment = Alignment.CenterStart
                     ) {
                         CompareSideLabel(
@@ -958,12 +991,38 @@ fun CompareCompactScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Button(
+                    val submitContentColor = Color(0xFFF3D978)
+                    val submitBorderColor = Color(0xFF7A6A2D)
+                    OutlinedButton(
                         onClick = submitOrUpdateAction,
                         enabled = canSubmit,
-                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 6.dp)
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(
+                            width = 1.dp,
+                            color = submitBorderColor.copy(alpha = if (canSubmit) 0.95f else 0.45f)
+                        ),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = submitContentColor,
+                            disabledContentColor = submitContentColor.copy(alpha = 0.58f)
+                        ),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
                     ) {
-                        Text(text = "SUBMIT")
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Image(
+                                painter = painterResource(R.drawable.logo_small),
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "SUBMIT",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            )
+                        }
                     }
                     if (hasAnySliderSet) {
                         Text(
@@ -1163,6 +1222,17 @@ private fun requestDisallowParentIntercept(view: android.view.View, disallow: Bo
         currentParent.requestDisallowInterceptTouchEvent(disallow)
         currentParent = currentParent.parent
     }
+}
+
+private fun expandedHistoryHitBounds(cardBounds: Rect?, sideBounds: Rect?): Rect? {
+    val card = cardBounds ?: return null
+    val side = sideBounds ?: return card
+    return Rect(
+        left = kotlin.math.min(card.left, side.left),
+        top = kotlin.math.min(card.top, side.top),
+        right = kotlin.math.max(card.right, side.right),
+        bottom = kotlin.math.max(card.bottom, side.bottom)
+    )
 }
 
 @Composable
