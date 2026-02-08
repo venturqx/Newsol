@@ -9,10 +9,16 @@ object TournesolHelper {
     const val KIOSK_ID = "Tournesol"
     const val PREF_TOURNESOL_FILTER_LANGUAGES = "tournesol_filter_languages"
     const val PREF_TOURNESOL_FILTER_DATE_KEY = "tournesol_filter_date_key"
+    const val PREF_TOURNESOL_FILTER_INCLUDE_LOW_SCORE = "tournesol_filter_include_low_score"
     const val DEFAULT_TOURNESOL_FILTER_LANGUAGES = "en"
     const val DEFAULT_TOURNESOL_FILTER_DATE_KEY = "3_months"
+    const val DEFAULT_TOURNESOL_FILTER_INCLUDE_LOW_SCORE = false
 
-    fun buildTournesolUrl(languages: List<String>?, dateKey: String): String {
+    fun buildTournesolUrl(
+        languages: List<String>?,
+        dateKey: String,
+        includeLowScoreVideos: Boolean
+    ): String {
         val sb = StringBuilder(KIOSK_ID)
 
         sb.append("?languages=")
@@ -29,9 +35,15 @@ object TournesolHelper {
         if (dateGte != null) {
             sb.append("&date_gte=").append(dateGte)
         }
+        if (includeLowScoreVideos) {
+            sb.append("&unsafe=true")
+        }
 
         return sb.toString()
     }
+
+    fun buildTournesolUrl(languages: List<String>?, dateKey: String): String =
+        buildTournesolUrl(languages, dateKey, false)
 
     fun calculateDateGte(dateKey: String): String? {
         if (dateKey == "forever") {

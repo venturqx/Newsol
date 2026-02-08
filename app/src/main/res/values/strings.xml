@@ -419,8 +419,11 @@
     <string name="no_playlist_bookmarked_yet">No playlist bookmarks yet</string>
     <string name="select_a_kiosk">Select a kiosk</string>
     <string name="filter_tournesol">Filter Tournesol</string>
+    <string name="filter_content">Content</string>
     <string name="filter_languages">Languages</string>
     <string name="filter_date">Date</string>
+    <string name="include_low_score_videos">Include low score videos</string>
+    <string name="include_low_score_videos_short">Low score allowed</string>
     <string name="date_since_forever">No restriction</string>
     <string name="date_last_year">Less than 1 year</string>
     <string name="date_last_3_months">Less than 3 months</string>

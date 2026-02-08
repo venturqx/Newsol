@@ -48,20 +48,31 @@ import org.schabi.newpipe.util.TournesolHelper
 
 class TournesolFilterFragment : BottomSheetDialogFragment() {
     interface FilterListener {
-        fun onApply(languages: List<String>, dateKey: String)
+        fun onApply(
+            languages: List<String>,
+            dateKey: String,
+            includeLowScoreVideos: Boolean
+        )
     }
 
     private var listener: FilterListener? = null
     private var initialLanguages: List<String>? = null
     private var initialDateKey: String? = null
+    private var initialIncludeLowScoreVideos: Boolean =
+        TournesolHelper.DEFAULT_TOURNESOL_FILTER_INCLUDE_LOW_SCORE
 
     fun setListener(listener: FilterListener) {
         this.listener = listener
     }
 
-    fun setInitialData(languages: List<String>, dateKey: String) {
+    fun setInitialData(
+        languages: List<String>,
+        dateKey: String,
+        includeLowScoreVideos: Boolean
+    ) {
         this.initialLanguages = languages
         this.initialDateKey = dateKey
+        this.initialIncludeLowScoreVideos = includeLowScoreVideos
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -87,6 +98,7 @@ class TournesolFilterFragment : BottomSheetDialogFragment() {
         val seedLanguages = initialLanguages
             ?: TournesolHelper.DEFAULT_TOURNESOL_FILTER_LANGUAGES.split(",")
         val seedDateKey = initialDateKey ?: TournesolHelper.DEFAULT_TOURNESOL_FILTER_DATE_KEY
+        val seedIncludeLowScoreVideos = initialIncludeLowScoreVideos
 
         return ComposeView(requireContext()).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
@@ -95,8 +107,9 @@ class TournesolFilterFragment : BottomSheetDialogFragment() {
                     TournesolFilterSheet(
                         initialLanguages = seedLanguages,
                         initialDateKey = seedDateKey,
-                        onApply = { languages, dateKey ->
-                            listener?.onApply(languages, dateKey)
+                        initialIncludeLowScoreVideos = seedIncludeLowScoreVideos,
+                        onApply = { languages, dateKey, includeLowScoreVideos ->
+                            listener?.onApply(languages, dateKey, includeLowScoreVideos)
                         },
                         onClose = { dismiss() }
                     )
@@ -113,7 +126,8 @@ private data class FilterOption(val key: String, @StringRes val labelResId: Int)
 private fun TournesolFilterSheet(
     initialLanguages: List<String>,
     initialDateKey: String,
-    onApply: (List<String>, String) -> Unit,
+    initialIncludeLowScoreVideos: Boolean,
+    onApply: (List<String>, String, Boolean) -> Unit,
     onClose: () -> Unit
 ) {
     val chipSelectedColor = colorResource(R.color.tournesol_filter_accent)
@@ -128,6 +142,7 @@ private fun TournesolFilterSheet(
         mutableStateListOf<String>().apply { addAll(initialLanguages) }
     }
     var selectedDateKey by remember { mutableStateOf(initialDateKey) }
+    var includeLowScoreVideos by remember { mutableStateOf(initialIncludeLowScoreVideos) }
 
     val languageOptions = remember {
         listOf(
@@ -181,6 +196,25 @@ private fun TournesolFilterSheet(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
+                text = stringResource(R.string.filter_content),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            FilterChip(
+                selected = includeLowScoreVideos,
+                onClick = {
+                    includeLowScoreVideos = !includeLowScoreVideos
+                    onApply(selectedLanguages.toList(), selectedDateKey, includeLowScoreVideos)
+                },
+                label = { Text(text = stringResource(R.string.include_low_score_videos)) },
+                colors = chipColors,
+                border = null
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
                 text = stringResource(R.string.filter_languages),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface
@@ -200,7 +234,11 @@ private fun TournesolFilterSheet(
                             } else {
                                 selectedLanguages.add(option.key)
                             }
-                            onApply(selectedLanguages.toList(), selectedDateKey)
+                            onApply(
+                                selectedLanguages.toList(),
+                                selectedDateKey,
+                                includeLowScoreVideos
+                            )
                         },
                         label = { Text(text = stringResource(option.labelResId)) },
                         colors = chipColors,
@@ -228,7 +266,11 @@ private fun TournesolFilterSheet(
                         onClick = {
                             if (!isSelected) {
                                 selectedDateKey = option.key
-                                onApply(selectedLanguages.toList(), selectedDateKey)
+                                onApply(
+                                    selectedLanguages.toList(),
+                                    selectedDateKey,
+                                    includeLowScoreVideos
+                                )
                             }
                         },
                         label = { Text(text = stringResource(option.labelResId)) },
