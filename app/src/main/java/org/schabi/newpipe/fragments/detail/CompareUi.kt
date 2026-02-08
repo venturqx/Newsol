@@ -213,7 +213,10 @@ fun CompareScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
-                modifier = Modifier.clickable(enabled = submitEnabled) { onSubmit() },
+                modifier = Modifier.clickable(
+                    enabled = submitEnabled,
+                    onClick = { onSubmit() }
+                ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -242,7 +245,10 @@ fun CompareScreen(
             if (showChange) {
                 Spacer(modifier = Modifier.width(14.dp))
                 Row(
-                    modifier = Modifier.clickable(enabled = changeEnabled) { onChangeMainScore() },
+                    modifier = Modifier.clickable(
+                        enabled = changeEnabled,
+                        onClick = { onChangeMainScore() }
+                    ),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
@@ -312,7 +318,10 @@ fun CompareScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    modifier = Modifier.clickable(enabled = submitMoreEnabled) { onSubmitMore() },
+                    modifier = Modifier.clickable(
+                        enabled = submitMoreEnabled,
+                        onClick = { onSubmitMore() }
+                    ),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
@@ -341,7 +350,10 @@ fun CompareScreen(
                 if (showUpdate) {
                     Spacer(modifier = Modifier.width(14.dp))
                     Row(
-                        modifier = Modifier.clickable(enabled = updateEnabled) { onSubmitMore() },
+                        modifier = Modifier.clickable(
+                            enabled = updateEnabled,
+                            onClick = { onSubmitMore() }
+                        ),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
@@ -399,6 +411,7 @@ fun CompareCompactScreen(
     onExtraScoreChange: (String, Int) -> Unit,
     onSubmitSelected: (Set<String>) -> Unit,
     onUpdateSelected: (Set<String>) -> Unit,
+    onClose: () -> Unit,
     onDismissLogin: () -> Unit,
     onRegister: () -> Unit,
     onLogin: (String, String) -> Unit
@@ -419,7 +432,6 @@ fun CompareCompactScreen(
         label = "compactScore"
     )
     val displayScore = animatedScore.roundToInt()
-    val activeLabel = stringResource(activeDimension.labelRes)
     val activeDescription = stringResource(compactDescriptionRes(activeDimension.id))
     var selectedIds by remember { mutableStateOf(setOf<String>()) }
     val onSelectionChange: (String, Boolean) -> Unit = { id, selected ->
@@ -489,7 +501,9 @@ fun CompareCompactScreen(
     var overlayTopPx by remember { mutableStateOf(0f) }
     var overlayHeightPx by remember { mutableStateOf(0f) }
     val historyListState = rememberLazyListState()
-    val overlayRowHeight = 88.dp
+    val overlayResultVerticalScale = 0.7f
+    val overlayRowHeight = 88.dp * overlayResultVerticalScale
+    val overlayThumbnailHeight = 80.dp * overlayResultVerticalScale
     val overlayRowHeightPx = with(density) { overlayRowHeight.toPx() }
     LaunchedEffect(leftEntries, rightEntries) {
         if (leftEntries.isEmpty() && rightEntries.isEmpty()) {
@@ -539,12 +553,21 @@ fun CompareCompactScreen(
     val hasStoredScores = state.storedMainScore != null || state.storedExtraScores.isNotEmpty()
     val isBusy = state.submitInProgress || state.submitMoreInProgress
     val canSubmit = selectedIds.isNotEmpty() && !isBusy
+    val hasAnySliderSet = state.score != 0 || state.extraScores.values.any { it != 0 }
     val submitOrUpdateAction = {
         val snapshot = selectedIds.toSet()
         if (hasStoredScores) {
             onUpdateSelected(snapshot)
         } else {
             onSubmitSelected(snapshot)
+        }
+    }
+    val resetAllSlidersAction = {
+        onScoreChange(0)
+        COMPACT_DIMENSIONS.forEach { criterion ->
+            if (criterion.id != COMPACT_MAIN_CRITERION_ID) {
+                onExtraScoreChange(criterion.id, 0)
+            }
         }
     }
 
@@ -742,9 +765,9 @@ fun CompareCompactScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             CompactHeader(
-                label = activeLabel,
                 description = activeDescription,
-                iconRes = activeDimension.iconRes
+                iconRes = activeDimension.iconRes,
+                onClose = onClose
             )
 
             CompactDimensionList(
@@ -821,13 +844,31 @@ fun CompareCompactScreen(
                         )
                     }
                 }
-                Button(
-                    onClick = submitOrUpdateAction,
-                    enabled = canSubmit,
+                Row(
                     modifier = Modifier.align(Alignment.CenterHorizontally),
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 6.dp)
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Text(text = "TEST2")
+                    Button(
+                        onClick = submitOrUpdateAction,
+                        enabled = canSubmit,
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 6.dp)
+                    ) {
+                        Text(text = "SUBMIT")
+                    }
+                    if (hasAnySliderSet) {
+                        Text(
+                            text = "RESET",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
+                            modifier = Modifier.clickable(
+                                enabled = !isBusy,
+                                onClick = resetAllSlidersAction
+                            )
+                        )
+                    }
                 }
             }
         }
@@ -882,6 +923,7 @@ fun CompareCompactScreen(
                                     entry = entry,
                                     selected = entry.streamId == selectedStreamId,
                                     overlayRowHeight = overlayRowHeight,
+                                    thumbnailHeight = overlayThumbnailHeight,
                                     accentColor = accentColor,
                                     titleColor = listTitleColor,
                                     subtitleColor = listSubtitleColor
@@ -925,9 +967,9 @@ private fun dimensionScore(state: CompareUiState, criterion: CompareCriterion): 
 
 @Composable
 private fun CompactHeader(
-    label: String,
     description: String,
-    iconRes: Int
+    iconRes: Int,
+    onClose: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -947,6 +989,14 @@ private fun CompactHeader(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
+        )
+        Image(
+            painter = painterResource(R.drawable.ic_close),
+            contentDescription = stringResource(R.string.close),
+            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)),
+            modifier = Modifier
+                .size(20.dp)
+                .clickable(onClick = onClose)
         )
     }
 }
@@ -1129,6 +1179,7 @@ private fun CompareHistoryOverlayRow(
     entry: StreamHistoryEntry,
     selected: Boolean,
     overlayRowHeight: androidx.compose.ui.unit.Dp,
+    thumbnailHeight: androidx.compose.ui.unit.Dp,
     accentColor: Color,
     titleColor: Color,
     subtitleColor: Color
@@ -1149,7 +1200,7 @@ private fun CompareHistoryOverlayRow(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+                .padding(horizontal = 8.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             StreamThumbnail(
@@ -1158,7 +1209,7 @@ private fun CompareHistoryOverlayRow(
                 showDuration = true,
                 durationTextStyle = MaterialTheme.typography.labelSmall
                     .copy(fontSize = 10.sp),
-                modifier = Modifier.size(width = 144.dp, height = 80.dp)
+                modifier = Modifier.size(width = 144.dp, height = thumbnailHeight)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -1292,7 +1343,10 @@ private fun CompactSubmitSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
-                modifier = Modifier.clickable(enabled = submitEnabled) { onSubmit() },
+                modifier = Modifier.clickable(
+                    enabled = submitEnabled,
+                    onClick = { onSubmit() }
+                ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -1321,7 +1375,10 @@ private fun CompactSubmitSection(
             if (showChange) {
                 Spacer(modifier = Modifier.width(14.dp))
                 Row(
-                    modifier = Modifier.clickable(enabled = changeEnabled) { onChangeMainScore() },
+                    modifier = Modifier.clickable(
+                        enabled = changeEnabled,
+                        onClick = { onChangeMainScore() }
+                    ),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
@@ -1379,7 +1436,10 @@ private fun CompactSubmitSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    modifier = Modifier.clickable(enabled = submitMoreEnabled) { onSubmitMore() },
+                    modifier = Modifier.clickable(
+                        enabled = submitMoreEnabled,
+                        onClick = { onSubmitMore() }
+                    ),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
@@ -1408,7 +1468,10 @@ private fun CompactSubmitSection(
                 if (showUpdate) {
                     Spacer(modifier = Modifier.width(14.dp))
                     Row(
-                        modifier = Modifier.clickable(enabled = updateEnabled) { onSubmitMore() },
+                        modifier = Modifier.clickable(
+                            enabled = updateEnabled,
+                            onClick = { onSubmitMore() }
+                        ),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(

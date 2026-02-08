@@ -17,6 +17,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -70,6 +72,7 @@ fun StreamListItem(
 
                 val tournesolScore = stream.tournesolScore
                 if (tournesolScore != null) {
+                    val isUnsafe = stream.tournesolUnsafeReasons.isNotEmpty()
                     val scoreText = stringResource(
                         R.string.tournesol_score_label,
                         tournesolScore.toString()
@@ -77,6 +80,7 @@ fun StreamListItem(
                     val unsafeReasonCodes =
                         TournesolHelper.formatUnsafeReasonCodes(stream.tournesolUnsafeReasons)
                     Row(
+                        modifier = Modifier.alpha(if (isUnsafe) 0.5f else 1f),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
@@ -94,7 +98,7 @@ fun StreamListItem(
                             fontSize = 20.sp,
                             fontFamily = FontFamily.SansSerif,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = Color(0xFFD1B65C)
                         )
                     }
                 }

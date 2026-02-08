@@ -27,6 +27,7 @@ import org.schabi.newpipe.R
 import org.schabi.newpipe.database.history.model.StreamHistoryEntry
 import org.schabi.newpipe.database.stream.model.StreamEntity
 import org.schabi.newpipe.extractor.stream.StreamInfo
+import org.schabi.newpipe.fragments.BackPressable
 import org.schabi.newpipe.ktx.serializable
 import org.schabi.newpipe.local.history.HistoryRecordManager
 import org.schabi.newpipe.ui.theme.AppTheme
@@ -134,6 +135,7 @@ class CompareFragment : Fragment() {
                             onExtraScoreChange = onExtraScoreChange,
                             onSubmitSelected = { selected -> sendCompactSubmit(selected) },
                             onUpdateSelected = { selected -> sendCompactUpdate(selected) },
+                            onClose = { closeCompactView() },
                             onDismissLogin = { dismissLoginDialog() },
                             onRegister = { openRegisterPage() },
                             onLogin = { username, password -> performLogin(username, password) }
@@ -945,6 +947,14 @@ class CompareFragment : Fragment() {
         val mainScore: Int? = null,
         val extraScores: Map<String, Int> = emptyMap()
     )
+
+    private fun closeCompactView() {
+        val handledByParent = (parentFragment as? BackPressable)?.onBackPressed() == true
+        if (!handledByParent) {
+            activity?.onBackPressedDispatcher?.onBackPressed()
+        }
+    }
+
     fun setCompactPopupVisibleState(visible: Boolean) {
         compactPopupVisible = visible
     }

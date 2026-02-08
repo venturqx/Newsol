@@ -1,5 +1,6 @@
 package org.schabi.newpipe.info_list.holder;
 
+import android.graphics.Color;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -25,6 +26,8 @@ import androidx.annotation.Nullable;
 import java.util.concurrent.TimeUnit;
 
 public class StreamMiniInfoItemHolder extends InfoItemHolder {
+    private static final int TOURNESOL_SCORE_COLOR = Color.parseColor("#D1B65C");
+
     public final ImageView itemThumbnailView;
     public final TextView itemVideoTitleView;
     public final TextView itemUploaderView;
@@ -164,11 +167,14 @@ public class StreamMiniInfoItemHolder extends InfoItemHolder {
         }
         final Long tournesolScore = item.getTournesolScore();
         if (tournesolScore != null) {
+            final boolean isUnsafe = !item.getTournesolUnsafeReasons().isEmpty();
             final String scoreText = itemBuilder.getContext().getString(
                     R.string.tournesol_score_label,
                     Long.toString(tournesolScore));
             final String unsafeReasonCodes =
                     TournesolHelper.formatUnsafeReasonCodes(item.getTournesolUnsafeReasons());
+            itemTournesolScoreView.setTextColor(TOURNESOL_SCORE_COLOR);
+            itemTournesolScoreView.setAlpha(isUnsafe ? 0.5f : 1f);
             itemTournesolScoreView.setText(unsafeReasonCodes.isEmpty()
                     ? scoreText
                     : scoreText + " " + unsafeReasonCodes);

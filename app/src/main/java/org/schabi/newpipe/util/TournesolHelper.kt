@@ -56,25 +56,25 @@ object TournesolHelper {
             return ""
         }
 
-        val reasonCodes = LinkedHashSet<String>()
+        val reasonLabels = LinkedHashSet<String>()
         for (reason in reasons) {
-            val reasonCode = when (reason) {
-                REASON_INSUFFICIENT_TOURNESOL_SCORE -> "ITS"
-                REASON_INSUFFICIENT_TRUST -> "IT"
-                REASON_MODERATION_BY_ASSOCIATION -> "MBA"
-                REASON_MODERATION_BY_CONTRIBUTORS -> "MBC"
+            val reasonLabel = when (reason) {
+                REASON_INSUFFICIENT_TOURNESOL_SCORE,
+                REASON_INSUFFICIENT_TRUST -> "Insufficient"
+                REASON_MODERATION_BY_ASSOCIATION,
+                REASON_MODERATION_BY_CONTRIBUTORS -> "Moderated"
                 else -> reason
             }
-            if (reasonCode.isNotBlank()) {
-                reasonCodes.add(reasonCode)
+            if (reasonLabel.isNotBlank()) {
+                reasonLabels.add(reasonLabel)
             }
         }
 
-        if (reasonCodes.isEmpty()) {
+        if (reasonLabels.isEmpty()) {
             return ""
         }
 
-        return "[" + reasonCodes.joinToString("/") + "]"
+        return "(" + reasonLabels.joinToString("/") + ")"
     }
 
     fun calculateDateGte(dateKey: String): String? {
