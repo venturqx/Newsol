@@ -2,6 +2,7 @@ package org.schabi.newpipe.util
 
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.LinkedHashSet
 import java.util.Locale
 import java.util.TimeZone
 
@@ -13,6 +14,10 @@ object TournesolHelper {
     const val DEFAULT_TOURNESOL_FILTER_LANGUAGES = "en"
     const val DEFAULT_TOURNESOL_FILTER_DATE_KEY = "3_months"
     const val DEFAULT_TOURNESOL_FILTER_INCLUDE_LOW_SCORE = false
+    private const val REASON_INSUFFICIENT_TOURNESOL_SCORE = "insufficient_tournesol_score"
+    private const val REASON_INSUFFICIENT_TRUST = "insufficient_trust"
+    private const val REASON_MODERATION_BY_ASSOCIATION = "moderation_by_association"
+    private const val REASON_MODERATION_BY_CONTRIBUTORS = "moderation_by_contributors"
 
     fun buildTournesolUrl(
         languages: List<String>?,
@@ -44,6 +49,33 @@ object TournesolHelper {
 
     fun buildTournesolUrl(languages: List<String>?, dateKey: String): String =
         buildTournesolUrl(languages, dateKey, false)
+
+    @JvmStatic
+    fun formatUnsafeReasonCodes(reasons: List<String>?): String {
+        if (reasons.isNullOrEmpty()) {
+            return ""
+        }
+
+        val reasonCodes = LinkedHashSet<String>()
+        for (reason in reasons) {
+            val reasonCode = when (reason) {
+                REASON_INSUFFICIENT_TOURNESOL_SCORE -> "ITS"
+                REASON_INSUFFICIENT_TRUST -> "IT"
+                REASON_MODERATION_BY_ASSOCIATION -> "MBA"
+                REASON_MODERATION_BY_CONTRIBUTORS -> "MBC"
+                else -> reason
+            }
+            if (reasonCode.isNotBlank()) {
+                reasonCodes.add(reasonCode)
+            }
+        }
+
+        if (reasonCodes.isEmpty()) {
+            return ""
+        }
+
+        return "[" + reasonCodes.joinToString("/") + "]"
+    }
 
     fun calculateDateGte(dateKey: String): String? {
         if (dateKey == "forever") {

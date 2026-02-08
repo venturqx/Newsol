@@ -17,6 +17,7 @@ import org.schabi.newpipe.local.history.HistoryRecordManager;
 import org.schabi.newpipe.util.DependentPreferenceHelper;
 import org.schabi.newpipe.util.Localization;
 import org.schabi.newpipe.util.StreamTypeUtil;
+import org.schabi.newpipe.util.TournesolHelper;
 import org.schabi.newpipe.util.image.CoilHelper;
 import org.schabi.newpipe.views.AnimatedProgressBar;
 
@@ -163,10 +164,14 @@ public class StreamMiniInfoItemHolder extends InfoItemHolder {
         }
         final Long tournesolScore = item.getTournesolScore();
         if (tournesolScore != null) {
-            itemTournesolScoreView.setText(
-                    itemBuilder.getContext().getString(
-                            R.string.tournesol_score_label,
-                            Long.toString(tournesolScore)));
+            final String scoreText = itemBuilder.getContext().getString(
+                    R.string.tournesol_score_label,
+                    Long.toString(tournesolScore));
+            final String unsafeReasonCodes =
+                    TournesolHelper.formatUnsafeReasonCodes(item.getTournesolUnsafeReasons());
+            itemTournesolScoreView.setText(unsafeReasonCodes.isEmpty()
+                    ? scoreText
+                    : scoreText + " " + unsafeReasonCodes);
             itemTournesolScoreView.setVisibility(View.VISIBLE);
             return;
         }

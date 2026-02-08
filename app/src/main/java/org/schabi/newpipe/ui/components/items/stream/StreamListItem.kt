@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import org.schabi.newpipe.R
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import org.schabi.newpipe.ui.theme.AppTheme
+import org.schabi.newpipe.util.TournesolHelper
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -69,6 +70,12 @@ fun StreamListItem(
 
                 val tournesolScore = stream.tournesolScore
                 if (tournesolScore != null) {
+                    val scoreText = stringResource(
+                        R.string.tournesol_score_label,
+                        tournesolScore.toString()
+                    )
+                    val unsafeReasonCodes =
+                        TournesolHelper.formatUnsafeReasonCodes(stream.tournesolUnsafeReasons)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -79,10 +86,11 @@ fun StreamListItem(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = stringResource(
-                                R.string.tournesol_score_label,
-                                tournesolScore.toString()
-                            ),
+                            text = if (unsafeReasonCodes.isEmpty()) {
+                                scoreText
+                            } else {
+                                "$scoreText $unsafeReasonCodes"
+                            },
                             fontSize = 20.sp,
                             fontFamily = FontFamily.SansSerif,
                             fontWeight = FontWeight.SemiBold,
