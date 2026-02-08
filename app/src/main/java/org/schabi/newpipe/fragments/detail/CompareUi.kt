@@ -569,6 +569,7 @@ fun CompareCompactScreen(
                 onExtraScoreChange(criterion.id, 0)
             }
         }
+        selectedIds = emptySet()
     }
 
     LaunchedEffect(showHistoryOverlay, activeOverlayTarget) {
@@ -1027,6 +1028,10 @@ private fun CompactDimensionList(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val dimensionLabels = dimensions.map { stringResource(it.labelRes) }
+    var firstColumnWidthPx by remember { mutableIntStateOf(0) }
+    val firstColumnWidth = with(LocalDensity.current) { firstColumnWidthPx.toDp() }
+
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(0.dp)
@@ -1035,9 +1040,16 @@ private fun CompactDimensionList(
             val score = dimensionScore(scores, criterion)
             CompactDimensionRow(
                 criterion = criterion,
+                criterionLabel = dimensionLabels[index],
                 score = score,
                 isActive = index == activeIndex,
                 isSelected = selectedIds.contains(criterion.id),
+                firstColumnWidth = firstColumnWidth,
+                onFirstColumnMeasured = { measuredWidth ->
+                    if (measuredWidth > firstColumnWidthPx) {
+                        firstColumnWidthPx = measuredWidth
+                    }
+                },
                 onToggleSelected = { selected -> onToggleSelected(criterion.id, selected) },
                 onClick = { onSelect(index) }
             )
@@ -1048,9 +1060,12 @@ private fun CompactDimensionList(
 @Composable
 private fun CompactDimensionRow(
     criterion: CompareCriterion,
+    criterionLabel: String,
     score: Int,
     isActive: Boolean,
     isSelected: Boolean,
+    firstColumnWidth: androidx.compose.ui.unit.Dp,
+    onFirstColumnMeasured: (Int) -> Unit,
     onToggleSelected: (Boolean) -> Unit,
     onClick: () -> Unit
 ) {
@@ -1072,39 +1087,48 @@ private fun CompactDimensionRow(
             .padding(horizontal = 10.dp, vertical = 1.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
+        Row(
             modifier = Modifier
-                .width(18.dp)
-                .padding(end = 4.dp)
-                .then(
-                    if (isSelected) Modifier.clickable { onToggleSelected(false) } else Modifier
-                ),
-            contentAlignment = Alignment.Center
+                .widthIn(min = firstColumnWidth)
+                .onGloballyPositioned { coordinates ->
+                    onFirstColumnMeasured(coordinates.size.width)
+                },
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            if (isSelected) {
-                Image(
-                    painter = painterResource(R.drawable.ic_close),
-                    contentDescription = null,
-                    modifier = Modifier.size(12.dp)
-                )
+            Box(
+                modifier = Modifier
+                    .width(18.dp)
+                    .padding(end = 4.dp)
+                    .then(
+                        if (isSelected) Modifier.clickable { onToggleSelected(false) } else Modifier
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isSelected) {
+                    Image(
+                        painter = painterResource(R.drawable.ic_close),
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
             }
+            Image(
+                painter = painterResource(criterion.iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(12.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = criterionLabel,
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal
+                ),
+                color = textColor,
+                maxLines = 1,
+                overflow = TextOverflow.Clip
+            )
         }
-        Image(
-            painter = painterResource(criterion.iconRes),
-            contentDescription = null,
-            modifier = Modifier.size(12.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = stringResource(criterion.labelRes),
-            style = MaterialTheme.typography.labelLarge.copy(
-                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal
-            ),
-            color = textColor,
-            modifier = Modifier.weight(1f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+
         val valueText =
             if (score == 0 && !isSelected && !isActive) "" else formatScoreMagnitude(score)
         val scoreColor = when {
@@ -1112,21 +1136,26 @@ private fun CompactDimensionRow(
             score < 0 -> Color(0xFF64B5F6)
             else -> textColor.copy(alpha = 0.7f)
         }
-        Text(
-            text = valueText,
-            style = MaterialTheme.typography.labelSmall,
-            color = scoreColor,
-            textAlign = TextAlign.End,
-            modifier = Modifier.width(28.dp)
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        MiniScoreBar(
-            value = score,
-            isActive = isActive,
-            modifier = Modifier
-                .width(88.dp)
-                .height(3.dp)
-        )
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = valueText,
+                style = MaterialTheme.typography.labelSmall,
+                color = scoreColor,
+                textAlign = TextAlign.End,
+                modifier = Modifier.width(28.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            MiniScoreBar(
+                value = score,
+                isActive = isActive,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(3.dp)
+            )
+        }
     }
 }
 
