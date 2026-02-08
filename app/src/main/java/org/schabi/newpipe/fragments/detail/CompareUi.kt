@@ -111,6 +111,7 @@ import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -476,6 +477,7 @@ fun CompareCompactScreen(
     val miniPlayerHeight = dimensionResource(R.dimen.mini_player_height)
     val bottomContentPadding = miniPlayerHeight + 12.dp
     var showHistoryOverlay by remember { mutableStateOf(false) }
+    var overlayGestureInProgress by remember { mutableStateOf(false) }
     val leftEntries = remember(state.historyEntries, state.currentEntry) {
         val current = state.currentEntry
         if (current == null) {
@@ -627,9 +629,10 @@ fun CompareCompactScreen(
         showHistoryOverlay,
         historyListState,
         overlayEntries,
-        overlayAnchorPx
+        overlayAnchorPx,
+        overlayGestureInProgress
     ) {
-        if (!showHistoryOverlay || overlayEntries.isEmpty()) {
+        if (!showHistoryOverlay || overlayEntries.isEmpty() || overlayGestureInProgress) {
             return@LaunchedEffect
         }
         snapshotFlow { historyListState.layoutInfo }
@@ -791,6 +794,7 @@ fun CompareCompactScreen(
                 val maxPreviewPx = overlayRowHeightPx * 0.22f
                 var accumulatedDragPx = 0f
                 var appliedPreviewPx = 0f
+                var snapJob: Job? = null
                 activeOverlayTarget = target
                 historyOverlayIndex = when (target) {
                     OverlayTarget.LEFT -> leftHistoryIndex
@@ -798,6 +802,7 @@ fun CompareCompactScreen(
                 }.coerceIn(0, overlayEntries.lastIndex)
                 var quantizedIndex = historyOverlayIndex
                 showHistoryOverlay = true
+                overlayGestureInProgress = true
                 try {
                     while (true) {
                         val event = awaitPointerEvent()
@@ -832,11 +837,24 @@ fun CompareCompactScreen(
                                     indexChanged = true
                                 }
 
+                                val pushingOutsideTop =
+                                    quantizedIndex == 0 && accumulatedDragPx > 0f
+                                val pushingOutsideBottom =
+                                    quantizedIndex == overlayEntries.lastIndex &&
+                                        accumulatedDragPx < 0f
+                                if (pushingOutsideTop || pushingOutsideBottom) {
+                                    accumulatedDragPx = 0f
+                                }
+
                                 if (indexChanged) {
-                                    overlaySnapScope.launch {
-                                        historyListState.scrollToItem(quantizedIndex)
+                                    if (appliedPreviewPx != 0f) {
+                                        historyListState.dispatchRawDelta(appliedPreviewPx)
+                                        appliedPreviewPx = 0f
                                     }
-                                    appliedPreviewPx = 0f
+                                    snapJob?.cancel()
+                                    snapJob = overlaySnapScope.launch {
+                                        historyListState.animateScrollToItem(quantizedIndex)
+                                    }
                                 }
 
                                 val previewPx = (accumulatedDragPx * previewResistance)
@@ -853,6 +871,14 @@ fun CompareCompactScreen(
                         change.consumeAllChanges()
                     }
                 } finally {
+                    if (appliedPreviewPx != 0f) {
+                        historyListState.dispatchRawDelta(appliedPreviewPx)
+                    }
+                    snapJob?.cancel()
+                    overlaySnapScope.launch {
+                        historyListState.animateScrollToItem(historyOverlayIndex)
+                    }
+                    overlayGestureInProgress = false
                     when (target) {
                         OverlayTarget.LEFT -> leftHistoryIndex = historyOverlayIndex
                         OverlayTarget.RIGHT -> rightHistoryIndex = historyOverlayIndex
