@@ -110,6 +110,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
+import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -415,6 +416,8 @@ fun CompareCompactScreen(
     onExtraScoreChange: (String, Int) -> Unit,
     onSubmitSelected: (Set<String>) -> Unit,
     onUpdateSelected: (Set<String>) -> Unit,
+    onViewRecommendations: () -> Unit,
+    onDismissRecommendations: () -> Unit,
     onDismissLogin: () -> Unit,
     onRegister: () -> Unit,
     onLogin: (String, String) -> Unit
@@ -517,6 +520,7 @@ fun CompareCompactScreen(
     var overlayTopPx by remember { mutableStateOf(0f) }
     var overlayHeightPx by remember { mutableStateOf(0f) }
     val historyListState = rememberLazyListState()
+    val overlaySnapScope = rememberCoroutineScope()
     val overlayResultVerticalScale = 0.7f
     val overlayRowHeight = 88.dp * overlayResultVerticalScale
     val overlayThumbnailHeight = 80.dp * overlayResultVerticalScale
@@ -762,7 +766,8 @@ fun CompareCompactScreen(
             leftEntries.size,
             rightEntries.size,
             leftHistoryIndex,
-            rightHistoryIndex
+            rightHistoryIndex,
+            overlayRowHeightPx
         ) {
             awaitEachGesture {
                 val down = awaitFirstDown(requireUnconsumed = false)
@@ -781,11 +786,17 @@ fun CompareCompactScreen(
                 val pointerId = down.id
                 var lastY = down.position.y
                 val overlaySensitivity = 1.5f
+                val stepThresholdPx = (overlayRowHeightPx * 0.42f).coerceAtLeast(1f)
+                val previewResistance = 0.18f
+                val maxPreviewPx = overlayRowHeightPx * 0.22f
+                var accumulatedDragPx = 0f
+                var appliedPreviewPx = 0f
                 activeOverlayTarget = target
                 historyOverlayIndex = when (target) {
                     OverlayTarget.LEFT -> leftHistoryIndex
                     OverlayTarget.RIGHT -> rightHistoryIndex
                 }.coerceIn(0, overlayEntries.lastIndex)
+                var quantizedIndex = historyOverlayIndex
                 showHistoryOverlay = true
                 try {
                     while (true) {
@@ -799,7 +810,41 @@ fun CompareCompactScreen(
                         val deltaY = (change.position.y - lastY) * overlaySensitivity
                         lastY = change.position.y
                         if (entriesCount > 0) {
-                            historyListState.dispatchRawDelta(-deltaY)
+                            if (overlayRowHeightPx > 0f) {
+                                accumulatedDragPx += deltaY
+                                var indexChanged = false
+
+                                while (abs(accumulatedDragPx) >= stepThresholdPx) {
+                                    val step = if (accumulatedDragPx > 0f) 1 else -1
+                                    val nextIndex =
+                                        (quantizedIndex + step).coerceIn(0, overlayEntries.lastIndex)
+                                    if (nextIndex == quantizedIndex) {
+                                        accumulatedDragPx = stepThresholdPx * step.toFloat() * 0.45f
+                                        break
+                                    }
+                                    quantizedIndex = nextIndex
+                                    historyOverlayIndex = quantizedIndex
+                                    accumulatedDragPx -= step * stepThresholdPx
+                                    indexChanged = true
+                                }
+
+                                if (indexChanged) {
+                                    overlaySnapScope.launch {
+                                        historyListState.scrollToItem(quantizedIndex)
+                                    }
+                                    appliedPreviewPx = 0f
+                                }
+
+                                val previewPx = (accumulatedDragPx * previewResistance)
+                                    .coerceIn(-maxPreviewPx, maxPreviewPx)
+                                val previewDeltaPx = previewPx - appliedPreviewPx
+                                if (previewDeltaPx != 0f) {
+                                    historyListState.dispatchRawDelta(-previewDeltaPx)
+                                    appliedPreviewPx = previewPx
+                                }
+                            } else {
+                                historyListState.dispatchRawDelta(-deltaY)
+                            }
                         }
                         change.consumeAllChanges()
                     }
@@ -1024,6 +1069,19 @@ fun CompareCompactScreen(
                             )
                         }
                     }
+                    OutlinedButton(
+                        onClick = onViewRecommendations,
+                        enabled = !isBusy,
+                        shape = RoundedCornerShape(14.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = "VIEW",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
+                    }
                     if (hasAnySliderSet) {
                         Text(
                             text = "RESET",
@@ -1123,6 +1181,15 @@ fun CompareCompactScreen(
         }
     }
 
+    if (state.showRecommendationsDialog) {
+        CompareComparisonsFullScreen(
+            recommendations = state.recommendations,
+            isLoading = state.recommendationsLoading,
+            errorMessage = state.recommendationsError,
+            onDismiss = onDismissRecommendations
+        )
+    }
+
     if (state.showLoginDialog) {
         TournesolLoginDialog(
             inProgress = state.loginInProgress,
@@ -1166,6 +1233,208 @@ private fun CompactHeader(
             maxLines = 3,
             overflow = TextOverflow.Ellipsis
         )
+    }
+}
+
+@Composable
+private fun CompareComparisonsFullScreen(
+    recommendations: List<CompareRecommendationItem>,
+    isLoading: Boolean,
+    errorMessage: String?,
+    onDismiss: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .navigationBarsPadding()
+            .zIndex(6f)
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.ic_close),
+                    contentDescription = stringResource(R.string.close),
+                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface),
+                    modifier = Modifier
+                        .size(22.dp)
+                        .clickable(onClick = onDismiss)
+                )
+                Text(
+                    text = "Comparisons",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            when {
+                isLoading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+                errorMessage != null -> {
+                    Text(
+                        text = errorMessage,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                recommendations.isEmpty() -> {
+                    Text(
+                        text = "No comparisons available",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(bottom = 10.dp)
+                    ) {
+                        itemsIndexed(
+                            recommendations,
+                            key = { index, item -> "${item.uid}-$index" }
+                        ) { _, item ->
+                            CompareComparisonRow(item)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompareComparisonRow(item: CompareRecommendationItem) {
+    val scoreLabel = when (val score = item.largelyRecommendedScore) {
+        null -> "LR -"
+        else -> {
+            val max = item.scoreMax
+            if (max == null) {
+                "LR $score"
+            } else {
+                "LR $score/$max"
+            }
+        }
+    }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            CompareComparisonSideText(
+                title = item.videoA.title,
+                uploader = item.videoA.uploader,
+                textAlign = TextAlign.End,
+                modifier = Modifier.weight(1f)
+            )
+            AsyncImage(
+                model = item.videoA.thumbnailUrl,
+                contentDescription = null,
+                placeholder = painterResource(R.drawable.placeholder_thumbnail_video),
+                error = painterResource(R.drawable.placeholder_thumbnail_video),
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .width(92.dp)
+                    .height(52.dp)
+            )
+            Column(
+                modifier = Modifier.widthIn(min = 52.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.logo_small),
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp)
+                )
+                Text(
+                    text = scoreLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color(0xFFD1B65C),
+                    textAlign = TextAlign.Center
+                )
+            }
+            AsyncImage(
+                model = item.videoB.thumbnailUrl,
+                contentDescription = null,
+                placeholder = painterResource(R.drawable.placeholder_thumbnail_video),
+                error = painterResource(R.drawable.placeholder_thumbnail_video),
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .width(92.dp)
+                    .height(52.dp)
+            )
+            CompareComparisonSideText(
+                title = item.videoB.title,
+                uploader = item.videoB.uploader,
+                textAlign = TextAlign.Start,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun CompareComparisonSideText(
+    title: String,
+    uploader: String,
+    textAlign: TextAlign,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = textAlign,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+        if (uploader.isNotBlank()) {
+            Text(
+                text = uploader,
+                style = MaterialTheme.typography.labelSmall,
+                textAlign = textAlign,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        } else {
+            Text(
+                text = "",
+                style = MaterialTheme.typography.labelSmall,
+                textAlign = textAlign,
+                maxLines = 1
+            )
+        }
     }
 }
 
