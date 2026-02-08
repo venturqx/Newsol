@@ -815,16 +815,20 @@ fun CompareCompactScreen(
                                 var indexChanged = false
 
                                 while (abs(accumulatedDragPx) >= stepThresholdPx) {
-                                    val step = if (accumulatedDragPx > 0f) 1 else -1
+                                    val dragSign = if (accumulatedDragPx > 0f) 1 else -1
+                                    // Preview motion already matches finger direction.
+                                    // Invert quantized step so snapped item transition matches it too.
+                                    val step = -dragSign
                                     val nextIndex =
                                         (quantizedIndex + step).coerceIn(0, overlayEntries.lastIndex)
                                     if (nextIndex == quantizedIndex) {
-                                        accumulatedDragPx = stepThresholdPx * step.toFloat() * 0.45f
+                                        accumulatedDragPx =
+                                            stepThresholdPx * dragSign.toFloat() * 0.45f
                                         break
                                     }
                                     quantizedIndex = nextIndex
                                     historyOverlayIndex = quantizedIndex
-                                    accumulatedDragPx -= step * stepThresholdPx
+                                    accumulatedDragPx -= dragSign * stepThresholdPx
                                     indexChanged = true
                                 }
 
@@ -1262,6 +1266,12 @@ private fun CompareComparisonsFullScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                Text(
+                    text = "Comparisons",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f)
+                )
                 Image(
                     painter = painterResource(R.drawable.ic_close),
                     contentDescription = stringResource(R.string.close),
@@ -1269,11 +1279,6 @@ private fun CompareComparisonsFullScreen(
                     modifier = Modifier
                         .size(22.dp)
                         .clickable(onClick = onDismiss)
-                )
-                Text(
-                    text = "Comparisons",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -1324,15 +1329,9 @@ private fun CompareComparisonsFullScreen(
 @Composable
 private fun CompareComparisonRow(item: CompareRecommendationItem) {
     val scoreLabel = when (val score = item.largelyRecommendedScore) {
-        null -> "LR -"
-        else -> {
-            val max = item.scoreMax
-            if (max == null) {
-                "LR $score"
-            } else {
-                "LR $score/$max"
-            }
-        }
+        null -> "-"
+        0 -> "0"
+        else -> "${abs(score)} ${if (score > 0) "<-" else "->"}"
     }
     Surface(
         modifier = Modifier.fillMaxWidth(),
