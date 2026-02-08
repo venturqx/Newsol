@@ -134,7 +134,6 @@ class CompareFragment : Fragment() {
                             onExtraScoreChange = onExtraScoreChange,
                             onSubmitSelected = { selected -> sendCompactSubmit(selected) },
                             onUpdateSelected = { selected -> sendCompactUpdate(selected) },
-                            showSubmitButton = compactPopupVisible,
                             onDismissLogin = { dismissLoginDialog() },
                             onRegister = { openRegisterPage() },
                             onLogin = { username, password -> performLogin(username, password) }

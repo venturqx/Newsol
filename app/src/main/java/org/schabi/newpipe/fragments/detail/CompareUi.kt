@@ -20,7 +20,6 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -30,12 +29,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.VerticalPager
@@ -71,6 +71,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -104,8 +105,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -115,7 +114,6 @@ import org.schabi.newpipe.R
 import org.schabi.newpipe.database.history.model.StreamHistoryEntry
 import org.schabi.newpipe.ui.components.items.stream.StreamThumbnail
 import kotlin.math.abs
-import kotlin.math.floor
 import kotlin.math.roundToInt
 import android.graphics.Paint as AndroidPaint
 
@@ -401,7 +399,6 @@ fun CompareCompactScreen(
     onExtraScoreChange: (String, Int) -> Unit,
     onSubmitSelected: (Set<String>) -> Unit,
     onUpdateSelected: (Set<String>) -> Unit,
-    showSubmitButton: Boolean,
     onDismissLogin: () -> Unit,
     onRegister: () -> Unit,
     onLogin: (String, String) -> Unit
@@ -458,12 +455,10 @@ fun CompareCompactScreen(
     val latestScoreUpdater by rememberUpdatedState(onActiveScoreChange)
     val latestIndexUpdater by rememberUpdatedState { index: Int -> activeIndex = index }
     val latestMaxIndex by rememberUpdatedState(maxIndex)
-    val swipeAreaHeight = 120.dp
     val miniPlayerHeight = dimensionResource(R.dimen.mini_player_height)
     val bottomContentPadding = miniPlayerHeight + 12.dp
     var showHistoryOverlay by remember { mutableStateOf(false) }
-    val leftEntries = state.historyEntries
-    val rightEntries = remember(state.historyEntries, state.currentEntry) {
+    val leftEntries = remember(state.historyEntries, state.currentEntry) {
         val current = state.currentEntry
         if (current == null) {
             state.historyEntries
@@ -471,6 +466,7 @@ fun CompareCompactScreen(
             listOf(current) + state.historyEntries
         }
     }
+    val rightEntries = state.historyEntries
     var leftHistoryIndex by rememberSaveable { mutableIntStateOf(0) }
     var rightHistoryIndex by rememberSaveable { mutableIntStateOf(0) }
     var historyOverlayIndex by rememberSaveable { mutableIntStateOf(0) }
@@ -490,11 +486,11 @@ fun CompareCompactScreen(
     var lastRightStreamId by remember { mutableStateOf(rightStreamId) }
     var leftHistoryBounds by remember { mutableStateOf<Rect?>(null) }
     var rightHistoryBounds by remember { mutableStateOf<Rect?>(null) }
-    var rectanglesBottomPx by remember { mutableStateOf<Float?>(null) }
     var overlayTopPx by remember { mutableStateOf(0f) }
-    var overlayHeightPxState by remember { mutableStateOf(0f) }
+    var overlayHeightPx by remember { mutableStateOf(0f) }
     val historyListState = rememberLazyListState()
     val overlayRowHeight = 88.dp
+    val overlayRowHeightPx = with(density) { overlayRowHeight.toPx() }
     LaunchedEffect(leftEntries, rightEntries) {
         if (leftEntries.isEmpty() && rightEntries.isEmpty()) {
             leftHistoryIndex = 0
@@ -525,11 +521,6 @@ fun CompareCompactScreen(
             rightHistoryBounds = null
         }
     }
-    LaunchedEffect(selectedHistoryEntryLeft, selectedHistoryEntryRight) {
-        if (selectedHistoryEntryLeft == null && selectedHistoryEntryRight == null) {
-            rectanglesBottomPx = null
-        }
-    }
     LaunchedEffect(leftStreamId, rightStreamId) {
         val hasChanged =
             leftStreamId != lastLeftStreamId || rightStreamId != lastRightStreamId
@@ -548,58 +539,57 @@ fun CompareCompactScreen(
     val hasStoredScores = state.storedMainScore != null || state.storedExtraScores.isNotEmpty()
     val isBusy = state.submitInProgress || state.submitMoreInProgress
     val canSubmit = selectedIds.isNotEmpty() && !isBusy
-    val buttonLabel = if (hasStoredScores) {
-        stringResource(R.string.compare_update_label)
-    } else {
-        stringResource(R.string.compare_submit_label)
+    val submitOrUpdateAction = {
+        val snapshot = selectedIds.toSet()
+        if (hasStoredScores) {
+            onUpdateSelected(snapshot)
+        } else {
+            onSubmitSelected(snapshot)
+        }
     }
-    val buttonAlpha = if (canSubmit) 1f else 0.55f
 
     LaunchedEffect(showHistoryOverlay, activeOverlayTarget) {
         if (showHistoryOverlay) {
             historyListState.scrollToItem(historyOverlayIndex)
         }
     }
-    val overlayTargetCenterPx by remember(
-        activeOverlayTarget,
-        leftHistoryBounds,
-        rightHistoryBounds,
+    val overlayTargetBounds = when (activeOverlayTarget) {
+        OverlayTarget.LEFT -> leftHistoryBounds
+        OverlayTarget.RIGHT -> rightHistoryBounds
+    }
+    val overlayAnchorPx by remember(
+        overlayTargetBounds,
         overlayTopPx,
-        overlayHeightPxState
+        overlayHeightPx,
+        overlayRowHeightPx
     ) {
         derivedStateOf {
-            val bounds = when (activeOverlayTarget) {
-                OverlayTarget.LEFT -> leftHistoryBounds
-                OverlayTarget.RIGHT -> rightHistoryBounds
-            }
-            val heightPx = overlayHeightPxState
-            if (heightPx <= 0f) {
-                0f
+            val minCenter = overlayRowHeightPx / 2f
+            val defaultCenter = if (overlayHeightPx > 0f) {
+                overlayHeightPx / 2f
             } else {
-                val raw = bounds?.center?.y?.minus(overlayTopPx) ?: heightPx / 2f
-                raw.coerceIn(0f, heightPx)
+                minCenter
             }
+            val rawCenter = overlayTargetBounds?.center?.y?.minus(overlayTopPx) ?: defaultCenter
+            val maxCenter = (overlayHeightPx - overlayRowHeightPx / 2f).coerceAtLeast(minCenter)
+            rawCenter.coerceIn(minCenter, maxCenter)
         }
     }
-    val overlayRowHeightPx = with(density) { overlayRowHeight.toPx() }
     LaunchedEffect(
         showHistoryOverlay,
         historyListState,
-        overlayTargetCenterPx,
         overlayEntries,
-        overlayRowHeightPx
+        overlayAnchorPx
     ) {
-        if (!showHistoryOverlay) return@LaunchedEffect
-        snapshotFlow { historyListState.layoutInfo.visibleItemsInfo }
-            .map { items ->
-                if (items.isEmpty()) {
-                    null
-                } else {
-                    val first = items.first()
-                    val centerOffset = overlayTargetCenterPx - first.offset
-                    val steps = floor(centerOffset / overlayRowHeightPx).toInt()
-                    (first.index + steps).coerceIn(0, overlayEntries.lastIndex)
-                }
+        if (!showHistoryOverlay || overlayEntries.isEmpty()) {
+            return@LaunchedEffect
+        }
+        snapshotFlow { historyListState.layoutInfo }
+            .map { layoutInfo ->
+                val anchorInList = overlayAnchorPx + layoutInfo.viewportStartOffset
+                layoutInfo.visibleItemsInfo.minByOrNull { item ->
+                    abs((item.offset + item.size / 2f) - anchorInList)
+                }?.index?.coerceIn(0, overlayEntries.lastIndex)
             }
             .distinctUntilChanged()
             .collect { index ->
@@ -771,11 +761,7 @@ fun CompareCompactScreen(
 
             if (selectedHistoryEntryLeft != null || selectedHistoryEntryRight != null) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .onGloballyPositioned { coordinates ->
-                            rectanglesBottomPx = coordinates.boundsInRoot().bottom
-                        }
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -835,6 +821,14 @@ fun CompareCompactScreen(
                         )
                     }
                 }
+                Button(
+                    onClick = submitOrUpdateAction,
+                    enabled = canSubmit,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 6.dp)
+                ) {
+                    Text(text = "TEST2")
+                }
             }
         }
 
@@ -845,13 +839,16 @@ fun CompareCompactScreen(
                 Color(0xFF42A5F5)
             }
             val overlayBackground = Color(0xFF0B0B0B)
-            val selectedBackground = if (activeOverlayTarget == OverlayTarget.RIGHT) {
-                Color(0xFF1A0D0D)
-            } else {
-                Color(0xFF0D1420)
-            }
             val listTitleColor = Color(0xFFEAEAEA)
             val listSubtitleColor = Color(0xFFB0B0B0)
+            val topPaddingPx = (overlayAnchorPx - overlayRowHeightPx / 2f).coerceAtLeast(0f)
+            val bottomPaddingPx =
+                (overlayHeightPx - topPaddingPx - overlayRowHeightPx).coerceAtLeast(0f)
+            val topPadding = with(density) { topPaddingPx.toDp() }
+            val bottomPadding = with(density) { bottomPaddingPx.toDp() }
+            val selectedStreamId = overlayEntries.getOrNull(historyOverlayIndex)?.streamId
+            val selectionArrowSize = 22.dp
+            val selectionArrowOffsetX = (-10).dp
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -859,33 +856,17 @@ fun CompareCompactScreen(
                     .zIndex(4f),
                 contentAlignment = Alignment.Center
             ) {
-                val highlightId =
-                    overlayEntries.getOrNull(historyOverlayIndex)?.streamId
-                BoxWithConstraints(
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 16.dp)
                         .onGloballyPositioned { coordinates ->
                             overlayTopPx = coordinates.boundsInRoot().top
                         }
-                ) {
-                    val overlayHeightPx = with(density) { maxHeight.toPx() }
-                    if (overlayHeightPx != overlayHeightPxState) {
-                        overlayHeightPxState = overlayHeightPx
-                    }
-                    val rowHeightPx = with(density) { overlayRowHeight.toPx() }
-                    val targetCenterPx =
-                        if (overlayTargetCenterPx > 0f) {
-                            overlayTargetCenterPx
-                        } else {
-                            overlayHeightPx / 2f
+                        .onSizeChanged { size ->
+                            overlayHeightPx = size.height.toFloat()
                         }
-                    val topPaddingPx = (targetCenterPx - rowHeightPx / 2f)
-                        .coerceIn(0f, overlayHeightPx - rowHeightPx)
-                    val bottomPaddingPx =
-                        (overlayHeightPx - topPaddingPx - rowHeightPx).coerceAtLeast(0f)
-                    val topPadding = with(density) { topPaddingPx.toDp() }
-                    val bottomPadding = with(density) { bottomPaddingPx.toDp() }
+                ) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
@@ -896,176 +877,26 @@ fun CompareCompactScreen(
                             ),
                             verticalArrangement = Arrangement.spacedBy(0.dp)
                         ) {
-                            items(overlayEntries, key = { it.streamId }) { entry ->
-                                val isHighlight = entry.streamId == highlightId
-                                if (isHighlight) {
-                                    Spacer(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(overlayRowHeight)
-                                    )
-                                } else {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(overlayRowHeight)
-                                    ) {
-                                        val stream = remember(entry) { entry.toStreamInfoItem() }
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            StreamThumbnail(
-                                                stream = stream,
-                                                showProgress = false,
-                                                showDuration = true,
-                                                durationTextStyle = MaterialTheme.typography.labelSmall
-                                                    .copy(fontSize = 10.sp),
-                                                modifier = Modifier.size(width = 144.dp, height = 80.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(
-                                                    text = entry.streamEntity.title,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = listTitleColor,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                                Text(
-                                                    text = entry.streamEntity.uploader,
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = listSubtitleColor,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
+                            itemsIndexed(overlayEntries, key = { _, entry -> entry.streamId }) { _, entry ->
+                                CompareHistoryOverlayRow(
+                                    entry = entry,
+                                    selected = entry.streamId == selectedStreamId,
+                                    overlayRowHeight = overlayRowHeight,
+                                    accentColor = accentColor,
+                                    titleColor = listTitleColor,
+                                    subtitleColor = listSubtitleColor
+                                )
                             }
                         }
-
-                        val selectedEntry =
-                            overlayEntries.getOrNull(historyOverlayIndex)
-                        if (selectedEntry != null) {
-                            Surface(
-                                modifier = Modifier
-                                    .align(Alignment.TopCenter)
-                                    .padding(top = topPadding)
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 8.dp),
-                                shape = RoundedCornerShape(10.dp),
-                                color = selectedBackground,
-                                border = BorderStroke(1.dp, accentColor)
-                            ) {
-                                val stream = remember(selectedEntry) {
-                                    selectedEntry.toStreamInfoItem()
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(overlayRowHeight)
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        StreamThumbnail(
-                                            stream = stream,
-                                            showProgress = false,
-                                            showDuration = true,
-                                            durationTextStyle = MaterialTheme.typography.labelSmall
-                                                .copy(fontSize = 10.sp),
-                                            modifier = Modifier.size(width = 144.dp, height = 80.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = selectedEntry.streamEntity.title,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = Color.White,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                            Text(
-                                                text = selectedEntry.streamEntity.uploader,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = Color.White.copy(alpha = 0.85f),
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    if (showSubmitButton && !showHistoryOverlay) {
-        Popup(
-            alignment = Alignment.BottomCenter,
-            properties = PopupProperties(
-                focusable = false,
-                dismissOnBackPress = false,
-                dismissOnClickOutside = false
-            )
-        ) {
-            Box(
-                modifier = Modifier
-                    .navigationBarsPadding()
-                    .fillMaxWidth()
-                    .padding(bottom = 10.dp)
-            ) {
-                Column(
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Button(
-                        onClick = {},
-                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp)
-                    ) {
-                        Text(
-                            text = "TEST",
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .background(Color(0xFFFFD54F), RoundedCornerShape(10.dp))
-                            .graphicsLayer(alpha = buttonAlpha)
-                            .clickable(enabled = canSubmit) {
-                                val snapshot = selectedIds.toSet()
-                                if (hasStoredScores) {
-                                    onUpdateSelected(snapshot)
-                                } else {
-                                    onSubmitSelected(snapshot)
-                                }
-                            }
-                            .padding(horizontal = 16.dp, vertical = 6.dp)
-                            .zIndex(2f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = buttonLabel,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = Color(0xFF1A1A1A)
+                        Image(
+                            painter = painterResource(R.drawable.ic_play_arrow),
+                            contentDescription = null,
+                            colorFilter = ColorFilter.tint(accentColor),
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(top = topPadding + (overlayRowHeight - selectionArrowSize) / 2)
+                                .offset(x = selectionArrowOffsetX)
+                                .size(selectionArrowSize)
                         )
                     }
                 }
@@ -1225,7 +1056,7 @@ private fun CompactDimensionRow(
             overflow = TextOverflow.Ellipsis
         )
         val valueText =
-            if (score == 0 && !isSelected && !isActive) "" else formatSignedScore(score)
+            if (score == 0 && !isSelected && !isActive) "" else formatScoreMagnitude(score)
         val scoreColor = when {
             score > 0 -> Color(0xFFE57373)
             score < 0 -> Color(0xFF64B5F6)
@@ -1289,6 +1120,63 @@ private fun MiniScoreBar(
                 size = Size(fillWidth, size.height),
                 cornerRadius = CornerRadius(radius, radius)
             )
+        }
+    }
+}
+
+@Composable
+private fun CompareHistoryOverlayRow(
+    entry: StreamHistoryEntry,
+    selected: Boolean,
+    overlayRowHeight: androidx.compose.ui.unit.Dp,
+    accentColor: Color,
+    titleColor: Color,
+    subtitleColor: Color
+) {
+    val stream = remember(entry) { entry.toStreamInfoItem() }
+    val rowBackground = if (selected) {
+        accentColor.copy(alpha = 0.16f)
+    } else {
+        Color.Transparent
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(overlayRowHeight)
+            .padding(horizontal = 8.dp)
+            .background(rowBackground, RoundedCornerShape(10.dp))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            StreamThumbnail(
+                stream = stream,
+                showProgress = false,
+                showDuration = true,
+                durationTextStyle = MaterialTheme.typography.labelSmall
+                    .copy(fontSize = 10.sp),
+                modifier = Modifier.size(width = 144.dp, height = 80.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = entry.streamEntity.title,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (selected) Color.White else titleColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = entry.streamEntity.uploader,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (selected) Color.White.copy(alpha = 0.85f) else subtitleColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }
@@ -1552,12 +1440,8 @@ private fun CompactSubmitSection(
     }
 }
 
-private fun formatSignedScore(score: Int): String {
-    return if (score > 0) {
-        "+$score"
-    } else {
-        score.toString()
-    }
+private fun formatScoreMagnitude(score: Int): String {
+    return abs(score).toString()
 }
 
 @Composable
