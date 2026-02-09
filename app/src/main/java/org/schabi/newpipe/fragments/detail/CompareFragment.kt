@@ -56,10 +56,15 @@ class CompareFragment : Fragment() {
     private var changeInProgress by mutableStateOf(false)
     private var submitMoreInProgress by mutableStateOf(false)
     private var compactPopupVisible by mutableStateOf(false)
+    private var recommendations by mutableStateOf<List<CompareRecommendationItem>>(emptyList())
+    private var recommendationsLoading by mutableStateOf(false)
+    private var recommendationsError by mutableStateOf<String?>(null)
+    private var showRecommendationsDialog by mutableStateOf(false)
     private var showLoginDialog by mutableStateOf(false)
     private var loginInProgress by mutableStateOf(false)
     private var loginError by mutableStateOf<String?>(null)
     private var loginDisposable: Disposable? = null
+    private var recommendationsDisposable: Disposable? = null
     private var checkDisposable: Disposable? = null
     private val submittedComparisons = LinkedHashSet<CompareKey>()
     private val storedScores = LinkedHashMap<String, ComparisonScores>()
@@ -120,6 +125,10 @@ class CompareFragment : Fragment() {
                         submitInProgress = submitInProgress,
                         changeInProgress = changeInProgress,
                         submitMoreInProgress = submitMoreInProgress,
+                        recommendations = recommendations,
+                        recommendationsLoading = recommendationsLoading,
+                        recommendationsError = recommendationsError,
+                        showRecommendationsDialog = showRecommendationsDialog,
                         showLoginDialog = showLoginDialog,
                         loginInProgress = loginInProgress,
                         loginError = loginError
@@ -134,6 +143,8 @@ class CompareFragment : Fragment() {
                             onExtraScoreChange = onExtraScoreChange,
                             onSubmitSelected = { selected -> sendCompactSubmit(selected) },
                             onUpdateSelected = { selected -> sendCompactUpdate(selected) },
+                            onViewRecommendations = { openRecommendationsDialog() },
+                            onDismissRecommendations = { dismissRecommendationsDialog() },
                             onDismissLogin = { dismissLoginDialog() },
                             onRegister = { openRegisterPage() },
                             onLogin = { username, password -> performLogin(username, password) }
@@ -161,6 +172,8 @@ class CompareFragment : Fragment() {
         disposables.clear()
         loginDisposable?.dispose()
         loginDisposable = null
+        recommendationsDisposable?.dispose()
+        recommendationsDisposable = null
         super.onDestroyView()
     }
 
@@ -251,6 +264,55 @@ class CompareFragment : Fragment() {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(REGISTER_URL))
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         requireContext().startActivity(intent)
+    }
+
+    private fun openRecommendationsDialog() {
+        showRecommendationsDialog = true
+        recommendationsLoading = true
+        recommendationsError = null
+        recommendations = emptyList()
+        recommendationsDisposable?.dispose()
+        recommendationsDisposable = TournesolAuthManager.getValidAccessToken(requireContext())
+            .subscribeOn(Schedulers.io())
+            .switchIfEmpty(
+                io.reactivex.rxjava3.core.Maybe.error(MissingTokenException())
+            )
+            .flatMapSingle { token ->
+                CompareRepository.fetchUserComparisons(
+                    token = token,
+                    username = COMPARISONS_USERNAME,
+                    limit = COMPARISONS_LIMIT
+                )
+            }
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(
+                { items ->
+                    recommendationsLoading = false
+                    recommendations = items
+                    if (items.isEmpty()) {
+                        recommendationsError = "No comparisons available"
+                    }
+                },
+                { throwable ->
+                    recommendationsLoading = false
+                    if (throwable is MissingTokenException) {
+                        recommendationsError = getString(R.string.compare_login_required)
+                        showLoginDialog()
+                        return@subscribe
+                    }
+                    val message = throwable.message
+                    recommendationsError = if (message.isNullOrBlank()) {
+                        getString(R.string.compare_failed)
+                    } else {
+                        getString(R.string.compare_failed_with_message, message)
+                    }
+                }
+            )
+        recommendationsDisposable?.let { disposables.add(it) }
+    }
+
+    private fun dismissRecommendationsDialog() {
+        showRecommendationsDialog = false
     }
 
     private fun performLogin(username: String, password: String) {
@@ -1018,6 +1080,8 @@ class CompareFragment : Fragment() {
         private const val PREF_SUBMITTED_COMPARISONS = "compare_submitted_pairs_v1"
         private const val PREF_COMPARISON_SCORES = "compare_submitted_scores_v1"
         private const val KEY_COMPACT_UI = "compare_compact_ui"
+        private const val COMPARISONS_USERNAME = "me"
+        private const val COMPARISONS_LIMIT = 20
 
         @JvmStatic
         fun getInstance(info: StreamInfo, useCompactUi: Boolean = false): CompareFragment {
