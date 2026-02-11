@@ -73,28 +73,29 @@ fun StreamListItem(
                 val tournesolScore = stream.tournesolScore
                 if (tournesolScore != null) {
                     val isUnsafe = stream.tournesolUnsafeReasons.isNotEmpty()
+                    val hasInsufficientReason = TournesolHelper.hasInsufficientReason(
+                        stream.tournesolUnsafeReasons
+                    )
                     val scoreText = stringResource(
                         R.string.tournesol_score_label,
                         tournesolScore.toString()
                     )
-                    val unsafeReasonCodes =
-                        TournesolHelper.formatUnsafeReasonCodes(stream.tournesolUnsafeReasons)
                     Row(
                         modifier = Modifier.alpha(if (isUnsafe) 0.5f else 1f),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Image(
-                            painter = painterResource(R.drawable.logo_small),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
+                        if (hasInsufficientReason) {
+                            Text(text = "\uD83C\uDF31", fontSize = 18.sp)
+                        } else {
+                            Image(
+                                painter = painterResource(R.drawable.logo_small),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                         Text(
-                            text = if (unsafeReasonCodes.isEmpty()) {
-                                scoreText
-                            } else {
-                                "$scoreText $unsafeReasonCodes"
-                            },
+                            text = scoreText,
                             fontSize = 20.sp,
                             fontFamily = FontFamily.SansSerif,
                             fontWeight = FontWeight.SemiBold,

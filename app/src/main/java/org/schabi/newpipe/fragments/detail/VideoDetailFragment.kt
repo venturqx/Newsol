@@ -159,6 +159,10 @@ class VideoDetailFragment :
     private var tabSettingsChanged = false
     private var lastAppBarVerticalOffset = Int.Companion.MAX_VALUE // prevents useless updates
     private var isCompareFullViewVisible = false
+    private var isCompareGestureOverlayVisible = false
+    private var savedGestureAppBarVisibility = View.VISIBLE
+    private var savedGestureTabLayoutVisibility = View.VISIBLE
+    private var savedAppBarVisibility = View.VISIBLE
     private var savedDetailContentVisibility = View.VISIBLE
     private var savedViewPagerVisibility = View.VISIBLE
     private var savedTabLayoutVisibility = View.VISIBLE
@@ -367,6 +371,9 @@ class VideoDetailFragment :
     }
 
     override fun onDestroyView() {
+        if (nullableBinding != null) {
+            setCompareGestureOverlayVisible(false)
+        }
         super.onDestroyView()
         nullableBinding = null
     }
@@ -929,17 +936,20 @@ class VideoDetailFragment :
     }
 
     private fun showCompareFullView(info: StreamInfo) {
+        setCompareGestureOverlayVisible(false)
         if (isCompareFullViewVisible) {
             updateCompareFullFragment(info)
             return
         }
 
         isCompareFullViewVisible = true
+        savedAppBarVisibility = binding.appBarLayout.visibility
         savedDetailContentVisibility = binding.detailContentRootLayout.visibility
         savedViewPagerVisibility = binding.viewPager.visibility
         savedTabLayoutVisibility = binding.tabLayout.visibility
         savedRelatedItemsVisibility = binding.relatedItemsLayout?.visibility ?: View.VISIBLE
 
+        binding.appBarLayout.visibility = View.GONE
         binding.detailContentRootLayout.visibility = View.GONE
         binding.viewPager.visibility = View.GONE
         binding.tabLayout.visibility = View.GONE
@@ -951,6 +961,34 @@ class VideoDetailFragment :
         updateCompareFullFragment(info)
     }
 
+    fun requestCompareFullView(info: StreamInfo) {
+        showCompareFullView(info)
+    }
+
+    fun setCompareGestureOverlayVisible(visible: Boolean) {
+        if (nullableBinding == null || isCompareFullViewVisible) {
+            return
+        }
+        if (visible) {
+            if (isCompareGestureOverlayVisible) {
+                return
+            }
+            isCompareGestureOverlayVisible = true
+            savedGestureAppBarVisibility = binding.appBarLayout.visibility
+            savedGestureTabLayoutVisibility = binding.tabLayout.visibility
+            binding.appBarLayout.visibility = View.GONE
+            binding.tabLayout.visibility = View.GONE
+            return
+        }
+        if (!isCompareGestureOverlayVisible) {
+            return
+        }
+        isCompareGestureOverlayVisible = false
+        binding.appBarLayout.visibility = savedGestureAppBarVisibility
+        binding.tabLayout.visibility = savedGestureTabLayoutVisibility
+        updateTabLayoutVisibility()
+    }
+
     private fun hideCompareFullView() {
         if (!isCompareFullViewVisible) {
             return
@@ -959,6 +997,7 @@ class VideoDetailFragment :
         isCompareFullViewVisible = false
         setCompareFullPopupVisible(false)
         binding.compareFullContainer.visibility = View.GONE
+        binding.appBarLayout.visibility = savedAppBarVisibility
         binding.detailContentRootLayout.visibility = savedDetailContentVisibility
         binding.viewPager.visibility = savedViewPagerVisibility
         binding.tabLayout.visibility = savedTabLayoutVisibility

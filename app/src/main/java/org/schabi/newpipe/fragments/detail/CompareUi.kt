@@ -21,6 +21,7 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -107,6 +108,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
@@ -473,7 +475,7 @@ fun CompareCompactScreen(
     val bottomContentPadding = miniPlayerHeight + 12.dp
     var showHistoryOverlay by remember { mutableStateOf(false) }
     val overlayGridColumns = 2
-    val overlayRowsPerPage = 4
+    var overlayRowsPerPage by rememberSaveable { mutableIntStateOf(4) }
     val overlayPageSize = overlayGridColumns * overlayRowsPerPage
     val leftEntries = remember(state.historyEntries, state.currentEntry) {
         val current = state.currentEntry
@@ -517,6 +519,7 @@ fun CompareCompactScreen(
     var rightHistorySideBounds by remember { mutableStateOf<Rect?>(null) }
     var leftHistoryHitBounds by remember { mutableStateOf<Rect?>(null) }
     var rightHistoryHitBounds by remember { mutableStateOf<Rect?>(null) }
+    var overlayGridBounds by remember { mutableStateOf<Rect?>(null) }
     LaunchedEffect(leftEntries, rightEntries) {
         if (leftEntries.isEmpty() && rightEntries.isEmpty()) {
             leftHistoryIndex = 0
@@ -552,6 +555,11 @@ fun CompareCompactScreen(
             rightHistoryHitBounds = null
         }
     }
+    LaunchedEffect(showHistoryOverlay) {
+        if (!showHistoryOverlay) {
+            overlayGridBounds = null
+        }
+    }
     LaunchedEffect(leftStreamId, rightStreamId) {
         val hasChanged =
             leftStreamId != lastLeftStreamId || rightStreamId != lastRightStreamId
@@ -567,7 +575,7 @@ fun CompareCompactScreen(
             selectedIds = emptySet()
         }
     }
-    LaunchedEffect(showHistoryOverlay, activeOverlayTarget, overlayEntries.size) {
+    LaunchedEffect(showHistoryOverlay, activeOverlayTarget, overlayEntries.size, overlayPageSize) {
         if (showHistoryOverlay && overlayEntries.isNotEmpty()) {
             historyOverlayIndex = historyOverlayIndex.coerceIn(0, overlayEntries.lastIndex)
             val maxPage = ((overlayEntries.size - 1) / overlayPageSize).coerceAtLeast(0)
@@ -710,6 +718,9 @@ fun CompareCompactScreen(
     }
     val overlayHorizontalStepPx = with(density) { 44.dp.toPx() }
     val overlayVerticalStepPx = with(density) { 44.dp.toPx() }
+    val latestOverlayGridBounds by rememberUpdatedState(overlayGridBounds)
+    val latestOverlayPageSize by rememberUpdatedState(overlayPageSize)
+    val latestOverlayRowsPerPage by rememberUpdatedState(overlayRowsPerPage)
     val historyOverlayGestureModifier =
         Modifier.pointerInput(
             leftHistoryHitBounds,
@@ -719,8 +730,7 @@ fun CompareCompactScreen(
             leftHistoryIndex,
             rightHistoryIndex,
             overlayHorizontalStepPx,
-            overlayVerticalStepPx,
-            overlayPageSize
+            overlayVerticalStepPx
         ) {
             awaitEachGesture {
                 val down = awaitFirstDown(requireUnconsumed = false)
@@ -745,7 +755,7 @@ fun CompareCompactScreen(
                     OverlayTarget.LEFT -> leftHistoryIndex
                     OverlayTarget.RIGHT -> rightHistoryIndex
                 }.coerceIn(0, overlayEntries.lastIndex)
-                historyOverlayPage = historyOverlayIndex / overlayPageSize
+                historyOverlayPage = historyOverlayIndex / latestOverlayPageSize.coerceAtLeast(1)
                 showHistoryOverlay = true
                 try {
                     while (true) {
@@ -754,6 +764,15 @@ fun CompareCompactScreen(
                             .firstOrNull { it.id == pointerId } ?: break
                         if (!change.pressed) {
                             break
+                        }
+                        if (state.compactPopupVisible &&
+                            latestOverlayGridBounds?.contains(change.position) == false
+                        ) {
+                            lastPosition = change.position
+                            accumulatedX = 0f
+                            accumulatedY = 0f
+                            change.consumeAllChanges()
+                            continue
                         }
                         val dragAmount = change.position - lastPosition
                         lastPosition = change.position
@@ -775,7 +794,7 @@ fun CompareCompactScreen(
                                     currentIndex = historyOverlayIndex,
                                     currentPage = historyOverlayPage,
                                     entriesSize = overlayEntries.size,
-                                    rowsPerPage = overlayRowsPerPage,
+                                    rowsPerPage = latestOverlayRowsPerPage,
                                     columns = overlayGridColumns,
                                     deltaRow = 0,
                                     deltaCol = deltaCol
@@ -794,7 +813,7 @@ fun CompareCompactScreen(
                                     currentIndex = historyOverlayIndex,
                                     currentPage = historyOverlayPage,
                                     entriesSize = overlayEntries.size,
-                                    rowsPerPage = overlayRowsPerPage,
+                                    rowsPerPage = latestOverlayRowsPerPage,
                                     columns = overlayGridColumns,
                                     deltaRow = deltaRow,
                                     deltaCol = 0
@@ -821,7 +840,6 @@ fun CompareCompactScreen(
                 }
             }
         }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1081,63 +1099,133 @@ fun CompareCompactScreen(
             val overlayBackground = Color(0xFF0B0B0B)
             val listTitleColor = Color(0xFFEAEAEA)
             val listSubtitleColor = Color(0xFFB0B0B0)
-            val pageCount = ((overlayEntries.size + overlayPageSize - 1) / overlayPageSize)
-                .coerceAtLeast(1)
-            val currentPage = historyOverlayPage.coerceIn(0, pageCount - 1)
-            val pageStart = currentPage * overlayPageSize
-            val pageEnd = kotlin.math.min(pageStart + overlayPageSize, overlayEntries.size)
-            val pageEntries = overlayEntries.subList(pageStart, pageEnd)
-            val selectedOffsetInPage = (historyOverlayIndex - pageStart)
-                .coerceIn(0, (pageEntries.size - 1).coerceAtLeast(0))
-            val pageRows = ((pageEntries.size + overlayGridColumns - 1) / overlayGridColumns)
-                .coerceAtLeast(1)
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(overlayBackground)
-                    .zIndex(4f),
-                contentAlignment = Alignment.TopCenter
-            ) {
-                Column(
+            val overlayRowSpacing = 6.dp
+            val overlayCardHeight = 54.dp
+            val overlayRowSpacingPx = with(density) { overlayRowSpacing.roundToPx() }
+            val overlayCardHeightPx = with(density) { overlayCardHeight.roundToPx() }
+            val overlayBody: @Composable () -> Unit = {
+                BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text(
-                        text = "Page ${currentPage + 1}/$pageCount",
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = Color(0xFFEDEDED),
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    )
+                    val visibleRowsPerPage = if (overlayGridBounds == null) {
+                        overlayRowsPerPage.coerceAtLeast(1).coerceAtMost(16)
+                    } else {
+                        val gridViewportHeightPx = overlayGridBounds!!.height
+                            .roundToInt()
+                            .coerceAtLeast(0)
+                        (
+                            (gridViewportHeightPx + overlayRowSpacingPx) /
+                            (overlayCardHeightPx + overlayRowSpacingPx)
+                        )
+                            .coerceAtLeast(1)
+                            .coerceAtMost(16)
+                    }
+                    LaunchedEffect(visibleRowsPerPage) {
+                        if (overlayRowsPerPage != visibleRowsPerPage) {
+                            overlayRowsPerPage = visibleRowsPerPage
+                        }
+                    }
+                    val visiblePageSize = overlayGridColumns * visibleRowsPerPage
+                    val pageCount = ((overlayEntries.size + visiblePageSize - 1) / visiblePageSize)
+                        .coerceAtLeast(1)
+                    val currentPage = (historyOverlayIndex / visiblePageSize)
+                        .coerceIn(0, pageCount - 1)
+                    LaunchedEffect(currentPage) {
+                        if (historyOverlayPage != currentPage) {
+                            historyOverlayPage = currentPage
+                        }
+                    }
+                    val pageStart = currentPage * visiblePageSize
+                    val pageEnd = kotlin.math.min(pageStart + visiblePageSize, overlayEntries.size)
+                    val pageEntries = overlayEntries.subList(pageStart, pageEnd)
+                    val selectedOffsetInPage = (historyOverlayIndex - pageStart)
+                        .coerceIn(0, (pageEntries.size - 1).coerceAtLeast(0))
+                    val pageRows = ((pageEntries.size + overlayGridColumns - 1) / overlayGridColumns)
+                        .coerceAtLeast(1)
                     Column(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 6.dp, vertical = 10.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        for (row in 0 until pageRows) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                for (column in 0 until overlayGridColumns) {
-                                    val offsetInPage = row * overlayGridColumns + column
-                                    if (offsetInPage < pageEntries.size) {
-                                        CompareHistoryOverlayGridCard(
-                                            entry = pageEntries[offsetInPage],
-                                            selected = offsetInPage == selectedOffsetInPage,
-                                            accentColor = accentColor,
-                                            titleColor = listTitleColor,
-                                            subtitleColor = listSubtitleColor,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                    } else {
-                                        Spacer(modifier = Modifier.weight(1f))
+                        Text(
+                            text = "Page ${currentPage + 1}/$pageCount",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = Color(0xFFEDEDED),
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .onGloballyPositioned { coordinates ->
+                                    overlayGridBounds = coordinates.boundsInRoot()
+                                },
+                            verticalArrangement = Arrangement.spacedBy(overlayRowSpacing)
+                        ) {
+                            for (row in 0 until pageRows) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    for (column in 0 until overlayGridColumns) {
+                                        val offsetInPage = row * overlayGridColumns + column
+                                        if (offsetInPage < pageEntries.size) {
+                                            CompareHistoryOverlayGridCard(
+                                                entry = pageEntries[offsetInPage],
+                                                selected = offsetInPage == selectedOffsetInPage,
+                                                accentColor = accentColor,
+                                                titleColor = listTitleColor,
+                                                subtitleColor = listSubtitleColor,
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .height(overlayCardHeight)
+                                            )
+                                        } else {
+                                            Spacer(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .height(overlayCardHeight)
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
+                    }
+                }
+            }
+            if (state.compactPopupVisible) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(overlayBackground)
+                        .zIndex(4f),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                    overlayBody()
+                }
+            } else {
+                Dialog(
+                    onDismissRequest = { },
+                    properties = DialogProperties(
+                        usePlatformDefaultWidth = false,
+                        decorFitsSystemWindows = false,
+                        dismissOnBackPress = false,
+                        dismissOnClickOutside = false
+                    )
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(overlayBackground)
+                            .navigationBarsPadding(),
+                        contentAlignment = Alignment.TopCenter
+                    ) {
+                        overlayBody()
                     }
                 }
             }
@@ -1505,17 +1593,25 @@ private fun moveOverlayGridSelection(
     var targetRows = ((targetPageCount + columns - 1) / columns).coerceAtLeast(1)
 
     if (row >= targetRows) {
-        targetPage = (page + 1) % pageCount
-        val targetStart = targetPage * pageSize
-        targetPageCount = (entriesSize - targetStart).coerceAtMost(pageSize).coerceAtLeast(1)
-        targetRows = ((targetPageCount + columns - 1) / columns).coerceAtLeast(1)
-        row = 0
+        if (page < pageCount - 1) {
+            targetPage = page + 1
+            val targetStart = targetPage * pageSize
+            targetPageCount = (entriesSize - targetStart).coerceAtMost(pageSize).coerceAtLeast(1)
+            targetRows = ((targetPageCount + columns - 1) / columns).coerceAtLeast(1)
+            row = 0
+        } else {
+            row = targetRows - 1
+        }
     } else if (row < 0) {
-        targetPage = (page - 1 + pageCount) % pageCount
-        val targetStart = targetPage * pageSize
-        targetPageCount = (entriesSize - targetStart).coerceAtMost(pageSize).coerceAtLeast(1)
-        targetRows = ((targetPageCount + columns - 1) / columns).coerceAtLeast(1)
-        row = targetRows - 1
+        if (page > 0) {
+            targetPage = page - 1
+            val targetStart = targetPage * pageSize
+            targetPageCount = (entriesSize - targetStart).coerceAtMost(pageSize).coerceAtLeast(1)
+            targetRows = ((targetPageCount + columns - 1) / columns).coerceAtLeast(1)
+            row = targetRows - 1
+        } else {
+            row = 0
+        }
     }
 
     val targetStart = targetPage * pageSize
@@ -1752,7 +1848,7 @@ private fun CompareHistoryOverlayGridCard(
         border = BorderStroke(1.dp, borderColor)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             StreamThumbnail(
@@ -1760,17 +1856,20 @@ private fun CompareHistoryOverlayGridCard(
                 showProgress = false,
                 showDuration = true,
                 durationTextStyle = MaterialTheme.typography.labelSmall
-                    .copy(fontSize = 10.sp),
-                modifier = Modifier.size(width = 108.dp, height = 62.dp)
+                    .copy(fontSize = 9.sp),
+                modifier = Modifier.size(width = 76.dp, height = 43.dp)
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp))
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
                     text = entry.streamEntity.title,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
                     color = if (selected) Color.White else titleColor.copy(alpha = 0.95f),
                     minLines = 2,
                     maxLines = 2,

@@ -168,16 +168,21 @@ public class StreamMiniInfoItemHolder extends InfoItemHolder {
         final Long tournesolScore = item.getTournesolScore();
         if (tournesolScore != null) {
             final boolean isUnsafe = !item.getTournesolUnsafeReasons().isEmpty();
+            final boolean hasInsufficientReason = TournesolHelper.hasInsufficientReason(
+                    item.getTournesolUnsafeReasons());
             final String scoreText = itemBuilder.getContext().getString(
                     R.string.tournesol_score_label,
                     Long.toString(tournesolScore));
-            final String unsafeReasonCodes =
-                    TournesolHelper.formatUnsafeReasonCodes(item.getTournesolUnsafeReasons());
+            itemTournesolScoreView.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                    hasInsufficientReason ? 0 : R.drawable.logo_small,
+                    0,
+                    0,
+                    0);
             itemTournesolScoreView.setTextColor(TOURNESOL_SCORE_COLOR);
             itemTournesolScoreView.setAlpha(isUnsafe ? 0.5f : 1f);
-            itemTournesolScoreView.setText(unsafeReasonCodes.isEmpty()
-                    ? scoreText
-                    : scoreText + " " + unsafeReasonCodes);
+            itemTournesolScoreView.setText(hasInsufficientReason
+                    ? "\uD83C\uDF31 " + scoreText
+                    : scoreText);
             itemTournesolScoreView.setVisibility(View.VISIBLE);
             return;
         }

@@ -618,13 +618,6 @@
                 android:paddingBottom="48dp"
                 app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
-            <androidx.fragment.app.FragmentContainerView
-                android:id="@+id/compare_full_container"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:visibility="gone"
-                app:layout_behavior="@string/appbar_scrolling_view_behavior" />
-
             <com.google.android.material.tabs.TabLayout
                 android:id="@+id/tab_layout"
                 android:layout_width="match_parent"
@@ -645,6 +638,16 @@
             android:layout_marginTop="10dp"
             android:layout_weight="3" />
     </LinearLayout>
+
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/compare_full_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="?attr/windowBackground"
+        android:clickable="true"
+        android:elevation="24dp"
+        android:focusable="true"
+        android:visibility="gone" />
 
 
     <RelativeLayout

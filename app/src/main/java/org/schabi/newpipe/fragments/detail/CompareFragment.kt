@@ -131,7 +131,8 @@ class CompareFragment : Fragment() {
                         showRecommendationsDialog = showRecommendationsDialog,
                         showLoginDialog = showLoginDialog,
                         loginInProgress = loginInProgress,
-                        loginError = loginError
+                        loginError = loginError,
+                        compactPopupVisible = compactPopupVisible
                     )
                     val onExtraScoreChange = { criteria: String, value: Int ->
                         updateExtraScore(criteria, value)
@@ -1011,6 +1012,7 @@ class CompareFragment : Fragment() {
     fun setCompactPopupVisibleState(visible: Boolean) {
         compactPopupVisible = visible
     }
+
     private data class CompactCriteriaPayload(
         val criteriaScores: List<CriteriaScore>,
         val mainScore: Int?,

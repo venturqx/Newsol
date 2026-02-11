@@ -77,6 +77,13 @@ object TournesolHelper {
         return "(" + reasonLabels.joinToString("/") + ")"
     }
 
+    @JvmStatic
+    fun hasInsufficientReason(reasons: List<String>?): Boolean {
+        return reasons?.any {
+            it == REASON_INSUFFICIENT_TOURNESOL_SCORE || it == REASON_INSUFFICIENT_TRUST
+        } == true
+    }
+
     fun calculateDateGte(dateKey: String): String? {
         if (dateKey == "forever") {
             return null
