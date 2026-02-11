@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -750,6 +751,8 @@ fun CompareCompactScreen(
                 var lastPosition = down.position
                 var accumulatedX = 0f
                 var accumulatedY = 0f
+                var lastDragTimestamp = down.uptimeMillis
+                var smoothedSpeedPxPerSec = 0f
                 activeOverlayTarget = target
                 historyOverlayIndex = when (target) {
                     OverlayTarget.LEFT -> leftHistoryIndex
@@ -771,13 +774,35 @@ fun CompareCompactScreen(
                             lastPosition = change.position
                             accumulatedX = 0f
                             accumulatedY = 0f
+                            lastDragTimestamp = change.uptimeMillis
+                            smoothedSpeedPxPerSec = 0f
                             change.consumeAllChanges()
                             continue
                         }
                         val dragAmount = change.position - lastPosition
                         lastPosition = change.position
-                        accumulatedX += dragAmount.x
-                        accumulatedY += dragAmount.y
+                        val deltaMs = (change.uptimeMillis - lastDragTimestamp)
+                            .coerceAtLeast(1L)
+                        val dragDistancePx = kotlin.math.sqrt(
+                            dragAmount.x * dragAmount.x + dragAmount.y * dragAmount.y
+                        )
+                        val instantSpeedPxPerSec = dragDistancePx * 1000f / deltaMs
+                        smoothedSpeedPxPerSec = if (smoothedSpeedPxPerSec == 0f) {
+                            instantSpeedPxPerSec
+                        } else {
+                            smoothedSpeedPxPerSec * 0.75f + instantSpeedPxPerSec * 0.25f
+                        }
+                        lastDragTimestamp = change.uptimeMillis
+
+                        val speedStepPx = kotlin.math.max(
+                            overlayHorizontalStepPx,
+                            overlayVerticalStepPx
+                        )
+                        val normalizedSpeed =
+                            (smoothedSpeedPxPerSec / (speedStepPx * 14f)).coerceIn(0f, 1f)
+                        val accelerationMultiplier = 0.68f + normalizedSpeed * 0.92f
+                        accumulatedX += dragAmount.x * accelerationMultiplier
+                        accumulatedY += dragAmount.y * accelerationMultiplier
 
                         var didMove = true
                         while (didMove) {
@@ -1146,17 +1171,25 @@ fun CompareCompactScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
+                            .statusBarsPadding()
                             .padding(horizontal = 6.dp, vertical = 10.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = "Page ${currentPage + 1}/$pageCount",
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = Color(0xFFEDEDED),
+                        Surface(
+                            shape = RoundedCornerShape(999.dp),
+                            color = accentColor.copy(alpha = 0.2f),
+                            border = BorderStroke(1.dp, accentColor.copy(alpha = 0.5f)),
                             modifier = Modifier.align(Alignment.CenterHorizontally)
-                        )
+                        ) {
+                            Text(
+                                text = "page ${currentPage + 1}/$pageCount",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = Color(0xFFEDEDED),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
+                            )
+                        }
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1493,10 +1526,10 @@ private fun CompareSideLabel(
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(
             text = title,
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
             textAlign = textAlign,
-            maxLines = 2,
+            maxLines = 3,
             overflow = TextOverflow.Ellipsis
         )
         if (uploader.isNotBlank()) {
@@ -1867,7 +1900,7 @@ private fun CompareHistoryOverlayGridCard(
                 Text(
                     text = entry.streamEntity.title,
                     style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 11.sp,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold
                     ),
                     color = if (selected) Color.White else titleColor.copy(alpha = 0.95f),
@@ -2337,6 +2370,7 @@ private fun HistoryWheel(
     val pageSizePx = with(density) { itemHeight.toPx() }
     val overlap = itemHeight * 0.75f
     val pageStepPx = with(density) { (itemHeight - overlap).toPx() }.coerceAtLeast(1f)
+    val totalPages = entries.size
 
     LaunchedEffect(entries, selectedIndex) {
         val targetPage = selectedIndex.coerceIn(0, entries.lastIndex)
@@ -2367,6 +2401,8 @@ private fun HistoryWheel(
                 var minPage = 0
                 var maxPage = 0
                 var dragDistance = 0f
+                var lastDragTimestamp = 0L
+                var smoothedSpeedPxPerSec = 0f
                 fun positionToPageOffset(currentPosition: Float): Pair<Int, Float> {
                     var clampedPosition = currentPosition.coerceIn(
                         minPage.toFloat(),
@@ -2390,18 +2426,39 @@ private fun HistoryWheel(
                         minPage = (startPage - 1).coerceAtLeast(0)
                         maxPage = (startPage + 1).coerceAtMost(entries.lastIndex)
                         dragDistance = 0f
+                        lastDragTimestamp = 0L
+                        smoothedSpeedPxPerSec = 0f
                     },
                     onDrag = { change, dragAmount ->
                         change.consumeAllChanges()
                         velocityTracker.addPosition(change.uptimeMillis, change.position)
-                        dragDistance += dragAmount.y
+                        val currentTimestamp = change.uptimeMillis
+                        val deltaMs = if (lastDragTimestamp == 0L) {
+                            16L
+                        } else {
+                            (currentTimestamp - lastDragTimestamp).coerceAtLeast(1L)
+                        }
+                        val instantSpeedPxPerSec = abs(dragAmount.y) * 1000f / deltaMs
+                        smoothedSpeedPxPerSec = if (smoothedSpeedPxPerSec == 0f) {
+                            instantSpeedPxPerSec
+                        } else {
+                            smoothedSpeedPxPerSec * 0.75f + instantSpeedPxPerSec * 0.25f
+                        }
+                        lastDragTimestamp = currentTimestamp
+
+                        // Slow drag => finer control; fast swipe => more travel.
+                        val normalizedSpeed =
+                            (smoothedSpeedPxPerSec / (pageStepPx * 10f)).coerceIn(0f, 1f)
+                        val accelerationMultiplier = 0.72f + normalizedSpeed * 0.83f
+                        dragDistance += dragAmount.y * accelerationMultiplier
                         val rawDelta = -dragDistance / pageStepPx
                         val absRawDelta = abs(rawDelta)
                         val visualDelta = if (absRawDelta <= 0.5f) {
                             rawDelta
                         } else {
                             val excess = absRawDelta - 0.5f
-                            val damped = 0.5f + excess * 0.4f
+                            val dampingSlope = 0.28f + normalizedSpeed * 0.52f
+                            val damped = 0.5f + excess * dampingSlope
                             if (rawDelta < 0f) -damped else damped
                         }
                         position = (startPosition + visualDelta).coerceIn(
@@ -2518,7 +2575,28 @@ private fun HistoryWheel(
                         rotationX = rotationX,
                         translationY = translation,
                         cameraDistance = cameraDistance
-                    )
+                )
+            )
+        }
+        Surface(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 2.dp),
+            shape = RoundedCornerShape(999.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.86f),
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+            )
+        ) {
+            Text(
+                text = "${pagerState.currentPage + 1}/$totalPages",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
             )
         }
     }
@@ -2811,8 +2889,8 @@ private fun CompareVideoRow(entry: StreamHistoryEntry) {
         ) {
             Text(
                 text = stream.name,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 2,
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                maxLines = 3,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
@@ -2852,7 +2930,7 @@ private fun CompareVideoThumbnailCard(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = stream.name,
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
