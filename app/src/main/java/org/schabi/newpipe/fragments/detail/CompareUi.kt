@@ -15,6 +15,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -56,6 +58,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -513,6 +516,9 @@ fun CompareCompactScreen(
     var lastLeftStreamId by remember { mutableStateOf(leftStreamId) }
     var lastRightStreamId by remember { mutableStateOf(rightStreamId) }
     var overlayGridBounds by remember { mutableStateOf<Rect?>(null) }
+    var overlayGridOriginInRoot by remember { mutableStateOf(Offset.Zero) }
+    val overlayTileBounds = remember { mutableStateMapOf<Int, Rect>() }
+    var overlayDragPreviewIndex by remember { mutableStateOf<Int?>(null) }
     LaunchedEffect(leftEntries, rightEntries) {
         if (leftEntries.isEmpty() && rightEntries.isEmpty()) {
             leftHistoryIndex = 0
@@ -537,6 +543,9 @@ fun CompareCompactScreen(
     LaunchedEffect(showHistoryOverlay) {
         if (!showHistoryOverlay) {
             overlayGridBounds = null
+            overlayGridOriginInRoot = Offset.Zero
+            overlayTileBounds.clear()
+            overlayDragPreviewIndex = null
         }
     }
     LaunchedEffect(leftStreamId, rightStreamId) {
@@ -983,10 +992,16 @@ fun CompareCompactScreen(
                     val pageStart = currentPage * visiblePageSize
                     val pageEnd = kotlin.math.min(pageStart + visiblePageSize, overlayEntries.size)
                     val pageEntries = overlayEntries.subList(pageStart, pageEnd)
-                    val selectedOffsetInPage = (historyOverlayIndex - pageStart)
+                    val selectedAbsoluteIndex = (overlayDragPreviewIndex ?: historyOverlayIndex)
+                        .coerceIn(pageStart, (pageEnd - 1).coerceAtLeast(pageStart))
+                    val selectedOffsetInPage = (selectedAbsoluteIndex - pageStart)
                         .coerceIn(0, (pageEntries.size - 1).coerceAtLeast(0))
                     val pageRows = ((pageEntries.size + overlayGridColumns - 1) / overlayGridColumns)
                         .coerceAtLeast(1)
+                    LaunchedEffect(pageStart, pageEnd) {
+                        overlayTileBounds.clear()
+                        overlayDragPreviewIndex = null
+                    }
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -1025,7 +1040,54 @@ fun CompareCompactScreen(
                                 .fillMaxWidth()
                                 .weight(1f)
                                 .onGloballyPositioned { coordinates ->
-                                    overlayGridBounds = coordinates.boundsInRoot()
+                                    val bounds = coordinates.boundsInRoot()
+                                    overlayGridBounds = bounds
+                                    overlayGridOriginInRoot = bounds.topLeft
+                                }
+                                .pointerInput(pageStart, pageEnd, overlayEntries.size) {
+                                    awaitEachGesture {
+                                        val down = awaitFirstDown(requireUnconsumed = false)
+                                        var pointerId = down.id
+                                        val downInRoot = down.position + overlayGridOriginInRoot
+                                        var releasedOnIndex: Int? = overlayTileBounds
+                                            .entries
+                                            .firstOrNull { (_, bounds) ->
+                                                bounds.contains(downInRoot)
+                                            }
+                                            ?.key
+                                        overlayDragPreviewIndex = releasedOnIndex
+                                        while (true) {
+                                            val event = awaitPointerEvent()
+                                            val change = event.changes
+                                                .firstOrNull { it.id == pointerId }
+                                                ?: event.changes.firstOrNull()
+                                                ?: break
+                                            pointerId = change.id
+                                            val changeInRoot =
+                                                change.position + overlayGridOriginInRoot
+                                            val hoveredIndex = overlayTileBounds
+                                                .entries
+                                                .firstOrNull { (_, bounds) ->
+                                                    bounds.contains(changeInRoot)
+                                                }
+                                                ?.key
+                                            overlayDragPreviewIndex = hoveredIndex
+                                            if (!change.pressed) {
+                                                releasedOnIndex = hoveredIndex ?: releasedOnIndex
+                                                break
+                                            }
+                                        }
+                                        overlayDragPreviewIndex = null
+                                        if (releasedOnIndex != null) {
+                                            val absoluteIndex = releasedOnIndex!!
+                                            when (activeOverlayTarget) {
+                                                OverlayTarget.LEFT -> leftHistoryIndex = absoluteIndex
+                                                OverlayTarget.RIGHT -> rightHistoryIndex = absoluteIndex
+                                            }
+                                            historyOverlayIndex = absoluteIndex
+                                            showHistoryOverlay = false
+                                        }
+                                    }
                                 },
                             verticalArrangement = Arrangement.spacedBy(overlayRowSpacing)
                         ) {
@@ -1053,6 +1115,10 @@ fun CompareCompactScreen(
                                                 modifier = Modifier
                                                     .weight(1f)
                                                     .height(overlayCardHeight)
+                                                    .onGloballyPositioned { coordinates ->
+                                                        overlayTileBounds[absoluteIndex] =
+                                                            coordinates.boundsInRoot()
+                                                    }
                                             )
                                         } else {
                                             Spacer(
