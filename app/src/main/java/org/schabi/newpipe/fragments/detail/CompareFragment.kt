@@ -89,9 +89,11 @@ class CompareFragment : Fragment() {
             val historySource = historyRecordManager.getStreamHistorySortedById()
             disposables.add(
                 historySource
+                    .subscribeOn(Schedulers.io())
+                    .map { entries -> prepareHistory(entries) }
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe(
-                        { entries -> updateHistory(entries) },
+                        { prepared -> updateHistory(prepared) },
                         {
                             historyEntries = emptyList()
                             historyMessageRes = R.string.compare_history_unavailable
@@ -182,7 +184,7 @@ class CompareFragment : Fragment() {
         super.onDestroyView()
     }
 
-    private fun updateHistory(entries: List<StreamHistoryEntry>) {
+    private fun prepareHistory(entries: List<StreamHistoryEntry>): PreparedHistory {
         val sorted = entries.sortedByDescending { it.accessDate }
         val current = currentInfo
         val filtered = if (current == null) {
@@ -193,12 +195,21 @@ class CompareFragment : Fragment() {
                     entry.streamEntity.url == current.url
             }
         }
-        historyEntries = filtered
-        historyMessageRes = if (filtered.isEmpty()) {
+        val messageRes = if (filtered.isEmpty()) {
             R.string.compare_history_empty
         } else {
             null
         }
+        return PreparedHistory(
+            entries = filtered,
+            messageRes = messageRes
+        )
+    }
+
+    private fun updateHistory(prepared: PreparedHistory) {
+        val filtered = prepared.entries
+        historyEntries = filtered
+        historyMessageRes = prepared.messageRes
 
         val existingIndex = selectedStreamId?.let { id ->
             filtered.indexOfFirst { it.streamId == id }
@@ -983,6 +994,10 @@ class CompareFragment : Fragment() {
     }
 
     private class MissingTokenException : RuntimeException()
+    private data class PreparedHistory(
+        val entries: List<StreamHistoryEntry>,
+        val messageRes: Int?
+    )
     private data class ComparisonScores(
         val mainScore: Int? = null,
         val extraScores: Map<String, Int> = emptyMap()

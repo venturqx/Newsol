@@ -89,6 +89,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
@@ -112,6 +113,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
+import coil3.imageLoader
+import coil3.request.ImageRequest
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.schabi.newpipe.R
@@ -457,6 +460,7 @@ internal fun CompareCompactScreen(
     val latestSelectionUpdater by rememberUpdatedState(onSelectionChange)
     val latestActiveDimensionId by rememberUpdatedState(activeDimension.id)
     val maxIndex = dimensions.lastIndex
+    val context = LocalContext.current
     val density = LocalDensity.current
     val pxPerScore = with(density) { 4.dp.toPx() } / 2f
     val verticalStepPx = with(density) { 28.dp.toPx() } / 0.6f
@@ -476,6 +480,7 @@ internal fun CompareCompactScreen(
     val miniPlayerHeight = dimensionResource(R.dimen.mini_player_height)
     val bottomContentPadding = miniPlayerHeight + 12.dp
     var showHistoryOverlay by remember { mutableStateOf(false) }
+    var hasOpenedHistoryOverlay by rememberSaveable { mutableStateOf(false) }
     val overlayGridColumns = 1
     var overlayRowsPerPage by rememberSaveable { mutableIntStateOf(4) }
     val overlayPageSize = overlayGridColumns * overlayRowsPerPage
@@ -558,7 +563,9 @@ internal fun CompareCompactScreen(
         }
     }
     LaunchedEffect(showHistoryOverlay) {
-        if (!showHistoryOverlay) {
+        if (showHistoryOverlay) {
+            hasOpenedHistoryOverlay = true
+        } else {
             overlayGridBounds = null
             overlayGridSize = IntSize.Zero
             overlayDragPreviewIndex = null
@@ -632,6 +639,7 @@ internal fun CompareCompactScreen(
                 OverlayTarget.RIGHT -> rightHistoryIndex
             }.coerceIn(0, targetEntries.lastIndex)
             historyOverlayPage = historyOverlayIndex / overlayPageSize.coerceAtLeast(1)
+            hasOpenedHistoryOverlay = true
             showHistoryOverlay = true
         }
     }
@@ -973,7 +981,7 @@ internal fun CompareCompactScreen(
                 .zIndex(2f)
         )
 
-        if (showHistoryOverlay) {
+        if (hasOpenedHistoryOverlay) {
             val accentColor = if (activeOverlayTarget == OverlayTarget.RIGHT) {
                 Color(0xFFE57373)
             } else {
@@ -1028,6 +1036,46 @@ internal fun CompareCompactScreen(
                         .coerceIn(0, (pageEntries.size - 1).coerceAtLeast(0))
                     val pageRows = ((pageEntries.size + overlayGridColumns - 1) / overlayGridColumns)
                         .coerceAtLeast(1)
+                    LaunchedEffect(
+                        showHistoryOverlay,
+                        activeOverlayTarget,
+                        currentPage,
+                        visiblePageSize,
+                        overlayEntries.size
+                    ) {
+                        if (!showHistoryOverlay || overlayEntries.isEmpty()) {
+                            return@LaunchedEffect
+                        }
+
+                        val pagesToPrefetch = LinkedHashSet<Int>().apply {
+                            add(currentPage)
+                            if (currentPage < pageCount - 1) {
+                                add(currentPage + 1)
+                            }
+                        }
+                        val urlsToPrefetch = LinkedHashSet<String>()
+                        pagesToPrefetch.forEach { page ->
+                            val start = page * visiblePageSize
+                            val end = kotlin.math.min(start + visiblePageSize, overlayEntries.size)
+                            for (index in start until end) {
+                                val url = overlayEntries[index].streamEntity.thumbnailUrl
+                                if (!url.isNullOrBlank()) {
+                                    urlsToPrefetch.add(url)
+                                }
+                            }
+                        }
+
+                        val imageLoader = context.imageLoader
+                        urlsToPrefetch.forEach { url ->
+                            imageLoader.enqueue(
+                                ImageRequest.Builder(context)
+                                    .data(url)
+                                    .memoryCacheKey(url)
+                                    .diskCacheKey(url)
+                                    .build()
+                            )
+                        }
+                    }
                     LaunchedEffect(pageStart, pageEnd) {
                         overlayDragPreviewIndex = null
                     }
@@ -1114,11 +1162,14 @@ internal fun CompareCompactScreen(
                                 .fillMaxWidth()
                                 .weight(1f)
                                 .onGloballyPositioned { coordinates ->
-                                    val bounds = coordinates.boundsInRoot()
-                                    overlayGridBounds = bounds
-                                    overlayGridSize = coordinates.size
+                                    if (showHistoryOverlay) {
+                                        val bounds = coordinates.boundsInRoot()
+                                        overlayGridBounds = bounds
+                                        overlayGridSize = coordinates.size
+                                    }
                                 }
                                 .pointerInput(
+                                    showHistoryOverlay,
                                     pageStart,
                                     pageEnd,
                                     pageEntries.size,
@@ -1128,6 +1179,9 @@ internal fun CompareCompactScreen(
                                     overlayRowSpacingPx,
                                     overlayColumnSpacingPx
                                 ) {
+                                    if (!showHistoryOverlay) {
+                                        return@pointerInput
+                                    }
                                     awaitEachGesture {
                                         val down = awaitFirstDown(requireUnconsumed = false)
                                         var pointerId = down.id
@@ -1265,16 +1319,24 @@ internal fun CompareCompactScreen(
                 }
             }
             if (state.compactPopupVisible) {
-                Box(
-                    modifier = Modifier
+                val overlayModifier = if (showHistoryOverlay) {
+                    Modifier
                         .fillMaxSize()
                         .background(overlayBackground)
-                        .zIndex(4f),
+                        .zIndex(4f)
+                } else {
+                    Modifier
+                        .size(1.dp)
+                        .graphicsLayer { alpha = 0f }
+                        .zIndex(-1f)
+                }
+                Box(
+                    modifier = overlayModifier,
                     contentAlignment = Alignment.TopCenter
                 ) {
                     overlayBody()
                 }
-            } else {
+            } else if (showHistoryOverlay) {
                 Dialog(
                     onDismissRequest = { },
                     properties = DialogProperties(
