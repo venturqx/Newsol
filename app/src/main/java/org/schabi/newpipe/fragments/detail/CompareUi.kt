@@ -1588,6 +1588,8 @@ private fun CompareComparisonSideText(
     textAlign: TextAlign,
     modifier: Modifier = Modifier
 ) {
+    val titleColor = compareMetaTitleColor()
+    val uploaderColor = compareMetaUploaderColor()
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -1600,7 +1602,7 @@ private fun CompareComparisonSideText(
             ),
             textAlign = textAlign,
             modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.onSurface,
+            color = titleColor,
             maxLines = 4,
             overflow = TextOverflow.Ellipsis
         )
@@ -1612,7 +1614,7 @@ private fun CompareComparisonSideText(
                 ),
                 textAlign = textAlign,
                 modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = uploaderColor,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1634,11 +1636,13 @@ private fun CompareSideLabel(
     uploader: String,
     textAlign: TextAlign
 ) {
+    val titleColor = compareMetaTitleColor()
+    val uploaderColor = compareMetaUploaderColor()
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(
             text = title,
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
+            color = titleColor,
             textAlign = textAlign,
             modifier = Modifier.fillMaxWidth(),
             maxLines = 3,
@@ -1651,7 +1655,7 @@ private fun CompareSideLabel(
                     fontWeight = FontWeight.Medium,
                     fontSize = 10.sp
                 ),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                color = uploaderColor,
                 textAlign = textAlign,
                 modifier = Modifier.fillMaxWidth(),
                 maxLines = 1,
@@ -1659,6 +1663,20 @@ private fun CompareSideLabel(
             )
         }
     }
+}
+
+@Composable
+private fun compareMetaTitleColor(): Color {
+    return MaterialTheme.colorScheme.onSurface.copy(alpha = 0.94f)
+}
+
+@Composable
+private fun compareMetaUploaderColor(): Color {
+    return lerp(
+        MaterialTheme.colorScheme.onSurfaceVariant,
+        MaterialTheme.colorScheme.primary,
+        0.26f
+    ).copy(alpha = 0.82f)
 }
 
 private fun compactDescriptionRes(criterionId: String): Int {
@@ -2018,6 +2036,8 @@ private fun CompareHistoryOverlayGridCard(
     modifier: Modifier = Modifier
 ) {
     val stream = remember(entry) { entry.toStreamInfoItem() }
+    val titleColor = compareMetaTitleColor()
+    val uploaderColor = compareMetaUploaderColor()
     val cardBackground = Color(0xFF131313)
     val borderColor = if (selected) {
         accentColor
@@ -2059,7 +2079,7 @@ private fun CompareHistoryOverlayGridCard(
                         fontWeight = FontWeight.SemiBold,
                         lineHeight = 12.sp
                     ),
-                    color = Color.White,
+                    color = titleColor,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -2070,7 +2090,7 @@ private fun CompareHistoryOverlayGridCard(
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Medium
                         ),
-                        color = Color.White.copy(alpha = 0.86f),
+                        color = uploaderColor,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )

@@ -1,6 +1,7 @@
 package org.schabi.newpipe.info_list.holder;
 
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -173,11 +174,15 @@ public class StreamMiniInfoItemHolder extends InfoItemHolder {
             final String scoreText = itemBuilder.getContext().getString(
                     R.string.tournesol_score_label,
                     Long.toString(tournesolScore));
-            itemTournesolScoreView.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                    hasInsufficientReason ? 0 : R.drawable.logo_small,
-                    0,
-                    0,
-                    0);
+            final Drawable icon = hasInsufficientReason
+                    ? null
+                    : ContextCompat.getDrawable(itemBuilder.getContext(), R.drawable.logo_small);
+            if (icon != null) {
+                final int iconSize = itemBuilder.getContext().getResources()
+                        .getDimensionPixelSize(R.dimen.tournesol_score_icon_size);
+                icon.setBounds(0, 0, iconSize, iconSize);
+            }
+            itemTournesolScoreView.setCompoundDrawablesRelative(icon, null, null, null);
             itemTournesolScoreView.setTextColor(TOURNESOL_SCORE_COLOR);
             itemTournesolScoreView.setAlpha(isUnsafe ? 0.5f : 1f);
             itemTournesolScoreView.setText(hasInsufficientReason
