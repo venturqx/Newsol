@@ -76,6 +76,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.nativeCanvas
@@ -1680,6 +1681,8 @@ private fun CompactDimensionList(
     val dimensionLabels = dimensions.map { stringResource(it.labelRes) }
     var firstColumnWidthPx by remember { mutableIntStateOf(0) }
     val firstColumnWidth = with(LocalDensity.current) { firstColumnWidthPx.toDp() }
+    val mainCriterionSet =
+        selectedIds.contains(COMPACT_MAIN_CRITERION_ID) || scores.score != 0
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -1687,12 +1690,17 @@ private fun CompactDimensionList(
     ) {
         dimensions.forEachIndexed { index, criterion ->
             val score = dimensionScore(scores, criterion)
+            val isMainCriterion = criterion.id == COMPACT_MAIN_CRITERION_ID
+            val rowAlpha = if (!mainCriterionSet && !isMainCriterion) 0.5f else 1f
             CompactDimensionRow(
                 criterion = criterion,
                 criterionLabel = dimensionLabels[index],
                 score = score,
                 isActive = index == activeIndex,
                 isSelected = selectedIds.contains(criterion.id),
+                isMainCriterion = isMainCriterion,
+                showMainAttention = isMainCriterion && !mainCriterionSet,
+                rowAlpha = rowAlpha,
                 firstColumnWidth = firstColumnWidth,
                 onFirstColumnMeasured = { measuredWidth ->
                     if (measuredWidth > firstColumnWidthPx) {
@@ -1713,6 +1721,9 @@ private fun CompactDimensionRow(
     score: Int,
     isActive: Boolean,
     isSelected: Boolean,
+    isMainCriterion: Boolean,
+    showMainAttention: Boolean,
+    rowAlpha: Float,
     firstColumnWidth: androidx.compose.ui.unit.Dp,
     onFirstColumnMeasured: (Int) -> Unit,
     onToggleSelected: (Boolean) -> Unit,
@@ -1733,7 +1744,11 @@ private fun CompactDimensionRow(
             .fillMaxWidth()
             .background(highlight, RoundedCornerShape(12.dp))
             .clickable { onClick() }
-            .padding(horizontal = 10.dp, vertical = 1.dp),
+            .padding(
+                horizontal = 10.dp,
+                vertical = if (isMainCriterion) 4.dp else 1.dp
+            )
+            .graphicsLayer(alpha = rowAlpha),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(
@@ -1800,9 +1815,10 @@ private fun CompactDimensionRow(
             MiniScoreBar(
                 value = score,
                 isActive = isActive,
+                showAttentionRing = showMainAttention,
                 modifier = Modifier
                     .weight(1f)
-                    .height(3.dp)
+                    .height(if (isMainCriterion) 5.dp else 3.dp)
             )
         }
     }
@@ -1812,6 +1828,7 @@ private fun CompactDimensionRow(
 private fun MiniScoreBar(
     value: Int,
     isActive: Boolean,
+    showAttentionRing: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val baseBarColor = if (value >= 0) {
@@ -1826,6 +1843,20 @@ private fun MiniScoreBar(
     }
     val background = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
     val centerLine = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+    val attentionRotation = if (showAttentionRing) {
+        val transition = rememberInfiniteTransition(label = "mainCriterionAttentionRing")
+        transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 2600, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "mainCriterionAttentionRotation"
+        ).value
+    } else {
+        0f
+    }
     Canvas(modifier = modifier) {
         val radius = size.height / 2f
         drawRoundRect(
@@ -1848,6 +1879,31 @@ private fun MiniScoreBar(
                 size = Size(fillWidth, size.height),
                 cornerRadius = CornerRadius(radius, radius)
             )
+        }
+        if (showAttentionRing) {
+            val strokeWidth = 1.dp.toPx()
+            val inset = strokeWidth / 2f
+            val ringWidth = size.width - strokeWidth
+            val ringHeight = size.height - strokeWidth
+            if (ringWidth > 0f && ringHeight > 0f) {
+                rotate(degrees = attentionRotation, pivot = center) {
+                    drawRoundRect(
+                        brush = Brush.sweepGradient(
+                            listOf(
+                                Color(0xFF4FC3F7),
+                                Color(0xFF64B5F6),
+                                Color(0xFFEF5350),
+                                Color(0xFFE57373),
+                                Color(0xFF4FC3F7)
+                            )
+                        ),
+                        topLeft = Offset(inset, inset),
+                        size = Size(ringWidth, ringHeight),
+                        cornerRadius = CornerRadius(ringHeight / 2f, ringHeight / 2f),
+                        style = Stroke(width = strokeWidth)
+                    )
+                }
+            }
         }
     }
 }
