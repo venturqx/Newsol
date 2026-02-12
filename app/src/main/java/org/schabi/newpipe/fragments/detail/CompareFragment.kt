@@ -68,6 +68,7 @@ class CompareFragment : Fragment() {
     private var checkDisposable: Disposable? = null
     private val submittedComparisons = LinkedHashSet<CompareKey>()
     private val storedScores = LinkedHashMap<String, ComparisonScores>()
+    private var compactPairSelection: ComparePairSelection? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -144,6 +145,9 @@ class CompareFragment : Fragment() {
                             onExtraScoreChange = onExtraScoreChange,
                             onSubmitSelected = { selected -> sendCompactSubmit(selected) },
                             onUpdateSelected = { selected -> sendCompactUpdate(selected) },
+                            onPairSelectionChange = { selection ->
+                                updateCompactPairSelection(selection)
+                            },
                             onViewRecommendations = { openRecommendationsDialog() },
                             onDismissRecommendations = { dismissRecommendationsDialog() },
                             onDismissLogin = { dismissLoginDialog() },
@@ -225,6 +229,15 @@ class CompareFragment : Fragment() {
         }
         selectedIndex = clampedIndex
         selectedStreamId = historyEntries[clampedIndex].streamId
+        resetSelectionState()
+        refreshSubmittedState()
+    }
+
+    private fun updateCompactPairSelection(selection: ComparePairSelection?) {
+        if (!useCompactUi || compactPairSelection == selection) {
+            return
+        }
+        compactPairSelection = selection
         resetSelectionState()
         refreshSubmittedState()
     }
@@ -438,6 +451,31 @@ class CompareFragment : Fragment() {
         )
     }
 
+    private fun resolveCompactCompareKey(): CompareKey? {
+        val pair = compactPairSelection
+        if (pair == null) {
+            val messageRes = historyMessageRes ?: R.string.compare_history_unavailable
+            Toast.makeText(
+                requireContext(),
+                getString(messageRes),
+                Toast.LENGTH_SHORT
+            ).show()
+            return null
+        }
+
+        val lastUid = CompareRepository.buildTournesolUid(pair.rightUrl, pair.rightServiceId)
+        val currentUid = CompareRepository.buildTournesolUid(pair.leftUrl, pair.leftServiceId)
+        if (lastUid == null || currentUid == null) {
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.compare_service_not_supported),
+                Toast.LENGTH_SHORT
+            ).show()
+            return null
+        }
+        return CompareKey(lastUid, currentUid)
+    }
+
     private fun sendCompactSubmit(selectedIds: Set<String>) {
         if (submitInProgress) {
             return
@@ -450,43 +488,7 @@ class CompareFragment : Fragment() {
             ).show()
             return
         }
-        val info = currentInfo
-        if (info == null) {
-            Toast.makeText(
-                requireContext(),
-                getString(R.string.compare_current_unavailable),
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-        val selectedEntry = historyEntries.getOrNull(selectedIndex)
-        if (selectedEntry == null) {
-            val messageRes = historyMessageRes ?: R.string.compare_history_unavailable
-            Toast.makeText(
-                requireContext(),
-                getString(messageRes),
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-
-        val lastUid = CompareRepository.buildTournesolUid(
-            selectedEntry.streamEntity.url,
-            selectedEntry.streamEntity.serviceId
-        )
-        val currentUid = CompareRepository.buildTournesolUid(
-            info.url,
-            info.serviceId
-        )
-
-        if (lastUid == null || currentUid == null) {
-            Toast.makeText(
-                requireContext(),
-                getString(R.string.compare_service_not_supported),
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
+        val key = resolveCompactCompareKey() ?: return
 
         submitInProgress = true
         disposables.add(
@@ -498,8 +500,8 @@ class CompareFragment : Fragment() {
                 .flatMapSingle { token ->
                     CompareRepository.submitComparisonWithCriteria(
                         token,
-                        lastUid,
-                        currentUid,
+                        key.lastUid,
+                        key.currentUid,
                         payload.criteriaScores
                     )
                 }
@@ -507,9 +509,9 @@ class CompareFragment : Fragment() {
                 .subscribe(
                     { messageRes ->
                         submitInProgress = false
-                        markSubmitted(lastUid, currentUid)
+                        markSubmitted(key.lastUid, key.currentUid)
                         storeSubmittedScores(
-                            CompareKey(lastUid, currentUid),
+                            key,
                             mainScore = payload.mainScore,
                             extraScores = payload.extraScores
                         )
@@ -554,43 +556,7 @@ class CompareFragment : Fragment() {
             ).show()
             return
         }
-        val info = currentInfo
-        if (info == null) {
-            Toast.makeText(
-                requireContext(),
-                getString(R.string.compare_current_unavailable),
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-        val selectedEntry = historyEntries.getOrNull(selectedIndex)
-        if (selectedEntry == null) {
-            val messageRes = historyMessageRes ?: R.string.compare_history_unavailable
-            Toast.makeText(
-                requireContext(),
-                getString(messageRes),
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-
-        val lastUid = CompareRepository.buildTournesolUid(
-            selectedEntry.streamEntity.url,
-            selectedEntry.streamEntity.serviceId
-        )
-        val currentUid = CompareRepository.buildTournesolUid(
-            info.url,
-            info.serviceId
-        )
-
-        if (lastUid == null || currentUid == null) {
-            Toast.makeText(
-                requireContext(),
-                getString(R.string.compare_service_not_supported),
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
+        val key = resolveCompactCompareKey() ?: return
 
         submitMoreInProgress = true
         disposables.add(
@@ -602,8 +568,8 @@ class CompareFragment : Fragment() {
                 .flatMapSingle { token ->
                     CompareRepository.patchComparison(
                         token,
-                        lastUid,
-                        currentUid,
+                        key.lastUid,
+                        key.currentUid,
                         payload.criteriaScores
                     )
                 }
@@ -611,8 +577,9 @@ class CompareFragment : Fragment() {
                 .subscribe(
                     { messageRes ->
                         submitMoreInProgress = false
+                        markSubmitted(key.lastUid, key.currentUid)
                         storeSubmittedScores(
-                            CompareKey(lastUid, currentUid),
+                            key,
                             mainScore = payload.mainScore,
                             extraScores = payload.extraScores
                         )
@@ -888,6 +855,18 @@ class CompareFragment : Fragment() {
     }
 
     private fun compareKeyForSelection(): CompareKey? {
+        if (useCompactUi) {
+            val pair = compactPairSelection ?: return null
+            val lastUid = CompareRepository.buildTournesolUid(
+                pair.rightUrl,
+                pair.rightServiceId
+            ) ?: return null
+            val currentUid = CompareRepository.buildTournesolUid(
+                pair.leftUrl,
+                pair.leftServiceId
+            ) ?: return null
+            return CompareKey(lastUid, currentUid)
+        }
         val info = currentInfo ?: return null
         val selectedEntry = historyEntries.getOrNull(selectedIndex) ?: return null
         val lastUid = CompareRepository.buildTournesolUid(

@@ -58,7 +58,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -410,12 +409,13 @@ private val COMPACT_DIMENSIONS = listOf(
 ) + EXTRA_CRITERIA
 
 @Composable
-fun CompareCompactScreen(
+internal fun CompareCompactScreen(
     state: CompareUiState,
     onScoreChange: (Int) -> Unit,
     onExtraScoreChange: (String, Int) -> Unit,
     onSubmitSelected: (Set<String>) -> Unit,
     onUpdateSelected: (Set<String>) -> Unit,
+    onPairSelectionChange: (ComparePairSelection?) -> Unit,
     onViewRecommendations: () -> Unit,
     onDismissRecommendations: () -> Unit,
     onDismissLogin: () -> Unit,
@@ -502,6 +502,24 @@ fun CompareCompactScreen(
         ?: leftEntries.firstOrNull()
     val selectedHistoryEntryRight = rightEntries.getOrNull(rightHistoryIndex)
         ?: rightEntries.firstOrNull()
+    val currentPairSelection = if (selectedHistoryEntryLeft != null &&
+        selectedHistoryEntryRight != null &&
+        !(
+            selectedHistoryEntryLeft.streamEntity.serviceId ==
+                selectedHistoryEntryRight.streamEntity.serviceId &&
+                selectedHistoryEntryLeft.streamEntity.url ==
+                selectedHistoryEntryRight.streamEntity.url
+            )
+    ) {
+        ComparePairSelection(
+            leftServiceId = selectedHistoryEntryLeft.streamEntity.serviceId,
+            leftUrl = selectedHistoryEntryLeft.streamEntity.url,
+            rightServiceId = selectedHistoryEntryRight.streamEntity.serviceId,
+            rightUrl = selectedHistoryEntryRight.streamEntity.url
+        )
+    } else {
+        null
+    }
     val currentEntry = state.currentEntry
     val isLeftCurrent = selectedHistoryEntryLeft != null &&
         currentEntry != null &&
@@ -516,8 +534,7 @@ fun CompareCompactScreen(
     var lastLeftStreamId by remember { mutableStateOf(leftStreamId) }
     var lastRightStreamId by remember { mutableStateOf(rightStreamId) }
     var overlayGridBounds by remember { mutableStateOf<Rect?>(null) }
-    var overlayGridOriginInRoot by remember { mutableStateOf(Offset.Zero) }
-    val overlayTileBounds = remember { mutableStateMapOf<Int, Rect>() }
+    var overlayGridSize by remember { mutableStateOf(IntSize.Zero) }
     var overlayDragPreviewIndex by remember { mutableStateOf<Int?>(null) }
     LaunchedEffect(leftEntries, rightEntries) {
         if (leftEntries.isEmpty() && rightEntries.isEmpty()) {
@@ -543,8 +560,7 @@ fun CompareCompactScreen(
     LaunchedEffect(showHistoryOverlay) {
         if (!showHistoryOverlay) {
             overlayGridBounds = null
-            overlayGridOriginInRoot = Offset.Zero
-            overlayTileBounds.clear()
+            overlayGridSize = IntSize.Zero
             overlayDragPreviewIndex = null
         }
     }
@@ -570,13 +586,25 @@ fun CompareCompactScreen(
             historyOverlayPage = (historyOverlayIndex / overlayPageSize).coerceIn(0, maxPage)
         }
     }
+    LaunchedEffect(currentPairSelection) {
+        onPairSelectionChange(currentPairSelection)
+    }
     val hasStoredScores = state.storedMainScore != null || state.storedExtraScores.isNotEmpty()
+    val hasExistingComparison = state.submitted || hasStoredScores
     val isBusy = state.submitInProgress || state.submitMoreInProgress
-    val canSubmit = selectedIds.isNotEmpty() && !isBusy
+    val hasValidPairSelection = currentPairSelection != null
+    val canSubmit = hasValidPairSelection && selectedIds.isNotEmpty() && !isBusy
     val hasAnySliderSet = state.score != 0 || state.extraScores.values.any { it != 0 }
+    val submitButtonLabel = stringResource(
+        when {
+            isBusy -> R.string.compare_submitting_label
+            hasExistingComparison -> R.string.compare_update_label
+            else -> R.string.compare_submit_label
+        }
+    )
     val submitOrUpdateAction = {
         val snapshot = selectedIds.toSet()
-        if (hasStoredScores) {
+        if (hasExistingComparison) {
             onUpdateSelected(snapshot)
         } else {
             onSubmitSelected(snapshot)
@@ -899,7 +927,7 @@ fun CompareCompactScreen(
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
-                                text = "SUBMIT",
+                                text = submitButtonLabel,
                                 style = MaterialTheme.typography.labelLarge.copy(
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -953,8 +981,10 @@ fun CompareCompactScreen(
             }
             val overlayBackground = Color(0xFF0B0B0B)
             val overlayRowSpacing = 6.dp
+            val overlayColumnSpacing = 6.dp
             val overlayCardHeight = 54.dp
             val overlayRowSpacingPx = with(density) { overlayRowSpacing.roundToPx() }
+            val overlayColumnSpacingPx = with(density) { overlayColumnSpacing.roundToPx() }
             val overlayCardHeightPx = with(density) { overlayCardHeight.roundToPx() }
             val overlayBody: @Composable () -> Unit = {
                 BoxWithConstraints(
@@ -999,8 +1029,52 @@ fun CompareCompactScreen(
                     val pageRows = ((pageEntries.size + overlayGridColumns - 1) / overlayGridColumns)
                         .coerceAtLeast(1)
                     LaunchedEffect(pageStart, pageEnd) {
-                        overlayTileBounds.clear()
                         overlayDragPreviewIndex = null
+                    }
+                    val hitTestOverlayIndex: (Offset) -> Int? = { localPosition ->
+                        val gridWidthPx = overlayGridSize.width.toFloat()
+                        val gridHeightPx = overlayGridSize.height.toFloat()
+                        if (gridWidthPx <= 0f ||
+                            gridHeightPx <= 0f ||
+                            localPosition.x < 0f ||
+                            localPosition.y < 0f ||
+                            localPosition.x > gridWidthPx ||
+                            localPosition.y > gridHeightPx
+                        ) {
+                            null
+                        } else {
+                            val rowStridePx = overlayCardHeightPx + overlayRowSpacingPx
+                            val row = (localPosition.y / rowStridePx).toInt()
+                            val yInRow = localPosition.y - row * rowStridePx
+                            if (yInRow > overlayCardHeightPx) {
+                                null
+                            } else {
+                                val cardWidthPx = (
+                                    gridWidthPx - overlayColumnSpacingPx * (overlayGridColumns - 1)
+                                ) / overlayGridColumns
+                                if (cardWidthPx <= 0f) {
+                                    null
+                                } else {
+                                    val colStridePx = cardWidthPx + overlayColumnSpacingPx
+                                    val col = (localPosition.x / colStridePx).toInt()
+                                    if (col < 0 || col >= overlayGridColumns) {
+                                        null
+                                    } else {
+                                        val xInCol = localPosition.x - col * colStridePx
+                                        if (xInCol > cardWidthPx) {
+                                            null
+                                        } else {
+                                            val offsetInPage = row * overlayGridColumns + col
+                                            if (offsetInPage < 0 || offsetInPage >= pageEntries.size) {
+                                                null
+                                            } else {
+                                                pageStart + offsetInPage
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                     Column(
                         modifier = Modifier
@@ -1042,38 +1116,43 @@ fun CompareCompactScreen(
                                 .onGloballyPositioned { coordinates ->
                                     val bounds = coordinates.boundsInRoot()
                                     overlayGridBounds = bounds
-                                    overlayGridOriginInRoot = bounds.topLeft
+                                    overlayGridSize = coordinates.size
                                 }
-                                .pointerInput(pageStart, pageEnd, overlayEntries.size) {
+                                .pointerInput(
+                                    pageStart,
+                                    pageEnd,
+                                    pageEntries.size,
+                                    overlayGridSize,
+                                    overlayGridColumns,
+                                    overlayCardHeightPx,
+                                    overlayRowSpacingPx,
+                                    overlayColumnSpacingPx
+                                ) {
                                     awaitEachGesture {
                                         val down = awaitFirstDown(requireUnconsumed = false)
                                         var pointerId = down.id
-                                        val downInRoot = down.position + overlayGridOriginInRoot
-                                        var releasedOnIndex: Int? = overlayTileBounds
-                                            .entries
-                                            .firstOrNull { (_, bounds) ->
-                                                bounds.contains(downInRoot)
-                                            }
-                                            ?.key
-                                        overlayDragPreviewIndex = releasedOnIndex
+                                        var releasedOnIndex: Int? = null
+                                        var previewIndex = hitTestOverlayIndex(down.position)
+                                        overlayDragPreviewIndex = previewIndex
                                         while (true) {
                                             val event = awaitPointerEvent()
                                             val change = event.changes
                                                 .firstOrNull { it.id == pointerId }
-                                                ?: event.changes.firstOrNull()
                                                 ?: break
                                             pointerId = change.id
-                                            val changeInRoot =
-                                                change.position + overlayGridOriginInRoot
-                                            val hoveredIndex = overlayTileBounds
-                                                .entries
-                                                .firstOrNull { (_, bounds) ->
-                                                    bounds.contains(changeInRoot)
-                                                }
-                                                ?.key
-                                            overlayDragPreviewIndex = hoveredIndex
+                                            val hoveredIndex = hitTestOverlayIndex(change.position)
+                                            val insideGrid = change.position.x >= 0f &&
+                                                change.position.y >= 0f &&
+                                                change.position.x <= overlayGridSize.width.toFloat() &&
+                                                change.position.y <= overlayGridSize.height.toFloat()
+                                            previewIndex = when {
+                                                hoveredIndex != null -> hoveredIndex
+                                                insideGrid -> previewIndex
+                                                else -> null
+                                            }
+                                            overlayDragPreviewIndex = previewIndex
                                             if (!change.pressed) {
-                                                releasedOnIndex = hoveredIndex ?: releasedOnIndex
+                                                releasedOnIndex = hoveredIndex
                                                 break
                                             }
                                         }
@@ -1094,7 +1173,7 @@ fun CompareCompactScreen(
                             for (row in 0 until pageRows) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(overlayColumnSpacing)
                                 ) {
                                     for (column in 0 until overlayGridColumns) {
                                         val offsetInPage = row * overlayGridColumns + column
@@ -1115,10 +1194,6 @@ fun CompareCompactScreen(
                                                 modifier = Modifier
                                                     .weight(1f)
                                                     .height(overlayCardHeight)
-                                                    .onGloballyPositioned { coordinates ->
-                                                        overlayTileBounds[absoluteIndex] =
-                                                            coordinates.boundsInRoot()
-                                                    }
                                             )
                                         } else {
                                             Spacer(

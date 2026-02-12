@@ -17,6 +17,13 @@ internal data class CriteriaScore(
     val score: Int
 )
 
+internal data class ComparePairSelection(
+    val leftServiceId: Int,
+    val leftUrl: String,
+    val rightServiceId: Int,
+    val rightUrl: String
+)
+
 internal val EXTRA_CRITERIA = listOf(
     CompareCriterion(
         id = "reliability",
