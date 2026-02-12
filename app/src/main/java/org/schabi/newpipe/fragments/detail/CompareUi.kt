@@ -830,8 +830,9 @@ internal fun CompareCompactScreen(
                                         ) {
                                             CompareVideoThumbnailCard(
                                                 entry = selectedHistoryEntryLeft,
-                                                thumbnailHeight = 44.dp,
-                                                showMeta = false
+                                                thumbnailHeight = 52.dp,
+                                                showMeta = false,
+                                                contentScale = ContentScale.Fit
                                             )
                                             if (isLeftCurrent) {
                                                 CurrentBadge(
@@ -861,8 +862,9 @@ internal fun CompareCompactScreen(
                                         ) {
                                             CompareVideoThumbnailCard(
                                                 entry = selectedHistoryEntryRight,
-                                                thumbnailHeight = 44.dp,
-                                                showMeta = false
+                                                thumbnailHeight = 52.dp,
+                                                showMeta = false,
+                                                contentScale = ContentScale.Fit
                                             )
                                             if (isRightCurrent) {
                                                 CurrentBadge(
@@ -1597,6 +1599,7 @@ private fun CompareComparisonSideText(
                 fontWeight = FontWeight.Medium
             ),
             textAlign = textAlign,
+            modifier = Modifier.fillMaxWidth(),
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 4,
             overflow = TextOverflow.Ellipsis
@@ -1608,6 +1611,7 @@ private fun CompareComparisonSideText(
                     fontSize = 9.sp
                 ),
                 textAlign = textAlign,
+                modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
@@ -1617,6 +1621,7 @@ private fun CompareComparisonSideText(
                 text = "",
                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                 textAlign = textAlign,
+                modifier = Modifier.fillMaxWidth(),
                 maxLines = 2
             )
         }
@@ -1635,6 +1640,7 @@ private fun CompareSideLabel(
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
             textAlign = textAlign,
+            modifier = Modifier.fillMaxWidth(),
             maxLines = 3,
             overflow = TextOverflow.Ellipsis
         )
@@ -1647,6 +1653,7 @@ private fun CompareSideLabel(
                 ),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
                 textAlign = textAlign,
+                modifier = Modifier.fillMaxWidth(),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1911,11 +1918,11 @@ private fun MiniScoreBar(
                         drawRoundRect(
                             brush = Brush.sweepGradient(
                                 listOf(
-                                    Color(0xFF4FC3F7),
-                                    Color(0xFF64B5F6),
                                     Color(0xFFEF5350),
                                     Color(0xFFE57373),
-                                    Color(0xFF4FC3F7)
+                                    Color(0xFF4FC3F7),
+                                    Color(0xFF64B5F6),
+                                    Color(0xFFEF5350)
                                 )
                             ),
                             topLeft = Offset(inset, inset),
@@ -3054,7 +3061,8 @@ private fun CompareVideoRow(entry: StreamHistoryEntry) {
 private fun CompareVideoThumbnailCard(
     entry: StreamHistoryEntry,
     thumbnailHeight: androidx.compose.ui.unit.Dp = 88.dp,
-    showMeta: Boolean = true
+    showMeta: Boolean = true,
+    contentScale: ContentScale = ContentScale.Crop
 ) {
     val stream = remember(entry) { entry.toStreamInfoItem() }
     val thumbnailDescription = stringResource(R.string.compare_thumbnail_description)
@@ -3064,7 +3072,7 @@ private fun CompareVideoThumbnailCard(
             showProgress = false,
             durationAlignment = Alignment.BottomEnd,
             durationTextStyle = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-            contentScale = ContentScale.Crop,
+            contentScale = contentScale,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(thumbnailHeight)

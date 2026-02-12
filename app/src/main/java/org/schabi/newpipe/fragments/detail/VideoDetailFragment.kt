@@ -446,11 +446,6 @@ class VideoDetailFragment :
                 openDownloadDialog()
             }
         }
-        binding.detailControlsCompare.setOnClickListener(
-            makeOnClickListener { info ->
-                showCompareFullView(info)
-            }
-        )
         binding.detailControlsShare.setOnClickListener(
             makeOnClickListener { info ->
                 ShareUtils.shareText(requireContext(), info.name, info.url, info.thumbnails)
@@ -2114,7 +2109,6 @@ class VideoDetailFragment :
             binding.detailControlsBackground.setBackgroundColor(transparent)
             binding.detailControlsPopup.setBackgroundColor(transparent)
             binding.detailControlsDownload.setBackgroundColor(transparent)
-            binding.detailControlsCompare.setBackgroundColor(transparent)
             binding.detailControlsShare.setBackgroundColor(transparent)
             binding.detailControlsOpenInBrowser.setBackgroundColor(transparent)
             binding.detailControlsPlayWithKodi.setBackgroundColor(transparent)
