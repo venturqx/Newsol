@@ -57,6 +57,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -905,70 +906,74 @@ internal fun CompareCompactScreen(
                         )
                     }
                 }
-                Row(
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    val submitContentColor = Color(0xFFF3D978)
-                    val submitBorderColor = Color(0xFF7A6A2D)
-                    OutlinedButton(
-                        onClick = submitOrUpdateAction,
-                        enabled = canSubmit,
-                        shape = RoundedCornerShape(14.dp),
-                        border = BorderStroke(
-                            width = 1.dp,
-                            color = submitBorderColor.copy(alpha = if (canSubmit) 0.95f else 0.45f)
-                        ),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = submitContentColor,
-                            disabledContentColor = submitContentColor.copy(alpha = 0.58f)
-                        ),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.align(Alignment.Center),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        val submitContentColor = Color(0xFFF3D978)
+                        val submitBorderColor = Color(0xFF7A6A2D)
+                        OutlinedButton(
+                            onClick = submitOrUpdateAction,
+                            enabled = canSubmit,
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(
+                                width = 1.dp,
+                                color = submitBorderColor.copy(alpha = if (canSubmit) 0.95f else 0.45f)
+                            ),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = submitContentColor,
+                                disabledContentColor = submitContentColor.copy(alpha = 0.58f)
+                            ),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
                         ) {
-                            Image(
-                                painter = painterResource(R.drawable.logo_small),
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Image(
+                                    painter = painterResource(R.drawable.logo_small),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = submitButtonLabel,
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                )
+                            }
+                        }
+                        if (hasAnySliderSet) {
                             Text(
-                                text = submitButtonLabel,
+                                text = "RESET",
                                 style = MaterialTheme.typography.labelLarge.copy(
                                     fontWeight = FontWeight.SemiBold
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
+                                modifier = Modifier.clickable(
+                                    enabled = !isBusy,
+                                    onClick = resetAllSlidersAction
                                 )
                             )
                         }
                     }
-                    OutlinedButton(
-                        onClick = onViewRecommendations,
-                        enabled = !isBusy,
-                        shape = RoundedCornerShape(14.dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = "VIEW",
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        )
-                    }
-                    if (hasAnySliderSet) {
-                        Text(
-                            text = "RESET",
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
-                            modifier = Modifier.clickable(
+                    Text(
+                        text = "HISTORY",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 10.sp
+                        ),
+                        color = Color(0xFFB9BEC7).copy(alpha = if (isBusy) 0.45f else 0.78f),
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .offset(x = maxWidth * 0.25f)
+                            .clickable(
                                 enabled = !isBusy,
-                                onClick = resetAllSlidersAction
+                                onClick = onViewRecommendations
                             )
-                        )
-                    }
+                    )
                 }
             }
         }
@@ -1517,8 +1522,8 @@ private fun CompareComparisonRow(item: CompareRecommendationItem) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                .padding(horizontal = 6.dp, vertical = 5.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             CompareComparisonSideText(
@@ -1534,22 +1539,22 @@ private fun CompareComparisonRow(item: CompareRecommendationItem) {
                 error = painterResource(R.drawable.placeholder_thumbnail_video),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .width(92.dp)
-                    .height(52.dp)
+                    .width(72.dp)
+                    .height(40.dp)
             )
             Column(
-                modifier = Modifier.widthIn(min = 52.dp),
+                modifier = Modifier.widthIn(min = 42.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Image(
                     painter = painterResource(R.drawable.logo_small),
                     contentDescription = null,
-                    modifier = Modifier.size(14.dp)
+                    modifier = Modifier.size(12.dp)
                 )
                 Text(
                     text = scoreLabel,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                     color = Color(0xFFD1B65C),
                     textAlign = TextAlign.Center
                 )
@@ -1561,8 +1566,8 @@ private fun CompareComparisonRow(item: CompareRecommendationItem) {
                 error = painterResource(R.drawable.placeholder_thumbnail_video),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .width(92.dp)
-                    .height(52.dp)
+                    .width(72.dp)
+                    .height(40.dp)
             )
             CompareComparisonSideText(
                 title = item.videoB.title,
@@ -1587,27 +1592,32 @@ private fun CompareComparisonSideText(
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Medium
+            ),
             textAlign = textAlign,
             color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 2,
+            maxLines = 4,
             overflow = TextOverflow.Ellipsis
         )
         if (uploader.isNotBlank()) {
             Text(
                 text = uploader,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 9.sp
+                ),
                 textAlign = textAlign,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
         } else {
             Text(
                 text = "",
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                 textAlign = textAlign,
-                maxLines = 1
+                maxLines = 2
             )
         }
     }
@@ -1815,10 +1825,10 @@ private fun CompactDimensionRow(
             MiniScoreBar(
                 value = score,
                 isActive = isActive,
+                barHeight = if (isMainCriterion) 5.dp else 3.dp,
                 showAttentionRing = showMainAttention,
                 modifier = Modifier
                     .weight(1f)
-                    .height(if (isMainCriterion) 5.dp else 3.dp)
             )
         }
     }
@@ -1828,6 +1838,7 @@ private fun CompactDimensionRow(
 private fun MiniScoreBar(
     value: Int,
     isActive: Boolean,
+    barHeight: androidx.compose.ui.unit.Dp,
     showAttentionRing: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -1857,52 +1868,135 @@ private fun MiniScoreBar(
     } else {
         0f
     }
-    Canvas(modifier = modifier) {
-        val radius = size.height / 2f
-        drawRoundRect(
-            color = background,
-            cornerRadius = CornerRadius(radius, radius)
-        )
-        drawLine(
-            color = centerLine,
-            start = Offset(size.width / 2f, 0f),
-            end = Offset(size.width / 2f, size.height),
-            strokeWidth = 1.dp.toPx()
-        )
-        val ratio = value.toFloat() / SCORE_MAX.toFloat()
-        val fillWidth = (size.width / 2f) * abs(ratio)
-        if (fillWidth > 0f) {
-            val startX = if (ratio >= 0f) size.width / 2f else size.width / 2f - fillWidth
-            drawRoundRect(
-                color = barColor,
-                topLeft = Offset(startX, 0f),
-                size = Size(fillWidth, size.height),
-                cornerRadius = CornerRadius(radius, radius)
-            )
-        }
-        if (showAttentionRing) {
-            val strokeWidth = 1.dp.toPx()
-            val inset = strokeWidth / 2f
-            val ringWidth = size.width - strokeWidth
-            val ringHeight = size.height - strokeWidth
-            if (ringWidth > 0f && ringHeight > 0f) {
-                rotate(degrees = attentionRotation, pivot = center) {
+    if (showAttentionRing) {
+        Column(
+            modifier = modifier,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            SwipeHintWaveText()
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(barHeight)
+            ) {
+                val radius = size.height / 2f
+                drawRoundRect(
+                    color = background,
+                    cornerRadius = CornerRadius(radius, radius)
+                )
+                drawLine(
+                    color = centerLine,
+                    start = Offset(size.width / 2f, 0f),
+                    end = Offset(size.width / 2f, size.height),
+                    strokeWidth = 1.dp.toPx()
+                )
+                val ratio = value.toFloat() / SCORE_MAX.toFloat()
+                val fillWidth = (size.width / 2f) * abs(ratio)
+                if (fillWidth > 0f) {
+                    val startX = if (ratio >= 0f) size.width / 2f else size.width / 2f - fillWidth
                     drawRoundRect(
-                        brush = Brush.sweepGradient(
-                            listOf(
-                                Color(0xFF4FC3F7),
-                                Color(0xFF64B5F6),
-                                Color(0xFFEF5350),
-                                Color(0xFFE57373),
-                                Color(0xFF4FC3F7)
-                            )
-                        ),
-                        topLeft = Offset(inset, inset),
-                        size = Size(ringWidth, ringHeight),
-                        cornerRadius = CornerRadius(ringHeight / 2f, ringHeight / 2f),
-                        style = Stroke(width = strokeWidth)
+                        color = barColor,
+                        topLeft = Offset(startX, 0f),
+                        size = Size(fillWidth, size.height),
+                        cornerRadius = CornerRadius(radius, radius)
                     )
                 }
+                val strokeWidth = 1.dp.toPx()
+                val inset = strokeWidth / 2f
+                val ringWidth = size.width - strokeWidth
+                val ringHeight = size.height - strokeWidth
+                if (ringWidth > 0f && ringHeight > 0f) {
+                    rotate(degrees = attentionRotation, pivot = center) {
+                        drawRoundRect(
+                            brush = Brush.sweepGradient(
+                                listOf(
+                                    Color(0xFF4FC3F7),
+                                    Color(0xFF64B5F6),
+                                    Color(0xFFEF5350),
+                                    Color(0xFFE57373),
+                                    Color(0xFF4FC3F7)
+                                )
+                            ),
+                            topLeft = Offset(inset, inset),
+                            size = Size(ringWidth, ringHeight),
+                            cornerRadius = CornerRadius(ringHeight / 2f, ringHeight / 2f),
+                            style = Stroke(width = strokeWidth)
+                        )
+                    }
+                }
+            }
+        }
+    } else {
+        Canvas(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(barHeight)
+        ) {
+            val radius = size.height / 2f
+            drawRoundRect(
+                color = background,
+                cornerRadius = CornerRadius(radius, radius)
+            )
+            drawLine(
+                color = centerLine,
+                start = Offset(size.width / 2f, 0f),
+                end = Offset(size.width / 2f, size.height),
+                strokeWidth = 1.dp.toPx()
+            )
+            val ratio = value.toFloat() / SCORE_MAX.toFloat()
+            val fillWidth = (size.width / 2f) * abs(ratio)
+            if (fillWidth > 0f) {
+                val startX = if (ratio >= 0f) size.width / 2f else size.width / 2f - fillWidth
+                drawRoundRect(
+                    color = barColor,
+                    topLeft = Offset(startX, 0f),
+                    size = Size(fillWidth, size.height),
+                    cornerRadius = CornerRadius(radius, radius)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SwipeHintWaveText(
+    modifier: Modifier = Modifier
+) {
+    val text = "<< SWIPE ME >>"
+    var waveCenter by remember { mutableFloatStateOf(-2f) }
+    LaunchedEffect(text) {
+        while (true) {
+            waveCenter += 0.18f
+            if (waveCenter > text.length + 2f) {
+                waveCenter = -2f
+            }
+            delay(28)
+        }
+    }
+    val baseColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.34f)
+    val waveColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.52f)
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(1.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        text.forEachIndexed { index, char ->
+            if (char == ' ') {
+                Spacer(modifier = Modifier.width(4.dp))
+            } else {
+                val distance = abs(waveCenter - index.toFloat())
+                val glow = (1f - distance / 2.4f).coerceIn(0f, 1f)
+                val animatedColor = lerp(baseColor, waveColor, glow * 0.7f)
+                Text(
+                    text = char.toString(),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.7.sp
+                    ),
+                    color = animatedColor
+                )
             }
         }
     }
