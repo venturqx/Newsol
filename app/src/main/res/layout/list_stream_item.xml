@@ -50,7 +50,8 @@
         app:layout_constraintBottom_toTopOf="@+id/itemUploaderView"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/itemThumbnailView"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/itemThumbnailView"
+        app:layout_constraintVertical_chainStyle="packed"
         tools:text="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc tristique vitae sem vitae blanditLorem ipsumLorem ipsumLorem ipsumLorem ipsumLorem ipsumLorem ipsumLorem ipsum" />
 
     <org.schabi.newpipe.views.NewPipeTextView
@@ -97,6 +98,7 @@
         android:lines="1"
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:textSize="@dimen/video_item_search_upload_date_text_size"
+        app:layout_constraintBottom_toBottomOf="@+id/itemThumbnailView"
         app:layout_constraintEnd_toEndOf="@+id/itemVideoTitleView"
         app:layout_goneMarginStart="0dp"
         app:layout_constraintStart_toEndOf="@+id/itemTournesolScore"
