@@ -603,7 +603,6 @@ internal fun CompareCompactScreen(
     val isBusy = state.submitInProgress || state.submitMoreInProgress
     val hasValidPairSelection = currentPairSelection != null
     val canSubmit = hasValidPairSelection && selectedIds.isNotEmpty() && !isBusy
-    val hasAnySliderSet = state.score != 0 || state.extraScores.values.any { it != 0 }
     val submitButtonLabel = stringResource(
         when {
             isBusy -> R.string.compare_submitting_label
@@ -618,15 +617,6 @@ internal fun CompareCompactScreen(
         } else {
             onSubmitSelected(snapshot)
         }
-    }
-    val resetAllSlidersAction = {
-        onScoreChange(0)
-        COMPACT_DIMENSIONS.forEach { criterion ->
-            if (criterion.id != COMPACT_MAIN_CRITERION_ID) {
-                onExtraScoreChange(criterion.id, 0)
-            }
-        }
-        selectedIds = emptySet()
     }
     val openHistoryOverlay: (OverlayTarget) -> Unit = { target ->
         val targetEntries = if (target == OverlayTarget.RIGHT) {
@@ -946,19 +936,6 @@ internal fun CompareCompactScreen(
                                     )
                                 )
                             }
-                        }
-                        if (hasAnySliderSet) {
-                            Text(
-                                text = "RESET",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.SemiBold
-                                ),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
-                                modifier = Modifier.clickable(
-                                    enabled = !isBusy,
-                                    onClick = resetAllSlidersAction
-                                )
-                            )
                         }
                     }
                     Text(
