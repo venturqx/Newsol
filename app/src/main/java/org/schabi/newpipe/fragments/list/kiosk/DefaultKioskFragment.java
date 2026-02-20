@@ -38,7 +38,9 @@ public class DefaultKioskFragment extends KioskFragment {
         if ("Tournesol".equals(kioskId)) {
             ensureTournesolController(rootView);
             applyTournesolFilters(tournesolFilterController.getCurrentLanguages(),
-                    tournesolFilterController.getCurrentDateKey(), false);
+                    tournesolFilterController.getCurrentDateKey(),
+                    tournesolFilterController.getCurrentIncludeLowScoreVideos(),
+                    false);
         } else {
             hideTournesolHeader(rootView);
         }
@@ -75,14 +77,17 @@ public class DefaultKioskFragment extends KioskFragment {
     }
 
     private void onTournesolFiltersChanged(@NonNull final List<String> languages,
-                                           @NonNull final String dateKey) {
-        applyTournesolFilters(languages, dateKey, true);
+                                           @NonNull final String dateKey,
+                                           final boolean includeLowScoreVideos) {
+        applyTournesolFilters(languages, dateKey, includeLowScoreVideos, true);
     }
 
     private void applyTournesolFilters(@NonNull final List<String> languages,
                                        @NonNull final String dateKey,
+                                       final boolean includeLowScoreVideos,
                                        final boolean reload) {
-        url = TournesolHelper.INSTANCE.buildTournesolUrl(languages, dateKey);
+        url = TournesolHelper.INSTANCE.buildTournesolUrl(languages, dateKey,
+                includeLowScoreVideos);
         if (!reload) {
             return;
         }
