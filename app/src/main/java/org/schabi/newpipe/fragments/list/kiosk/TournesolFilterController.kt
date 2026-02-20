@@ -16,11 +16,17 @@ class TournesolFilterController(
     private val listener: Listener
 ) {
     interface Listener {
-        fun onFiltersChanged(languages: List<String>, dateKey: String)
+        fun onFiltersChanged(
+            languages: List<String>,
+            dateKey: String,
+            includeLowScoreVideos: Boolean
+        )
     }
 
     private var currentLanguages: MutableList<String> = ArrayList()
     private var currentDateKey: String = TournesolHelper.DEFAULT_TOURNESOL_FILTER_DATE_KEY
+    private var currentIncludeLowScoreVideos: Boolean =
+        TournesolHelper.DEFAULT_TOURNESOL_FILTER_INCLUDE_LOW_SCORE
     private var tournesolHeaderView: View? = null
 
     fun init(rootView: View) {
@@ -31,10 +37,18 @@ class TournesolFilterController(
     fun onResume() {
         val previousLanguages = ArrayList(currentLanguages)
         val previousDateKey = currentDateKey
+        val previousIncludeLowScoreVideos = currentIncludeLowScoreVideos
         loadFilters()
-        if (previousLanguages != currentLanguages || previousDateKey != currentDateKey) {
+        if (previousLanguages != currentLanguages ||
+            previousDateKey != currentDateKey ||
+            previousIncludeLowScoreVideos != currentIncludeLowScoreVideos
+        ) {
             updateTournesolHeaderSummary()
-            listener.onFiltersChanged(ArrayList(currentLanguages), currentDateKey)
+            listener.onFiltersChanged(
+                ArrayList(currentLanguages),
+                currentDateKey,
+                currentIncludeLowScoreVideos
+            )
         }
     }
 
@@ -48,6 +62,10 @@ class TournesolFilterController(
 
     fun getCurrentDateKey(): String {
         return currentDateKey
+    }
+
+    fun getCurrentIncludeLowScoreVideos(): Boolean {
+        return currentIncludeLowScoreVideos
     }
 
     private fun setupTournesolHeader(rootView: View) {
@@ -79,15 +97,28 @@ class TournesolFilterController(
 
     private fun openFilterSheet() {
         val filterFragment = TournesolFilterFragment()
-        filterFragment.setInitialData(currentLanguages, currentDateKey)
+        filterFragment.setInitialData(
+            currentLanguages,
+            currentDateKey,
+            currentIncludeLowScoreVideos
+        )
         filterFragment.setListener(object : TournesolFilterFragment.FilterListener {
-            override fun onApply(languages: List<String>, dateKey: String) {
+            override fun onApply(
+                languages: List<String>,
+                dateKey: String,
+                includeLowScoreVideos: Boolean
+            ) {
                 currentLanguages = ArrayList(languages)
                 currentDateKey = dateKey
+                currentIncludeLowScoreVideos = includeLowScoreVideos
 
                 saveFilters()
                 updateTournesolHeaderSummary()
-                listener.onFiltersChanged(ArrayList(currentLanguages), currentDateKey)
+                listener.onFiltersChanged(
+                    ArrayList(currentLanguages),
+                    currentDateKey,
+                    currentIncludeLowScoreVideos
+                )
             }
         })
         filterFragment.show(fragment.parentFragmentManager, "TournesolFilters")
@@ -134,6 +165,11 @@ class TournesolFilterController(
         }
         sb.append(dateString)
 
+        if (currentIncludeLowScoreVideos) {
+            sb.append(FILTER_SEPARATOR)
+            sb.append(fragment.getString(R.string.include_low_score_videos_short))
+        }
+
         textActiveFilters.text = sb.toString()
     }
 
@@ -153,6 +189,10 @@ class TournesolFilterController(
             TournesolHelper.PREF_TOURNESOL_FILTER_DATE_KEY,
             TournesolHelper.DEFAULT_TOURNESOL_FILTER_DATE_KEY
         ) ?: TournesolHelper.DEFAULT_TOURNESOL_FILTER_DATE_KEY
+        currentIncludeLowScoreVideos = prefs.getBoolean(
+            TournesolHelper.PREF_TOURNESOL_FILTER_INCLUDE_LOW_SCORE,
+            TournesolHelper.DEFAULT_TOURNESOL_FILTER_INCLUDE_LOW_SCORE
+        )
     }
 
     private fun saveFilters() {
@@ -162,6 +202,10 @@ class TournesolFilterController(
         prefs.edit()
             .putString(TournesolHelper.PREF_TOURNESOL_FILTER_LANGUAGES, languages)
             .putString(TournesolHelper.PREF_TOURNESOL_FILTER_DATE_KEY, currentDateKey)
+            .putBoolean(
+                TournesolHelper.PREF_TOURNESOL_FILTER_INCLUDE_LOW_SCORE,
+                currentIncludeLowScoreVideos
+            )
             .apply()
     }
 
