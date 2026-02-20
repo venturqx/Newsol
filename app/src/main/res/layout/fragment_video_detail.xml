@@ -597,6 +597,16 @@
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/compare_full_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="?attr/windowBackground"
+        android:clickable="true"
+        android:elevation="24dp"
+        android:focusable="true"
+        android:visibility="gone" />
+
     <RelativeLayout
         android:id="@+id/overlay_layout"
         android:layout_width="match_parent"
