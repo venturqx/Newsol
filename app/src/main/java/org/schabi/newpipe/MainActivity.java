@@ -186,10 +186,8 @@ public class MainActivity extends AppCompatActivity {
             // if this is enabled by the user.
             NotificationWorker.initialize(this);
         }
-        if (!UpdateSettingsFragment.wasUserAskedForConsent(this)
-                && !App.getInstance().isFirstRun()
-                && ReleaseVersionUtil.INSTANCE.isReleaseApk()) {
-            UpdateSettingsFragment.askForConsentToUpdateChecks(this);
+        if (ReleaseVersionUtil.INSTANCE.isReleaseApk()) {
+            UpdateSettingsFragment.disableAutoUpdateChecksByDefault(this);
         }
 
         MigrationManager.showUserInfoIfPresent(this);
