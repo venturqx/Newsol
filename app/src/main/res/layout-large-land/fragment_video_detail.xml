@@ -424,7 +424,7 @@
 
                             <org.schabi.newpipe.views.NewPipeTextView
                                 android:id="@+id/detail_controls_playlist_append"
-                                android:layout_width="@dimen/detail_control_width"
+                                android:layout_width="0dp"
                                 android:layout_height="@dimen/detail_control_height"
                                 android:layout_gravity="center_vertical"
                                 android:layout_weight="1"
@@ -440,7 +440,7 @@
 
                             <org.schabi.newpipe.views.NewPipeTextView
                                 android:id="@+id/detail_controls_background"
-                                android:layout_width="@dimen/detail_control_width"
+                                android:layout_width="0dp"
                                 android:layout_height="@dimen/detail_control_height"
                                 android:layout_gravity="center_vertical"
                                 android:layout_weight="1"
@@ -456,7 +456,7 @@
 
                             <org.schabi.newpipe.views.NewPipeTextView
                                 android:id="@+id/detail_controls_popup"
-                                android:layout_width="@dimen/detail_control_width"
+                                android:layout_width="0dp"
                                 android:layout_height="@dimen/detail_control_height"
                                 android:layout_gravity="center_vertical"
                                 android:layout_weight="1"
@@ -472,7 +472,7 @@
 
                             <org.schabi.newpipe.views.NewPipeTextView
                                 android:id="@+id/detail_controls_download"
-                                android:layout_width="@dimen/detail_control_width"
+                                android:layout_width="0dp"
                                 android:layout_height="@dimen/detail_control_height"
                                 android:layout_gravity="center_vertical"
                                 android:layout_weight="1"
