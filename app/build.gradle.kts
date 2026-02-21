@@ -4,6 +4,8 @@
  */
 import com.mikepenz.aboutlibraries.plugin.DuplicateMode
 
+import com.android.build.api.dsl.ApplicationExtension
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
@@ -17,6 +19,10 @@ plugins {
     alias(libs.plugins.about.libraries)
     checkstyle
 }
+
+val gitWorkingBranch = providers.exec {
+    commandLine("git", "rev-parse", "--abbrev-ref", "HEAD")
+}.standardOutput.asText.map { it.trim() }
 
 java {
     toolchain {
@@ -33,54 +39,19 @@ kotlin {
     }
 }
 
-android {
+configure<ApplicationExtension> {
     compileSdk = 36
     namespace = "org.schabi.newpipe"
 
-    val keystorePath =
-        System.getenv("ANDROID_KEYSTORE_PATH") ?: System.getProperty("ANDROID_KEYSTORE_PATH")
-    val keystorePassword =
-        System.getenv("ANDROID_KEYSTORE_PASSWORD")
-            ?: System.getProperty("ANDROID_KEYSTORE_PASSWORD")
-    val signingKeyAlias =
-        System.getenv("ANDROID_KEY_ALIAS") ?: System.getProperty("ANDROID_KEY_ALIAS")
-    val signingKeyPassword =
-        System.getenv("ANDROID_KEY_PASSWORD") ?: System.getProperty("ANDROID_KEY_PASSWORD")
-    val hasReleaseSigning = listOf(
-        keystorePath,
-        keystorePassword,
-        signingKeyAlias,
-        signingKeyPassword
-    ).all { !it.isNullOrBlank() }
-
-    if (hasReleaseSigning) {
-        signingConfigs {
-            create("release") {
-                storeFile = file(keystorePath!!)
-                storePassword = keystorePassword
-                keyAlias = signingKeyAlias
-                keyPassword = signingKeyPassword
-            }
-        }
-    }
-
-    val versionCodeOverride = System.getProperty("versionCodeOverride")
-        ?.trim()
-        ?.takeIf { it.isNotEmpty() }
-        ?.toInt()
-    val versionNameOverride = System.getProperty("versionNameOverride")
-        ?.trim()
-        ?.takeIf { it.isNotEmpty() }
-
     defaultConfig {
-        applicationId = "dev.ufonirpt.ufonirpt"
-        resValue("string", "app_name", "Ufonirpt")
+        applicationId = "org.schabi.newpipe"
+        resValue("string", "app_name", "NewPipe")
         minSdk = 23
         targetSdk = 35
 
-        versionCode = versionCodeOverride ?: 1
+        versionCode = System.getProperty("versionCodeOverride")?.toInt() ?: 1008
 
-        versionName = versionNameOverride ?: "0.0.1"
+        versionName = "0.28.3"
         System.getProperty("versionNameSuffix")?.let { versionNameSuffix = it }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -89,21 +60,35 @@ android {
     buildTypes {
         debug {
             isDebuggable = true
-            resValue("string", "app_name", "Ufonirpt")
+
+            // suffix the app id and the app name with git branch name
+            val defaultBranches = listOf("master", "dev")
+            val workingBranch = gitWorkingBranch.getOrElse("")
+            val normalizedWorkingBranch = workingBranch
+                .replaceFirst("^[^A-Za-z]+".toRegex(), "")
+                .replace("[^0-9A-Za-z]+".toRegex(), "")
+
+            if (normalizedWorkingBranch.isEmpty() || workingBranch in defaultBranches) {
+                // default values when branch name could not be determined or is master or dev
+                applicationIdSuffix = ".debug"
+                resValue("string", "app_name", "NewPipe Debug")
+            } else {
+                applicationIdSuffix = ".debug.$normalizedWorkingBranch"
+                resValue("string", "app_name", "NewPipe $workingBranch")
+            }
         }
 
         release {
             System.getProperty("packageSuffix")?.let { suffix ->
                 applicationIdSuffix = suffix
-                resValue("string", "app_name", "Ufonirpt $suffix")
+                resValue("string", "app_name", "NewPipe $suffix")
             }
             isMinifyEnabled = true
             isShrinkResources = false // disabled to fix F-Droid"s reproducible build
-            proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("debug")
-            if (hasReleaseSigning) {
-                signingConfig = signingConfigs.getByName("release")
-            }
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 
@@ -125,7 +110,7 @@ android {
 
     sourceSets {
         getByName("androidTest") {
-            assets.srcDir("$projectDir/schemas")
+            assets.directories += "$projectDir/schemas"
         }
     }
 
@@ -137,6 +122,7 @@ android {
         viewBinding = true
         compose = true
         buildConfig = true
+        resValues = true
     }
 
     packaging {
@@ -159,6 +145,13 @@ ksp {
 
 // Custom dependency configuration for ktlint
 val ktlint by configurations.creating
+
+// https://checkstyle.org/#JRE_and_JDK
+tasks.withType<Checkstyle>().configureEach {
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
 
 checkstyle {
     configDirectory = rootProject.file("checkstyle")
@@ -262,7 +255,6 @@ dependencies {
     implementation(libs.androidx.media)
     implementation(libs.androidx.preference)
     implementation(libs.androidx.recyclerview)
-    implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.rxjava3)
     ksp(libs.androidx.room.compiler)
@@ -314,7 +306,6 @@ dependencies {
 
     // HTTP client
     implementation(libs.squareup.okhttp)
-    implementation(libs.appauth)
 
     // Media player
     implementation(libs.google.exoplayer.core)
@@ -379,8 +370,3 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
-
-
-
-
-

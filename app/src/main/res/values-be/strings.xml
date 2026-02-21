@@ -616,8 +616,8 @@
     <string name="feed_processing_message">Апрацоўка стужкі…</string>
     <string name="downloads_storage_ask_summary_no_saf_notice">Пры кожным спампоўванні вам будзе прапанавана выбраць месца захавання</string>
     <string name="feed_notification_loading">Загрузка канала…</string>
-    <string name="remove_watched_popup_title">Выдаліць прагледжаныя відэа\?</string>
-    <string name="remove_watched_popup_yes_and_partially_watched_videos">Так, часткова прагледжаныя відэа таксама</string>
+    <string name="remove_watched_popup_title">Выдаліць прагледжаныя відэа?</string>
+    <string name="remove_watched_popup_partially_watched_streams">Так, часткова прагледжаныя відэа таксама</string>
     <string name="percent">Працэнт</string>
     <string name="remove_watched_popup_warning">Відэа, якія прагледжаны перад дадаваннем і пасля дадавання ў спіс прайгравання, будуць выдалены. \nВы ўпэўнены? Гэта дзеянне немагчыма скасаваць!</string>
     <string name="show_crash_the_player_summary">Паказвае варыянт збою пры выкарыстанні плэера</string>
@@ -831,4 +831,5 @@
     <string name="trending_movies">Трэнды – фільмы і перадачы</string>
     <string name="unsupported_content_in_country">Гэты кантэнт недаступны для цяперашняй краіны кантэнту.\n\nЯе можна змяніць праз «Налады &gt; Кантэнт &gt; Прадвызначаная краіна кантэнту».</string>
     <string name="migration_info_7_8_message">21 ліпеня 2025 года YouTube спыніў падтрымку аб\'яднанай старонкі трэндаў. NewPipe замяніў старонку трэндаў на трэнды трансляцый.\n\nТаксама можна выбраць іншыя старонкі трэндаў праз «Налады &gt; Кантэнт &gt; Змесціва галоўнай старонкі».</string>
+    <string name="migration_info_7_8_title">Аб\'яднаныя трэнды YouTube выдалены</string>
 </resources>
