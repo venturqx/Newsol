@@ -3,6 +3,7 @@ package org.schabi.newpipe.fragments.list.kiosk
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import java.util.function.Supplier
 import org.schabi.newpipe.databinding.PlaylistControlBinding
 import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.StreamingService
@@ -15,7 +16,6 @@ import org.schabi.newpipe.player.playqueue.KioskPlayQueue
 import org.schabi.newpipe.player.playqueue.PlayQueue
 import org.schabi.newpipe.util.PlayButtonHelper
 import org.schabi.newpipe.util.TournesolHelper
-import java.util.function.Supplier
 
 class TournesolKioskFragment : KioskFragment(), PlaylistControlViewHolder {
     private var tournesolFilterController: TournesolFilterController? = null

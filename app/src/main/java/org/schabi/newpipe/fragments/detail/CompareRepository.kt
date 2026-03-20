@@ -2,6 +2,8 @@ package org.schabi.newpipe.fragments.detail
 
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
+import java.io.IOException
+import java.net.URLEncoder
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -14,8 +16,6 @@ import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.ServiceList
 import org.schabi.newpipe.extractor.exceptions.ExtractionException
 import org.schabi.newpipe.extractor.linkhandler.LinkHandlerFactory
-import java.io.IOException
-import java.net.URLEncoder
 
 object CompareRepository {
     fun buildTournesolUid(url: String, serviceId: Int): String? {
@@ -323,6 +323,7 @@ object CompareRepository {
                     collectObjectCandidates(value.opt(key), candidates, depth + 1)
                 }
             }
+
             is JSONArray -> {
                 for (index in 0 until value.length()) {
                     collectObjectCandidates(value.opt(index), candidates, depth + 1)
@@ -384,9 +385,11 @@ object CompareRepository {
                         return normalizeUrl(normalized)
                     }
                 }
+
                 is JSONObject -> {
                     extractText(raw, URL_KEYS)?.let { return normalizeUrl(it) }
                 }
+
                 is JSONArray -> {
                     for (index in 0 until raw.length()) {
                         when (val entry = raw.opt(index)) {
@@ -396,6 +399,7 @@ object CompareRepository {
                                     return normalizeUrl(normalized)
                                 }
                             }
+
                             is JSONObject -> {
                                 extractText(entry, URL_KEYS)?.let { return normalizeUrl(it) }
                             }

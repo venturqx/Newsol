@@ -1,5 +1,6 @@
 package org.schabi.newpipe.fragments.detail
 
+import android.graphics.Paint as AndroidPaint
 import android.view.MotionEvent
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -114,14 +115,13 @@ import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import coil3.imageLoader
 import coil3.request.ImageRequest
+import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.schabi.newpipe.R
 import org.schabi.newpipe.database.history.model.StreamHistoryEntry
 import org.schabi.newpipe.ui.components.items.stream.StreamThumbnail
-import kotlin.math.abs
-import kotlin.math.roundToInt
-import android.graphics.Paint as AndroidPaint
 
 @Composable
 fun CompareScreen(
@@ -711,6 +711,7 @@ internal fun CompareCompactScreen(
                             accumulatedX -= steps * pxPerScore
                         }
                     }
+
                     DragAxis.VERTICAL -> {
                         accumulatedY += dragAmount.y * verticalSensitivity
                         while (abs(accumulatedY) >= verticalStepPx) {
@@ -724,6 +725,7 @@ internal fun CompareCompactScreen(
                             accumulatedY -= step * verticalStepPx
                         }
                     }
+
                     null -> Unit
                 }
             }
@@ -735,6 +737,7 @@ internal fun CompareCompactScreen(
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
                 requestDisallowParentIntercept(hostView, true)
             }
+
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 requestDisallowParentIntercept(hostView, false)
             }
@@ -985,8 +988,8 @@ internal fun CompareCompactScreen(
                             .coerceAtLeast(0)
                         (
                             (gridViewportHeightPx + overlayRowSpacingPx) /
-                            (overlayCardHeightPx + overlayRowSpacingPx)
-                        )
+                                (overlayCardHeightPx + overlayRowSpacingPx)
+                            )
                             .coerceAtLeast(1)
                             .coerceAtMost(16)
                     }
@@ -1077,7 +1080,7 @@ internal fun CompareCompactScreen(
                             } else {
                                 val cardWidthPx = (
                                     gridWidthPx - overlayColumnSpacingPx * (overlayGridColumns - 1)
-                                ) / overlayGridColumns
+                                    ) / overlayGridColumns
                                 if (cardWidthPx <= 0f) {
                                     null
                                 } else {
@@ -1446,6 +1449,7 @@ private fun CompareComparisonsFullScreen(
                         CircularProgressIndicator()
                     }
                 }
+
                 errorMessage != null -> {
                     Text(
                         text = errorMessage,
@@ -1453,6 +1457,7 @@ private fun CompareComparisonsFullScreen(
                         color = MaterialTheme.colorScheme.error
                     )
                 }
+
                 recommendations.isEmpty() -> {
                     Text(
                         text = stringResource(R.string.compare_no_comparisons_available),
@@ -1460,6 +1465,7 @@ private fun CompareComparisonsFullScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -2637,10 +2643,13 @@ private fun HistoryWheel(
                         val maxTarget = maxPage.coerceIn(0, entries.lastIndex)
                         val target = when {
                             deltaFromStart > swipeThreshold -> startPage + 1
+
                             deltaFromStart < -swipeThreshold -> startPage - 1
+
                             kotlin.math.abs(velocityY) > velocityThreshold &&
                                 kotlin.math.abs(deltaFromStart) > minFlingOffset ->
                                 if (velocityY < 0f) startPage + 1 else startPage - 1
+
                             else -> startPage
                         }.coerceIn(minTarget, maxTarget)
                         coroutineScope.launch {
@@ -2718,7 +2727,7 @@ private fun HistoryWheel(
                         rotationX = rotationX,
                         translationY = translation,
                         cameraDistance = cameraDistance
-                )
+                    )
             )
         }
         Surface(

@@ -251,6 +251,7 @@ dependencies {
     implementation(libs.androidx.media)
     implementation(libs.androidx.preference)
     implementation(libs.androidx.recyclerview)
+    implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.rxjava3)
     ksp(libs.androidx.room.compiler)
@@ -302,6 +303,7 @@ dependencies {
 
     // HTTP client
     implementation(libs.squareup.okhttp)
+    implementation(libs.appauth)
 
     // Media player
     implementation(libs.google.exoplayer.core)

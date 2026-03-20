@@ -9,6 +9,9 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
+import java.io.File
+import java.io.IOException
+import java.util.concurrent.TimeUnit
 import net.openid.appauth.AuthState
 import net.openid.appauth.AuthorizationServiceConfiguration
 import net.openid.appauth.TokenRequest
@@ -18,9 +21,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
 import org.schabi.newpipe.DownloaderImpl
-import java.io.File
-import java.io.IOException
-import java.util.concurrent.TimeUnit
 
 object TournesolAuthManager {
     private const val TAG = "TournesolAuthManager"

@@ -22,6 +22,8 @@ import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
+import java.time.OffsetDateTime
+import kotlin.math.abs
 import org.json.JSONObject
 import org.schabi.newpipe.R
 import org.schabi.newpipe.database.history.model.StreamHistoryEntry
@@ -32,8 +34,6 @@ import org.schabi.newpipe.local.history.HistoryRecordManager
 import org.schabi.newpipe.ui.theme.AppTheme
 import org.schabi.newpipe.util.KEY_INFO
 import org.schabi.newpipe.util.TournesolAuthManager
-import java.time.OffsetDateTime
-import kotlin.math.abs
 
 class CompareFragment : Fragment() {
     private var currentInfo: StreamInfo? = null

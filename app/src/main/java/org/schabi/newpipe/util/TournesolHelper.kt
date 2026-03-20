@@ -47,8 +47,7 @@ object TournesolHelper {
         return sb.toString()
     }
 
-    fun buildTournesolUrl(languages: List<String>?, dateKey: String): String =
-        buildTournesolUrl(languages, dateKey, false)
+    fun buildTournesolUrl(languages: List<String>?, dateKey: String): String = buildTournesolUrl(languages, dateKey, false)
 
     @JvmStatic
     fun formatUnsafeReasonCodes(reasons: List<String>?): String {
@@ -61,8 +60,10 @@ object TournesolHelper {
             val reasonLabel = when (reason) {
                 REASON_INSUFFICIENT_TOURNESOL_SCORE,
                 REASON_INSUFFICIENT_TRUST -> "Insufficient"
+
                 REASON_MODERATION_BY_ASSOCIATION,
                 REASON_MODERATION_BY_CONTRIBUTORS -> "Moderated"
+
                 else -> reason
             }
             if (reasonLabel.isNotBlank()) {
