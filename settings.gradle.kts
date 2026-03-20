@@ -54,6 +54,8 @@ include (":app")
 if (file("NewPipeExtractor/settings.gradle").exists()) {
     includeBuild("NewPipeExtractor") {
         dependencySubstitution {
+            substitute(module("com.github.TeamNewPipe:NewPipeExtractor"))
+                .using(project(":extractor"))
             substitute(module("com.github.venturqx:NPExtractorTournesol"))
                 .using(project(":extractor"))
         }
