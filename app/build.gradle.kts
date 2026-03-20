@@ -43,15 +43,47 @@ configure<ApplicationExtension> {
     compileSdk = 36
     namespace = "org.schabi.newpipe"
 
+    val keystorePath =
+        System.getenv("ANDROID_KEYSTORE_PATH") ?: System.getProperty("ANDROID_KEYSTORE_PATH")
+    val keystorePassword =
+        System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            ?: System.getProperty("ANDROID_KEYSTORE_PASSWORD")
+    val signingKeyAlias =
+        System.getenv("ANDROID_KEY_ALIAS") ?: System.getProperty("ANDROID_KEY_ALIAS")
+    val signingKeyPassword =
+        System.getenv("ANDROID_KEY_PASSWORD") ?: System.getProperty("ANDROID_KEY_PASSWORD")
+    val hasReleaseSigning = listOf(
+        keystorePath,
+        keystorePassword,
+        signingKeyAlias,
+        signingKeyPassword
+    ).all { !it.isNullOrBlank() }
+
+    if (hasReleaseSigning) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(keystorePath!!)
+                storePassword = keystorePassword
+                keyAlias = signingKeyAlias
+                keyPassword = signingKeyPassword
+            }
+        }
+    }
+
     defaultConfig {
         applicationId = "org.schabi.newpipe"
         resValue("string", "app_name", "NewPipe")
         minSdk = 23
         targetSdk = 35
 
-        versionCode = System.getProperty("versionCodeOverride")?.toInt() ?: 1008
+        versionCode = System.getProperty("versionCodeOverride")
+            ?.takeIf { it.isNotBlank() }
+            ?.toIntOrNull()
+            ?: 1008
 
-        versionName = "0.28.3"
+        versionName = System.getProperty("versionNameOverride")
+            ?.takeIf { it.isNotBlank() }
+            ?: "0.28.3"
         System.getProperty("versionNameSuffix")?.let { versionNameSuffix = it }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -85,6 +117,9 @@ configure<ApplicationExtension> {
             }
             isMinifyEnabled = true
             isShrinkResources = true
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
