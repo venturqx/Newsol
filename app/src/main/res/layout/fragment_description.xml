@@ -45,6 +45,83 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
+        <!-- Tournesol info section (shown when data is available) -->
+        <LinearLayout
+            android:id="@+id/tournesol_info_section"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginEnd="16dp"
+            android:orientation="vertical"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/detail_upload_date_view"
+            tools:visibility="visible">
+
+            <!-- Score header: logo + score value -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/tournesol_logo"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/logo_small" />
+
+                <org.schabi.newpipe.views.NewPipeTextView
+                    android:id="@+id/tournesol_score_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:textColor="#D1B65C"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    tools:text="56.7" />
+
+            </LinearLayout>
+
+            <!-- Stats: contributors and comparisons -->
+            <org.schabi.newpipe.views.NewPipeTextView
+                android:id="@+id/tournesol_stats"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textSize="@dimen/video_item_detail_description_text_size"
+                tools:text="30 contributors · 113 comparisons" />
+
+            <!-- Unsafe warning (shown only when flagged) -->
+            <org.schabi.newpipe.views.NewPipeTextView
+                android:id="@+id/tournesol_unsafe_warning"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textSize="@dimen/video_item_detail_description_text_size"
+                android:visibility="gone"
+                tools:text="⚠ Flagged as unsafe" />
+
+            <!-- Criteria scores (populated dynamically) -->
+            <LinearLayout
+                android:id="@+id/tournesol_criteria_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="vertical" />
+
+            <!-- Bottom divider -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="10dp"
+                android:background="?attr/separator_color" />
+
+        </LinearLayout>
+
         <androidx.constraintlayout.widget.Barrier
             android:id="@+id/barrier"
             android:layout_width="wrap_content"
@@ -67,7 +144,7 @@
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/detail_upload_date_view"
+            app:layout_constraintTop_toBottomOf="@+id/tournesol_info_section"
             tools:visibility="visible" />
 
         <org.schabi.newpipe.views.NewPipeTextView
