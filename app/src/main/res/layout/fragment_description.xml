@@ -40,7 +40,7 @@
             android:focusable="true"
             android:padding="5dp"
             android:src="@drawable/ic_select_all"
-            app:layout_constraintBottom_toTopOf="@+id/barrier"
+            app:layout_constraintBottom_toBottomOf="@+id/detail_upload_date_view"
             app:layout_constraintDimensionRatio="1"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
