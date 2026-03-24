@@ -449,10 +449,6 @@ public class SearchFragment extends BaseListFragment<SearchInfo, ListExtractor.I
         int itemId = 0;
         boolean isFirstItem = true;
         final Context c = getContext();
-        final boolean shouldDefaultToTournesol = filterItemCheckedId == -1
-                && (contentFilter.length == 0
-                || YoutubeSearchQueryHandlerFactory.ALL.equals(contentFilter[0]));
-        MenuItem tournesolDefaultItem = null;
 
         if (service == null) {
             Log.w(TAG, "onCreateOptionsMenu() called with null service");
@@ -482,19 +478,10 @@ public class SearchFragment extends BaseListFragment<SearchInfo, ListExtractor.I
                 item.setChecked(true);
                 isFirstItem = false;
             }
-            if (shouldDefaultToTournesol
-                    && YoutubeSearchQueryHandlerFactory.TOURNESOL.equals(filter)) {
-                tournesolDefaultItem = item;
-            }
         }
         menu.setGroupCheckable(1, true, true);
 
-        if (tournesolDefaultItem != null) {
-            changeContentFilter(tournesolDefaultItem,
-                    Collections.singletonList(YoutubeSearchQueryHandlerFactory.TOURNESOL));
-        } else {
-            restoreFilterChecked(menu, filterItemCheckedId);
-        }
+        restoreFilterChecked(menu, filterItemCheckedId);
     }
 
     @Override
