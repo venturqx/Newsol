@@ -131,12 +131,12 @@ private fun TournesolFilterSheet(
     onClose: () -> Unit
 ) {
     val chipSelectedColor = colorResource(R.color.tournesol_filter_accent)
-    val chipUnselectedColor = colorResource(R.color.tournesol_chip_unchecked)
+    val chipStrokeColor = colorResource(R.color.tournesol_chip_stroke)
     val chipColors = FilterChipDefaults.filterChipColors(
         selectedContainerColor = chipSelectedColor,
-        containerColor = chipUnselectedColor,
+        containerColor = Color.Transparent,
         selectedLabelColor = Color.White,
-        labelColor = Color.White
+        labelColor = MaterialTheme.colorScheme.onSurface
     )
     val selectedLanguages = remember {
         mutableStateListOf<String>().apply { addAll(initialLanguages) }

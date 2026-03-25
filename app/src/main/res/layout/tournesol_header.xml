@@ -4,25 +4,27 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:scrollbars="none"
+    android:clipToPadding="false"
     android:fadingEdge="horizontal"
-    android:requiresFadingEdge="horizontal">
+    android:requiresFadingEdge="horizontal"
+    android:fadingEdgeLength="16dp">
 
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp">
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp">
 
         <com.google.android.material.chip.ChipGroup
             android:id="@+id/quick_date_chips"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:singleLine="true"
-            app:chipSpacingHorizontal="6dp"
+            app:chipSpacingHorizontal="8dp"
             app:singleSelection="true"
             app:selectionRequired="true">
 
@@ -63,23 +65,31 @@
 
         </com.google.android.material.chip.ChipGroup>
 
+        <View
+            android:layout_width="1dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"
+            android:background="@color/tournesol_divider" />
+
         <com.google.android.material.chip.Chip
             android:id="@+id/chip_unsafe"
             style="@style/Widget.NewPipe.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
             android:checkable="true"
             android:text="@string/filter_unsafe_short" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chip_advanced"
-            style="@style/Widget.MaterialComponents.Chip.Action"
+            style="@style/Widget.NewPipe.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
+            android:layout_marginStart="8dp"
+            android:checkable="false"
             android:text="@string/filter_advanced"
-            app:chipIcon="@drawable/ic_filter_list" />
+            app:chipIcon="@drawable/ic_filter_list"
+            app:chipIconTint="?android:attr/textColorPrimary" />
 
     </LinearLayout>
 

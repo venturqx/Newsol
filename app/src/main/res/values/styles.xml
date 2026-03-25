@@ -157,8 +157,14 @@
 
     <style name="Widget.NewPipe.Chip.Filter" parent="Widget.MaterialComponents.Chip.Filter">
         <item name="chipBackgroundColor">@color/tournesol_chip_background_color</item>
-        <item name="android:textColor">@color/white</item>
+        <item name="chipSurfaceColor">@android:color/transparent</item>
+        <item name="android:textColor">@color/tournesol_chip_text_color</item>
+        <item name="chipStrokeColor">@color/tournesol_chip_stroke_color</item>
         <item name="chipStrokeWidth">0dp</item>
+        <item name="chipMinHeight">32dp</item>
+        <item name="chipCornerRadius">16dp</item>
+        <item name="chipMinTouchTargetSize">40dp</item>
+        <item name="checkedIconVisible">false</item>
     </style>
 
     <style name="Theme.TournesolFilter.Light" parent="Theme.MaterialComponents.Light.NoActionBar">

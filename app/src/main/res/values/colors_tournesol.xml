@@ -2,4 +2,6 @@
 <resources>
     <color name="tournesol_filter_accent">#BC211D</color>
     <color name="tournesol_chip_unchecked">#777777</color>
+    <color name="tournesol_chip_stroke">#40808080</color>
+    <color name="tournesol_divider">#1F000000</color>
 </resources>

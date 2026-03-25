@@ -24,6 +24,9 @@ class TournesolKioskFragment : KioskFragment(), PlaylistControlViewHolder {
     protected override fun getListHeaderSupplier(): Supplier<View> {
         playlistControlBinding = PlaylistControlBinding
             .inflate(requireActivity().layoutInflater, itemsList, false)
+        // Reduce playlist control bar height for Tournesol to match filter bar proportions
+        val compactHeight = (38 * resources.displayMetrics.density).toInt()
+        playlistControlBinding!!.playlistCtrlPlayBgButton.layoutParams.height = compactHeight
         return Supplier { playlistControlBinding!!.root }
     }
 
