@@ -875,6 +875,14 @@
     <string name="date_last_3_months">Moins de 3 mois</string>
     <string name="date_last_month">Moins d’un mois</string>
     <string name="date_last_week">Moins d’une semaine</string>
+    <string name="date_last_day">Moins d’un jour</string>
+    <string name="date_short_day">Jour</string>
+    <string name="date_short_week">Semaine</string>
+    <string name="date_short_month">Mois</string>
+    <string name="date_short_3_months">3Monthly</string>
+    <string name="date_short_year">Année</string>
+    <string name="filter_advanced">Avancé</string>
+    <string name="filter_unsafe_short">Unsafe</string>
     <string name="language_english">Anglais</string>
     <string name="language_french">Français</string>
     <string name="language_spanish">Espagnol</string>

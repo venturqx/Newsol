@@ -60,7 +60,7 @@
             app:layout_constraintTop_toBottomOf="@+id/detail_upload_date_view"
             tools:visibility="visible">
 
-            <!-- Score header: logo + score value -->
+            <!-- Score + stats row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -76,24 +76,39 @@
 
                 <org.schabi.newpipe.views.NewPipeTextView
                     android:id="@+id/tournesol_score_value"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="6dp"
+                    android:layout_weight="1"
                     android:textColor="#D1B65C"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     tools:text="56.7" />
 
-            </LinearLayout>
+                <!-- Contributors + comparisons stacked on the right -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="end"
+                    android:orientation="vertical">
 
-            <!-- Stats: contributors and comparisons -->
-            <org.schabi.newpipe.views.NewPipeTextView
-                android:id="@+id/tournesol_stats"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:textSize="@dimen/video_item_detail_description_text_size"
-                tools:text="30 contributors · 113 comparisons" />
+                    <org.schabi.newpipe.views.NewPipeTextView
+                        android:id="@+id/tournesol_contributors"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="@dimen/video_item_detail_description_text_size"
+                        tools:text="30 contributors" />
+
+                    <org.schabi.newpipe.views.NewPipeTextView
+                        android:id="@+id/tournesol_comparisons"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="@dimen/video_item_detail_description_text_size"
+                        tools:text="113 comparisons" />
+
+                </LinearLayout>
+
+            </LinearLayout>
 
             <!-- Unsafe warning (shown only when flagged) -->
             <org.schabi.newpipe.views.NewPipeTextView

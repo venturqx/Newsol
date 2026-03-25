@@ -96,6 +96,7 @@ object TournesolHelper {
             "3_months" -> cal.add(Calendar.MONTH, -3)
             "month" -> cal.add(Calendar.MONTH, -1)
             "week" -> cal.add(Calendar.WEEK_OF_YEAR, -1)
+            "day" -> cal.add(Calendar.DAY_OF_YEAR, -1)
         }
 
         val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)

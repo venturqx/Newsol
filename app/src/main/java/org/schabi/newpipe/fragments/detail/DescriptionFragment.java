@@ -232,8 +232,10 @@ public class DescriptionFragment extends BaseDescriptionFragment {
                 String.format(Locale.US, "%.1f", tournesolScore));
 
         // Set stats
-        binding.tournesolStats.setText(
-                getString(R.string.tournesol_detail_stats, nContributors, nComparisons));
+        binding.tournesolContributors.setText(
+                getString(R.string.tournesol_detail_contributors, nContributors));
+        binding.tournesolComparisons.setText(
+                getString(R.string.tournesol_detail_comparisons, nComparisons));
 
         // Check unsafe status
         final JSONObject unsafe = collectiveRating.optJSONObject("unsafe");

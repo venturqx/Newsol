@@ -160,7 +160,8 @@ private fun TournesolFilterSheet(
             FilterOption("year", R.string.date_last_year),
             FilterOption("3_months", R.string.date_last_3_months),
             FilterOption("month", R.string.date_last_month),
-            FilterOption("week", R.string.date_last_week)
+            FilterOption("week", R.string.date_last_week),
+            FilterOption("day", R.string.date_last_day)
         )
     }
 

@@ -429,6 +429,14 @@
     <string name="date_last_3_months">Less than 3 months</string>
     <string name="date_last_month">Less than 1 month</string>
     <string name="date_last_week">Less than 1 week</string>
+    <string name="date_last_day">Less than 1 day</string>
+    <string name="date_short_day">Daily</string>
+    <string name="date_short_week">Weekly</string>
+    <string name="date_short_month">Monthly</string>
+    <string name="date_short_3_months">3Monthly</string>
+    <string name="date_short_year">Yearly</string>
+    <string name="filter_advanced">Advanced</string>
+    <string name="filter_unsafe_short">Unsafe</string>
     <string name="apply">Apply</string>
 
     <!-- Language names for Tournesol filter -->
@@ -451,7 +459,8 @@
     <string name="tournesol_login_failed_with_message">Login failed: %1$s</string>
     <string name="tournesol_auth_cancelled">Tournesol auth cancelled</string>
     <string name="tournesol_score_label">%1$s</string>
-    <string name="tournesol_detail_stats">%1$d contributors · %2$d comparisons</string>
+    <string name="tournesol_detail_contributors">%1$d contributors</string>
+    <string name="tournesol_detail_comparisons">%1$d comparisons</string>
     <string name="tournesol_detail_unsafe_warning">⚠ Flagged as unsafe</string>
     <string name="tournesol_criteria_reliability">Reliable &amp; not misleading</string>
     <string name="tournesol_criteria_importance">Important &amp; actionable</string>
