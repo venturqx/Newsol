@@ -3,5 +3,8 @@
     <color name="tournesol_filter_accent">#BC211D</color>
     <color name="tournesol_chip_unchecked">#777777</color>
     <color name="tournesol_chip_stroke">#40808080</color>
-    <color name="tournesol_divider">#1F000000</color>
+    <color name="tournesol_chip_bg_unselected">#262626</color>
+    <color name="tournesol_chip_bg_selected">#F1F1F1</color>
+    <color name="tournesol_chip_text_selected">#0F0F0F</color>
+    <color name="tournesol_divider">#404040</color>
 </resources>

@@ -155,14 +155,21 @@
 
     <style name="RouterActivityThemeDark" parent="Base.RouterActivityThemeDark" />
 
+    <style name="TextAppearance.Chip.Tournesol" parent="TextAppearance.MaterialComponents.Chip">
+        <item name="android:fontFamily">sans-serif-condensed-medium</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:letterSpacing">0.04</item>
+    </style>
+
     <style name="Widget.NewPipe.Chip.Filter" parent="Widget.MaterialComponents.Chip.Filter">
         <item name="chipBackgroundColor">@color/tournesol_chip_background_color</item>
         <item name="chipSurfaceColor">@android:color/transparent</item>
         <item name="android:textColor">@color/tournesol_chip_text_color</item>
+        <item name="android:textAppearance">@style/TextAppearance.Chip.Tournesol</item>
         <item name="chipStrokeColor">@color/tournesol_chip_stroke_color</item>
         <item name="chipStrokeWidth">0dp</item>
-        <item name="chipMinHeight">32dp</item>
-        <item name="chipCornerRadius">16dp</item>
+        <item name="chipMinHeight">36dp</item>
+        <item name="chipCornerRadius">8dp</item>
         <item name="chipMinTouchTargetSize">0dp</item>
         <item name="checkedIconVisible">false</item>
     </style>
