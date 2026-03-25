@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -39,7 +41,9 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import org.schabi.newpipe.R
@@ -195,91 +199,97 @@ private fun TournesolFilterSheet(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = stringResource(R.string.filter_content),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            FilterChip(
-                selected = includeLowScoreVideos,
-                onClick = {
-                    includeLowScoreVideos = !includeLowScoreVideos
-                    onApply(selectedLanguages.toList(), selectedDateKey, includeLowScoreVideos)
-                },
-                label = { Text(text = stringResource(R.string.include_low_score_videos)) },
-                colors = chipColors,
-                border = null
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = stringResource(R.string.filter_languages),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                languageOptions.forEach { option ->
-                    val isSelected = selectedLanguages.contains(option.key)
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = {
-                            if (isSelected) {
-                                selectedLanguages.remove(option.key)
-                            } else {
-                                selectedLanguages.add(option.key)
-                            }
-                            onApply(
-                                selectedLanguages.toList(),
-                                selectedDateKey,
-                                includeLowScoreVideos
-                            )
-                        },
-                        label = { Text(text = stringResource(option.labelResId)) },
-                        colors = chipColors,
-                        border = null
-                    )
-                }
+            FilterSection(stringResource(R.string.filter_content)) {
+                FilterChip(
+                    selected = includeLowScoreVideos,
+                    onClick = {
+                        includeLowScoreVideos = !includeLowScoreVideos
+                        onApply(selectedLanguages.toList(), selectedDateKey, includeLowScoreVideos)
+                    },
+                    label = { Text(text = stringResource(R.string.include_low_score_videos)) },
+                    colors = chipColors,
+                    border = null
+                )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = stringResource(R.string.filter_date),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                dateOptions.forEach { option ->
-                    val isSelected = selectedDateKey == option.key
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = {
-                            if (!isSelected) {
-                                selectedDateKey = option.key
+            Spacer(modifier = Modifier.height(12.dp))
+            FilterSection(stringResource(R.string.filter_languages)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    languageOptions.forEach { option ->
+                        val isSelected = selectedLanguages.contains(option.key)
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                if (isSelected) {
+                                    selectedLanguages.remove(option.key)
+                                } else {
+                                    selectedLanguages.add(option.key)
+                                }
                                 onApply(
                                     selectedLanguages.toList(),
                                     selectedDateKey,
                                     includeLowScoreVideos
                                 )
-                            }
-                        },
-                        label = { Text(text = stringResource(option.labelResId)) },
-                        colors = chipColors,
-                        border = null
-                    )
+                            },
+                            label = { Text(text = stringResource(option.labelResId)) },
+                            colors = chipColors,
+                            border = null
+                        )
+                    }
                 }
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            FilterSection(stringResource(R.string.filter_date)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    dateOptions.forEach { option ->
+                        val isSelected = selectedDateKey == option.key
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                if (!isSelected) {
+                                    selectedDateKey = option.key
+                                    onApply(
+                                        selectedLanguages.toList(),
+                                        selectedDateKey,
+                                        includeLowScoreVideos
+                                    )
+                                }
+                            },
+                            label = { Text(text = stringResource(option.labelResId)) },
+                            colors = chipColors,
+                            border = null
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FilterSection(title: String, content: @Composable () -> Unit) {
+    Text(
+        text = title.uppercase(),
+        fontSize = 11.sp,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = 1.sp,
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+        modifier = Modifier.padding(bottom = 8.dp)
+    )
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Box(modifier = Modifier.padding(12.dp)) {
+            content()
         }
     }
 }
