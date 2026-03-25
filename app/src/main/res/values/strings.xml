@@ -430,11 +430,11 @@
     <string name="date_last_month">Less than 1 month</string>
     <string name="date_last_week">Less than 1 week</string>
     <string name="date_last_day">Less than 1 day</string>
-    <string name="date_short_day">Daily</string>
-    <string name="date_short_week">Weekly</string>
-    <string name="date_short_month">Monthly</string>
-    <string name="date_short_3_months">3Monthly</string>
-    <string name="date_short_year">Yearly</string>
+    <string name="date_short_day">1D</string>
+    <string name="date_short_week">1W</string>
+    <string name="date_short_month">1M</string>
+    <string name="date_short_3_months">3M</string>
+    <string name="date_short_year">1Y</string>
     <string name="filter_advanced">Advanced</string>
     <string name="filter_unsafe_short">Unsafe</string>
     <string name="apply">Apply</string>
