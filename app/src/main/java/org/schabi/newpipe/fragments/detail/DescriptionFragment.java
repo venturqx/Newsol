@@ -5,10 +5,12 @@ import static org.schabi.newpipe.util.Localization.getAppLocale;
 
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -64,6 +66,21 @@ public class DescriptionFragment extends BaseDescriptionFragment {
         m.put("backfire_risk", R.string.tournesol_criteria_backfire_risk);
         m.put("better_habits", R.string.tournesol_criteria_better_habits);
         CRITERIA_LABEL_MAP = Collections.unmodifiableMap(m);
+    }
+
+    private static final Map<String, Integer> CRITERIA_ICON_MAP;
+    static {
+        final Map<String, Integer> m = new LinkedHashMap<>();
+        m.put("reliability", R.drawable.reliability);
+        m.put("importance", R.drawable.importance);
+        m.put("engaging", R.drawable.engaging);
+        m.put("pedagogy", R.drawable.pedagogy);
+        m.put("layman_friendly", R.drawable.layman_friendly);
+        m.put("entertaining_relaxing", R.drawable.entertaining_relaxing);
+        m.put("diversity_inclusion", R.drawable.diversity_inclusion);
+        m.put("backfire_risk", R.drawable.backfire_risk);
+        m.put("better_habits", R.drawable.better_habits);
+        CRITERIA_ICON_MAP = Collections.unmodifiableMap(m);
     }
 
     private final CompositeDisposable tournesolDisposables = new CompositeDisposable();
@@ -275,7 +292,7 @@ public class DescriptionFragment extends BaseDescriptionFragment {
             final String label = labelRes != null
                     ? getString(labelRes)
                     : criteria.replace("_", " ");
-            entries.add(new CriterionEntry(label, score));
+            entries.add(new CriterionEntry(criteria, label, score));
         }
 
         // Sort by score descending
@@ -284,9 +301,15 @@ public class DescriptionFragment extends BaseDescriptionFragment {
         // Create rows
         for (final CriterionEntry entry : entries) {
             binding.tournesolCriteriaContainer.addView(
-                    createCriterionRow(entry.label, entry.score));
+                    createCriterionRow(entry.id, entry.label, entry.score));
         }
     }
+
+    private static final int BAR_MAX_WIDTH_DP = 80;
+    private static final int BAR_HEIGHT_DP = 10;
+    private static final int BAR_CORNER_RADIUS_DP = 4;
+    private static final int BAR_LEFT_BORDER_WIDTH_DP = 2;
+    private static final double BAR_MAX_SCORE = 50.0;
 
     private View createCriterionRow(final String label, final double score) {
         final LinearLayout row = new LinearLayout(requireContext());
@@ -307,13 +330,49 @@ public class DescriptionFragment extends BaseDescriptionFragment {
         labelView.setLayoutParams(labelParams);
         row.addView(labelView);
 
+        // Bar area
+        final LinearLayout barArea = new LinearLayout(requireContext());
+        barArea.setOrientation(LinearLayout.HORIZONTAL);
+        barArea.setGravity(Gravity.CENTER_VERTICAL);
+        row.addView(barArea);
+
+        final int scoreColor = score >= 0 ? TOURNESOL_SCORE_COLOR : TOURNESOL_UNSAFE_COLOR;
+        final int barHeight = dpToPx(BAR_HEIGHT_DP);
+
+        // Left border "|" — always visible
+        final View leftBorder = new View(requireContext());
+        leftBorder.setBackgroundColor(scoreColor);
+        leftBorder.setLayoutParams(new LinearLayout.LayoutParams(
+                dpToPx(BAR_LEFT_BORDER_WIDTH_DP), barHeight));
+        barArea.addView(leftBorder);
+
+        // Bar "====" — only if score > 0
+        final double clamped = Math.max(0, Math.min(BAR_MAX_SCORE, score));
+        if (clamped > 0) {
+            final View bar = new View(requireContext());
+            final GradientDrawable drawable = new GradientDrawable();
+            drawable.setColor(TOURNESOL_SCORE_COLOR);
+            final float r = dpToPx(BAR_CORNER_RADIUS_DP);
+            // top-left, top-right, bottom-right, bottom-left (x,y each)
+            drawable.setCornerRadii(new float[]{0, 0, r, r, r, r, 0, 0});
+            bar.setBackground(drawable);
+            final int barWidth = (int) (dpToPx(BAR_MAX_WIDTH_DP) * clamped / BAR_MAX_SCORE);
+            bar.setLayoutParams(new LinearLayout.LayoutParams(barWidth, barHeight));
+            barArea.addView(bar);
+        }
+
         // Score value
         final TextView scoreView = new TextView(requireContext());
         scoreView.setText(String.format(Locale.US, "%.1f", score));
         scoreView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         scoreView.setTypeface(null, Typeface.BOLD);
-        scoreView.setTextColor(score >= 0 ? TOURNESOL_SCORE_COLOR : TOURNESOL_UNSAFE_COLOR);
-        row.addView(scoreView);
+        scoreView.setTextColor(scoreColor);
+        final LinearLayout.LayoutParams scoreParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        scoreParams.leftMargin = dpToPx(3);
+        scoreView.setLayoutParams(scoreParams);
+        barArea.addView(scoreView);
 
         return row;
     }
@@ -354,10 +413,12 @@ public class DescriptionFragment extends BaseDescriptionFragment {
     }
 
     private static class CriterionEntry {
+        final String id;
         final String label;
         final double score;
 
-        CriterionEntry(final String label, final double score) {
+        CriterionEntry(final String id, final String label, final double score) {
+            this.id = id;
             this.label = label;
             this.score = score;
         }
