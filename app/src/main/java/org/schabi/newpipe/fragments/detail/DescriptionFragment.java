@@ -299,23 +299,33 @@ public class DescriptionFragment extends BaseDescriptionFragment {
         // Sort by score descending
         entries.sort((a, b) -> Double.compare(b.score, a.score));
 
-        // Measure the widest label so all rows share the same label column width
-        final TextPaint measurePaint = new TextPaint();
-        measurePaint.setTextSize(TypedValue.applyDimension(
+        // Measure the widest label and widest score so columns align
+        final TextPaint labelPaint = new TextPaint();
+        labelPaint.setTextSize(TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_SP, 12,
                 requireContext().getResources().getDisplayMetrics()));
+        final TextPaint scorePaint = new TextPaint();
+        scorePaint.setTextSize(labelPaint.getTextSize());
+        scorePaint.setTypeface(Typeface.DEFAULT_BOLD);
         int maxLabelWidth = 0;
+        int maxScoreWidth = 0;
         for (final CriterionEntry entry : entries) {
-            final int w = (int) Math.ceil(measurePaint.measureText(entry.label));
-            if (w > maxLabelWidth) {
-                maxLabelWidth = w;
+            final int lw = (int) Math.ceil(labelPaint.measureText(entry.label));
+            if (lw > maxLabelWidth) {
+                maxLabelWidth = lw;
+            }
+            final String scoreText = String.format(Locale.US, "%.1f", entry.score);
+            final int sw = (int) Math.ceil(scorePaint.measureText(scoreText));
+            if (sw > maxScoreWidth) {
+                maxScoreWidth = sw;
             }
         }
 
         // Create rows
         for (final CriterionEntry entry : entries) {
             binding.tournesolCriteriaContainer.addView(
-                    createCriterionRow(entry.id, entry.label, entry.score, maxLabelWidth));
+                    createCriterionRow(entry.id, entry.label, entry.score,
+                            maxLabelWidth, maxScoreWidth));
         }
     }
 
@@ -325,7 +335,8 @@ public class DescriptionFragment extends BaseDescriptionFragment {
     private static final double BAR_MAX_SCORE = 50.0;
 
     private View createCriterionRow(final String id, final String label,
-                                     final double score, final int labelWidth) {
+                                     final double score, final int labelWidth,
+                                     final int scoreWidth) {
         final LinearLayout row = new LinearLayout(requireContext());
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -387,12 +398,15 @@ public class DescriptionFragment extends BaseDescriptionFragment {
                 dpToPx(BAR_BORDER_WIDTH_DP), barHeight));
         barContainer.addView(rightBorder);
 
-        // Score value
+        // Score value — fixed width (widest score), right-aligned
         final TextView scoreView = new TextView(requireContext());
         scoreView.setText(String.format(Locale.US, "%.1f", score));
         scoreView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         scoreView.setTypeface(null, Typeface.BOLD);
         scoreView.setTextColor(scoreColor);
+        scoreView.setGravity(Gravity.END);
+        scoreView.setLayoutParams(new LinearLayout.LayoutParams(
+                scoreWidth, LinearLayout.LayoutParams.WRAP_CONTENT));
         row.addView(scoreView);
 
         // Criterion icon
