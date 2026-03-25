@@ -6,6 +6,7 @@ import static org.schabi.newpipe.util.Localization.getAppLocale;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.text.TextPaint;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -298,20 +299,33 @@ public class DescriptionFragment extends BaseDescriptionFragment {
         // Sort by score descending
         entries.sort((a, b) -> Double.compare(b.score, a.score));
 
+        // Measure the widest label so all rows share the same label column width
+        final TextPaint measurePaint = new TextPaint();
+        measurePaint.setTextSize(TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_SP, 12,
+                requireContext().getResources().getDisplayMetrics()));
+        int maxLabelWidth = 0;
+        for (final CriterionEntry entry : entries) {
+            final int w = (int) Math.ceil(measurePaint.measureText(entry.label));
+            if (w > maxLabelWidth) {
+                maxLabelWidth = w;
+            }
+        }
+
         // Create rows
         for (final CriterionEntry entry : entries) {
             binding.tournesolCriteriaContainer.addView(
-                    createCriterionRow(entry.id, entry.label, entry.score));
+                    createCriterionRow(entry.id, entry.label, entry.score, maxLabelWidth));
         }
     }
 
-    private static final int BAR_MAX_WIDTH_DP = 80;
     private static final int BAR_HEIGHT_DP = 10;
     private static final int BAR_CORNER_RADIUS_DP = 4;
-    private static final int BAR_LEFT_BORDER_WIDTH_DP = 2;
+    private static final int BAR_BORDER_WIDTH_DP = 2;
     private static final double BAR_MAX_SCORE = 50.0;
 
-    private View createCriterionRow(final String label, final double score) {
+    private View createCriterionRow(final String id, final String label,
+                                     final double score, final int labelWidth) {
         final LinearLayout row = new LinearLayout(requireContext());
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -321,45 +335,57 @@ public class DescriptionFragment extends BaseDescriptionFragment {
         rowParams.topMargin = dpToPx(3);
         row.setLayoutParams(rowParams);
 
-        // Criterion label
+        // Criterion label — fixed width (widest label) so bar area is uniform
         final TextView labelView = new TextView(requireContext());
         labelView.setText(label);
         labelView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        final LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-        labelView.setLayoutParams(labelParams);
+        labelView.setLayoutParams(new LinearLayout.LayoutParams(
+                labelWidth, LinearLayout.LayoutParams.WRAP_CONTENT));
         row.addView(labelView);
 
-        // Bar area
-        final LinearLayout barArea = new LinearLayout(requireContext());
-        barArea.setOrientation(LinearLayout.HORIZONTAL);
-        barArea.setGravity(Gravity.CENTER_VERTICAL);
-        row.addView(barArea);
+        // Bar container — fills remaining space, bar is RIGHT-aligned inside
+        final LinearLayout barContainer = new LinearLayout(requireContext());
+        barContainer.setOrientation(LinearLayout.HORIZONTAL);
+        barContainer.setGravity(Gravity.CENTER_VERTICAL);
+        final LinearLayout.LayoutParams barContainerParams = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        barContainerParams.leftMargin = dpToPx(4);
+        barContainerParams.rightMargin = dpToPx(4);
+        barContainer.setLayoutParams(barContainerParams);
+        row.addView(barContainer);
 
         final int scoreColor = score >= 0 ? TOURNESOL_SCORE_COLOR : TOURNESOL_UNSAFE_COLOR;
         final int barHeight = dpToPx(BAR_HEIGHT_DP);
-
-        // Left border "|" — always visible
-        final View leftBorder = new View(requireContext());
-        leftBorder.setBackgroundColor(scoreColor);
-        leftBorder.setLayoutParams(new LinearLayout.LayoutParams(
-                dpToPx(BAR_LEFT_BORDER_WIDTH_DP), barHeight));
-        barArea.addView(leftBorder);
-
-        // Bar "====" — only if score > 0
+        final float r = dpToPx(BAR_CORNER_RADIUS_DP);
         final double clamped = Math.max(0, Math.min(BAR_MAX_SCORE, score));
+
+        // Left spacer — pushes bar+border to the right
+        if (clamped < BAR_MAX_SCORE) {
+            final View spacer = new View(requireContext());
+            spacer.setLayoutParams(new LinearLayout.LayoutParams(
+                    0, barHeight, (float) (BAR_MAX_SCORE - clamped)));
+            barContainer.addView(spacer);
+        }
+
+        // Bar — grows leftward (rounded left end, flat right end against border)
         if (clamped > 0) {
             final View bar = new View(requireContext());
             final GradientDrawable drawable = new GradientDrawable();
             drawable.setColor(TOURNESOL_SCORE_COLOR);
-            final float r = dpToPx(BAR_CORNER_RADIUS_DP);
-            // top-left, top-right, bottom-right, bottom-left (x,y each)
-            drawable.setCornerRadii(new float[]{0, 0, r, r, r, r, 0, 0});
+            // Rounded left, flat right
+            drawable.setCornerRadii(new float[]{r, r, 0, 0, 0, 0, r, r});
             bar.setBackground(drawable);
-            final int barWidth = (int) (dpToPx(BAR_MAX_WIDTH_DP) * clamped / BAR_MAX_SCORE);
-            bar.setLayoutParams(new LinearLayout.LayoutParams(barWidth, barHeight));
-            barArea.addView(bar);
+            bar.setLayoutParams(new LinearLayout.LayoutParams(
+                    0, barHeight, (float) clamped));
+            barContainer.addView(bar);
         }
+
+        // Right border "|" — flat edge, always visible
+        final View rightBorder = new View(requireContext());
+        rightBorder.setBackgroundColor(scoreColor);
+        rightBorder.setLayoutParams(new LinearLayout.LayoutParams(
+                dpToPx(BAR_BORDER_WIDTH_DP), barHeight));
+        barContainer.addView(rightBorder);
 
         // Score value
         final TextView scoreView = new TextView(requireContext());
@@ -367,12 +393,20 @@ public class DescriptionFragment extends BaseDescriptionFragment {
         scoreView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         scoreView.setTypeface(null, Typeface.BOLD);
         scoreView.setTextColor(scoreColor);
-        final LinearLayout.LayoutParams scoreParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT);
-        scoreParams.leftMargin = dpToPx(3);
-        scoreView.setLayoutParams(scoreParams);
-        barArea.addView(scoreView);
+        row.addView(scoreView);
+
+        // Criterion icon
+        final Integer iconRes = CRITERIA_ICON_MAP.get(id);
+        if (iconRes != null) {
+            final ImageView icon = new ImageView(requireContext());
+            icon.setImageResource(iconRes);
+            final int iconSize = dpToPx(14);
+            final LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(
+                    iconSize, iconSize);
+            iconParams.leftMargin = dpToPx(3);
+            icon.setLayoutParams(iconParams);
+            row.addView(icon);
+        }
 
         return row;
     }
