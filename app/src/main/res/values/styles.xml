@@ -174,7 +174,7 @@
         <item name="checkedIconVisible">false</item>
     </style>
 
-    <style name="Theme.TournesolFilter.Light" parent="Theme.MaterialComponents.Light.NoActionBar">
+<style name="Theme.TournesolFilter.Light" parent="Theme.MaterialComponents.Light.NoActionBar">
         <item name="android:textColorPrimary">@color/light_license_text_color</item>
         <item name="android:textColorSecondary">@color/light_license_text_color</item>
         <item name="colorPrimary">@color/light_youtube_primary_color</item>

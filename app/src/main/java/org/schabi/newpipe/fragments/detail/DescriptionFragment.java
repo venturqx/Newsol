@@ -58,14 +58,14 @@ public class DescriptionFragment extends BaseDescriptionFragment {
     static {
         final Map<String, Integer> m = new LinkedHashMap<>();
         m.put("reliability", R.string.tournesol_criteria_reliability);
-        m.put("importance", R.string.tournesol_criteria_importance);
-        m.put("engaging", R.string.tournesol_criteria_engaging);
         m.put("pedagogy", R.string.tournesol_criteria_pedagogy);
+        m.put("importance", R.string.tournesol_criteria_importance);
         m.put("layman_friendly", R.string.tournesol_criteria_layman_friendly);
         m.put("entertaining_relaxing", R.string.tournesol_criteria_entertaining_relaxing);
+        m.put("engaging", R.string.tournesol_criteria_engaging);
         m.put("diversity_inclusion", R.string.tournesol_criteria_diversity_inclusion);
-        m.put("backfire_risk", R.string.tournesol_criteria_backfire_risk);
         m.put("better_habits", R.string.tournesol_criteria_better_habits);
+        m.put("backfire_risk", R.string.tournesol_criteria_backfire_risk);
         CRITERIA_LABEL_MAP = Collections.unmodifiableMap(m);
     }
 
@@ -73,14 +73,14 @@ public class DescriptionFragment extends BaseDescriptionFragment {
     static {
         final Map<String, Integer> m = new LinkedHashMap<>();
         m.put("reliability", R.drawable.reliability);
-        m.put("importance", R.drawable.importance);
-        m.put("engaging", R.drawable.engaging);
         m.put("pedagogy", R.drawable.pedagogy);
+        m.put("importance", R.drawable.importance);
         m.put("layman_friendly", R.drawable.layman_friendly);
         m.put("entertaining_relaxing", R.drawable.entertaining_relaxing);
+        m.put("engaging", R.drawable.engaging);
         m.put("diversity_inclusion", R.drawable.diversity_inclusion);
-        m.put("backfire_risk", R.drawable.backfire_risk);
         m.put("better_habits", R.drawable.better_habits);
+        m.put("backfire_risk", R.drawable.backfire_risk);
         CRITERIA_ICON_MAP = Collections.unmodifiableMap(m);
     }
 
@@ -296,8 +296,19 @@ public class DescriptionFragment extends BaseDescriptionFragment {
             entries.add(new CriterionEntry(criteria, label, score));
         }
 
-        // Sort by score descending
-        entries.sort((a, b) -> Double.compare(b.score, a.score));
+        // Sort by fixed criteria order (matching compare view)
+        final List<String> keyOrder = new ArrayList<>(CRITERIA_LABEL_MAP.keySet());
+        entries.sort((a, b) -> {
+            int ia = keyOrder.indexOf(a.id);
+            int ib = keyOrder.indexOf(b.id);
+            if (ia < 0) {
+                ia = Integer.MAX_VALUE;
+            }
+            if (ib < 0) {
+                ib = Integer.MAX_VALUE;
+            }
+            return Integer.compare(ia, ib);
+        });
 
         // Measure the widest label and widest score so columns align
         final TextPaint labelPaint = new TextPaint();

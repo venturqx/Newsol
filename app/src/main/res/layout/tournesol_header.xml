@@ -23,6 +23,11 @@
             android:id="@+id/quick_date_chips"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:background="@drawable/bg_chip_group"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
             app:singleLine="true"
             app:chipSpacingHorizontal="8dp"
             app:singleSelection="true"
@@ -65,18 +70,12 @@
 
         </com.google.android.material.chip.ChipGroup>
 
-        <View
-            android:layout_width="1dp"
-            android:layout_height="24dp"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="12dp"
-            android:background="@color/tournesol_divider" />
-
         <com.google.android.material.chip.Chip
             android:id="@+id/chip_unsafe"
             style="@style/Widget.NewPipe.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
             android:checkable="true"
             android:text="@string/filter_unsafe_short" />
 
