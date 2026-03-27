@@ -27,7 +27,7 @@ import androidx.annotation.Nullable;
 import java.util.concurrent.TimeUnit;
 
 public class StreamMiniInfoItemHolder extends InfoItemHolder {
-    private static final int TOURNESOL_SCORE_COLOR = Color.parseColor("#D1B65C");
+    private static final int TOURNESOL_SCORE_COLOR = Color.parseColor("#ffc800");
 
     public final ImageView itemThumbnailView;
     public final TextView itemVideoTitleView;

@@ -10,7 +10,6 @@ import static com.google.android.material.tabs.TabLayout.INDICATOR_GRAVITY_TOP;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -323,7 +322,7 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
 
         @ColorInt final int iconColor = bottom
                 ? ThemeHelper.resolveColorFromAttr(requireContext(), android.R.attr.colorAccent)
-                : Color.WHITE;
+                : ThemeHelper.resolveColorFromAttr(requireContext(), R.attr.actionColor);
         tabLayout.setTabRippleColor(ColorStateList.valueOf(iconColor).withAlpha(32));
         tabLayout.setTabIconTint(ColorStateList.valueOf(iconColor));
         tabLayout.setSelectedTabIndicatorColor(iconColor);
