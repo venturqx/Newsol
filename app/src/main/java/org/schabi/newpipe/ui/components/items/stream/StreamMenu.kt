@@ -1,11 +1,16 @@
 package org.schabi.newpipe.ui.components.items.stream
 
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import org.schabi.newpipe.R
 import org.schabi.newpipe.database.stream.model.StreamEntity
@@ -29,7 +34,11 @@ fun StreamMenu(
     val context = LocalContext.current
     val streamViewModel = viewModel<StreamViewModel>()
 
-    DropdownMenu(expanded = expanded, onDismissRequest = onDismissRequest) {
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismissRequest,
+        modifier = Modifier.border(1.dp, Color(0xFF2A2A2A), RoundedCornerShape(4.dp))
+    ) {
         if (PlayerHolder.isPlayQueueReady) {
             DropdownMenuItem(
                 text = { Text(text = stringResource(R.string.enqueue_stream)) },

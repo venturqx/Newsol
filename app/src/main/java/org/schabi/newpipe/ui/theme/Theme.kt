@@ -86,7 +86,7 @@ private val darkScheme = darkColorScheme(
     surfaceTint = Color.Transparent
 )
 
-private val blackScheme = darkScheme.copy(surface = Color.Black, surfaceTint = Color.Transparent)
+private val blackScheme = darkScheme.copy(surface = Color(0xFF080808), surfaceTint = Color.Transparent)
 
 @Composable
 fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
