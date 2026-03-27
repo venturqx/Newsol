@@ -1,6 +1,7 @@
 package org.schabi.newpipe.fragments.list.kiosk
 
 import android.app.Dialog
+import android.graphics.Typeface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -35,13 +36,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -134,13 +138,17 @@ private fun TournesolFilterSheet(
     onApply: (List<String>, String, Boolean) -> Unit,
     onClose: () -> Unit
 ) {
-    val chipSelectedColor = colorResource(R.color.tournesol_filter_accent)
-    val chipStrokeColor = colorResource(R.color.tournesol_chip_stroke)
     val chipColors = FilterChipDefaults.filterChipColors(
-        selectedContainerColor = chipSelectedColor,
-        containerColor = Color.Transparent,
-        selectedLabelColor = Color.White,
+        selectedContainerColor = colorResource(R.color.tournesol_chip_bg_selected),
+        containerColor = colorResource(R.color.tournesol_chip_bg_unselected),
+        selectedLabelColor = colorResource(R.color.tournesol_chip_text_selected),
         labelColor = MaterialTheme.colorScheme.onSurface
+    )
+    val chipShape = RoundedCornerShape(8.dp)
+    val chipTextStyle = TextStyle(
+        fontFamily = FontFamily(Typeface.create("sans-serif-condensed-medium", Typeface.NORMAL)),
+        fontSize = 15.sp,
+        letterSpacing = TextUnit(0.04f, TextUnitType.Em)
     )
     val selectedLanguages = remember {
         mutableStateListOf<String>().apply { addAll(initialLanguages) }
@@ -206,8 +214,9 @@ private fun TournesolFilterSheet(
                         includeLowScoreVideos = !includeLowScoreVideos
                         onApply(selectedLanguages.toList(), selectedDateKey, includeLowScoreVideos)
                     },
-                    label = { Text(text = stringResource(R.string.include_low_score_videos)) },
+                    label = { Text(text = stringResource(R.string.include_low_score_videos), style = chipTextStyle) },
                     colors = chipColors,
+                    shape = chipShape,
                     border = null
                 )
             }
@@ -234,8 +243,9 @@ private fun TournesolFilterSheet(
                                     includeLowScoreVideos
                                 )
                             },
-                            label = { Text(text = stringResource(option.labelResId)) },
+                            label = { Text(text = stringResource(option.labelResId), style = chipTextStyle) },
                             colors = chipColors,
+                            shape = chipShape,
                             border = null
                         )
                     }
@@ -262,8 +272,9 @@ private fun TournesolFilterSheet(
                                     )
                                 }
                             },
-                            label = { Text(text = stringResource(option.labelResId)) },
+                            label = { Text(text = stringResource(option.labelResId), style = chipTextStyle) },
                             colors = chipColors,
+                            shape = chipShape,
                             border = null
                         )
                     }
@@ -285,7 +296,7 @@ private fun FilterSection(title: String, content: @Composable () -> Unit) {
     )
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
+        color = colorResource(R.color.tournesol_chip_group_bg),
         modifier = Modifier.fillMaxWidth()
     ) {
         Box(modifier = Modifier.padding(12.dp)) {

@@ -82,10 +82,11 @@ private val darkScheme = darkColorScheme(
     surfaceContainerLow = surfaceContainerLowDark,
     surfaceContainer = surfaceContainerDark,
     surfaceContainerHigh = surfaceContainerHighDark,
-    surfaceContainerHighest = surfaceContainerHighestDark
+    surfaceContainerHighest = surfaceContainerHighestDark,
+    surfaceTint = Color.Transparent
 )
 
-private val blackScheme = darkScheme.copy(surface = Color.Black)
+private val blackScheme = darkScheme.copy(surface = Color.Black, surfaceTint = Color.Transparent)
 
 @Composable
 fun AppTheme(useDarkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
