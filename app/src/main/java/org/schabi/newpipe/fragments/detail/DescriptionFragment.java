@@ -50,7 +50,7 @@ import okhttp3.Response;
 public class DescriptionFragment extends BaseDescriptionFragment {
 
     private static final String TOURNESOL_API_BASE = "https://api.tournesol.app";
-    private static final int TOURNESOL_SCORE_COLOR = Color.parseColor("#ffc800");
+    private static final int TOURNESOL_SCORE_COLOR = Color.parseColor("#DBB222");
     private static final int TOURNESOL_UNSAFE_COLOR = Color.parseColor("#E57373");
     private static final int YOUTUBE_SERVICE_ID = 0;
 

@@ -5,8 +5,8 @@
         android:drawable="@color/light_youtube_primary_color"/>
 
     <item
-        android:width="128dp"
-        android:height="128dp"
+        android:width="200dp"
+        android:height="200dp"
         android:gravity="center"
         android:drawable="@drawable/splash_foreground" />
 </layer-list>
