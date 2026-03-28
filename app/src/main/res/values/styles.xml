@@ -19,8 +19,8 @@
         <item name="floatingActionButtonStyle">@style/FloatingActionButtonTheme</item>
         <item name="toolbarSearchColor">#080808</item>
         <item name="colorControlActivated">?attr/colorPrimary</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="android:statusBarColor">?attr/colorPrimary</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">@color/tournesol_chip_group_bg</item>
     </style>
     <style name="Base" parent="Base.V21"/>
 

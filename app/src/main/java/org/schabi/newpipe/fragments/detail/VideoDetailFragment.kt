@@ -1864,9 +1864,9 @@ class VideoDetailFragment :
         }
         activity.window.decorView.systemUiVisibility = 0
         activity.window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-        activity.window.statusBarColor = ThemeHelper.resolveColorFromAttr(
+        activity.window.statusBarColor = androidx.core.content.ContextCompat.getColor(
             requireContext(),
-            android.R.attr.colorPrimary
+            R.color.tournesol_chip_group_bg
         )
     }
 
