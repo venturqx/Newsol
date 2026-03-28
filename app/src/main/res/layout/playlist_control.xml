@@ -21,9 +21,10 @@
             android:layout_height="wrap_content"
             android:drawableStart="@drawable/ic_headset"
             android:drawablePadding="4dp"
+            android:drawableTint="@color/tournesol_soft_white"
             android:gravity="center_vertical"
             android:text="@string/controls_background_title"
-            android:textColor="?attr/colorAccent"
+            android:textColor="@color/tournesol_soft_white"
             android:textSize="@dimen/channel_rss_title_size" />
     </LinearLayout>
 
@@ -50,9 +51,10 @@
             android:layout_height="wrap_content"
             android:drawableStart="@drawable/ic_playlist_play"
             android:drawablePadding="4dp"
+            android:drawableTint="@color/tournesol_soft_white"
             android:gravity="center_vertical"
             android:text="@string/play_all"
-            android:textColor="?attr/colorAccent"
+            android:textColor="@color/tournesol_soft_white"
             android:textSize="@dimen/channel_rss_title_size" />
     </LinearLayout>
 
@@ -79,9 +81,10 @@
             android:layout_height="wrap_content"
             android:drawableStart="@drawable/ic_picture_in_picture"
             android:drawablePadding="4dp"
+            android:drawableTint="@color/tournesol_soft_white"
             android:gravity="center_vertical"
             android:text="@string/controls_popup_title"
-            android:textColor="?attr/colorAccent"
+            android:textColor="@color/tournesol_soft_white"
             android:textSize="@dimen/channel_rss_title_size" />
     </LinearLayout>
 </LinearLayout>

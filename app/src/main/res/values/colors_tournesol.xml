@@ -9,4 +9,5 @@
     <color name="tournesol_divider">#404040</color>
 
     <color name="tournesol_chip_group_bg">#080808</color>
+    <color name="tournesol_soft_white">#E8E3DB</color>
 </resources>
