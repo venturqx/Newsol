@@ -50,7 +50,7 @@
 
     <!-- Miscellaneous -->
     <color name="queue_background_color">@color/dark_queue_background_color</color>
-    <color name="drawer_header_font_color">#080808</color>
+    <color name="drawer_header_font_color">#FFFFFF</color>
     <color name="duration_background_color">#aa000000</color>
     <color name="live_duration_background_color">#c8FFAB00</color>
     <color name="playlist_stream_count_background_color">#e6000000</color>

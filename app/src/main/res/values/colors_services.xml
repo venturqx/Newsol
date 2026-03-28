@@ -5,7 +5,7 @@
     <color name="light_youtube_accent_color">#000000</color>
 
     <color name="dark_youtube_primary_color">#ffc800</color>
-    <color name="dark_youtube_accent_color">#080808</color>
+    <color name="dark_youtube_accent_color">#FFFFFF</color>
 
     <!-- SoundCloud -->
     <color name="light_soundcloud_primary_color">#f57c00</color>

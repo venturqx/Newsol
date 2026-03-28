@@ -4,17 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?colorPrimary"
+    android:background="?android:attr/windowBackground"
     android:nextFocusDown="@+id/drawer_header_action_button">
-
-    <ImageView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:scaleType="centerCrop"
-        android:src="@drawable/background_header"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:ignore="ContentDescription" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -52,7 +43,7 @@
                 android:hyphenationFrequency="full"
                 android:maxLines="1"
                 android:text="@string/app_name"
-                android:textColor="@color/drawer_header_font_color"
+                android:textColor="#ffc800"
                 android:textStyle="bold"
                 app:autoSizeMaxTextSize="@dimen/drawer_header_newpipe_title_max_text_size"
                 app:autoSizeMinTextSize="@dimen/drawer_header_newpipe_title_min_text_size"
