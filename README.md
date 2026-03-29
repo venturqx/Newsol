@@ -1,7 +1,7 @@
 # Ufonirpt
 
 Unofficial fork of NewPipe integrating recommendations powered by Tournesol.
-This application is not affiliated with or endorsed by the NewPipe project nor the Tournesol project."
+This application is not affiliated with or endorsed by the NewPipe project nor the Tournesol project.
 
 ![Screenshots](assets/ufonirpt-screens.png)
 
@@ -10,7 +10,7 @@ This application is not affiliated with or endorsed by the NewPipe project nor t
 1) Clone with submodules:
 
 ```bash
-git clone --recurse-submodules <your-repo-url>
+git clone --recurse-submodules https://github.com/venturqx/ufonirpt.git
 ```
 
 2) Build a debug APK:
@@ -18,6 +18,8 @@ git clone --recurse-submodules <your-repo-url>
 ```bash
 ./gradlew :app:assembleDebug
 ```
+
+Note: Gradle - JDK Eclipse Temurin 17
 
 ## Submodules
 
