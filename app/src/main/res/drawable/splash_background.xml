@@ -4,9 +4,9 @@
     <item
         android:drawable="@color/light_youtube_primary_color"/>
 
-    <item>
-        <bitmap
-            android:src="@drawable/ic_newpipe_triangle_white"
-            android:gravity="center_vertical|center_horizontal" />
-    </item>
+    <item
+        android:width="200dp"
+        android:height="200dp"
+        android:gravity="center"
+        android:drawable="@drawable/splash_foreground" />
 </layer-list>

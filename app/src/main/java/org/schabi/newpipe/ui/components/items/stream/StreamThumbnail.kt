@@ -20,27 +20,31 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import org.schabi.newpipe.R
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import org.schabi.newpipe.util.Localization
 import org.schabi.newpipe.util.StreamTypeUtil
 import org.schabi.newpipe.util.image.ImageStrategy
 import org.schabi.newpipe.viewmodels.StreamViewModel
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun StreamThumbnail(
     stream: StreamInfoItem,
     showProgress: Boolean,
+    showDuration: Boolean = true,
+    durationTextStyle: TextStyle? = null,
+    durationAlignment: Alignment = Alignment.BottomEnd,
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Fit
 ) {
     Column(modifier = modifier) {
-        Box(contentAlignment = Alignment.BottomEnd) {
+        Box(contentAlignment = durationAlignment) {
             AsyncImage(
                 model = ImageStrategy.choosePreferredImage(stream.thumbnails),
                 contentDescription = null,
@@ -50,20 +54,22 @@ fun StreamThumbnail(
                 modifier = modifier
             )
 
-            val isLive = StreamTypeUtil.isLiveStream(stream.streamType)
-            Text(
-                modifier = Modifier
-                    .padding(2.dp)
-                    .background(if (isLive) Color.Red else Color.Black.copy(alpha = 0.5f))
-                    .padding(2.dp),
-                text = if (isLive) {
-                    stringResource(R.string.duration_live)
-                } else {
-                    Localization.getDurationString(stream.duration)
-                },
-                color = Color.White,
-                style = MaterialTheme.typography.bodySmall
-            )
+            if (showDuration) {
+                val isLive = StreamTypeUtil.isLiveStream(stream.streamType)
+                Text(
+                    modifier = Modifier
+                        .padding(2.dp)
+                        .background(if (isLive) Color.Red else Color.Black.copy(alpha = 0.5f))
+                        .padding(2.dp),
+                    text = if (isLive) {
+                        stringResource(R.string.duration_live)
+                    } else {
+                        Localization.getDurationString(stream.duration)
+                    },
+                    color = Color.White,
+                    style = durationTextStyle ?: MaterialTheme.typography.bodySmall
+                )
+            }
         }
 
         if (showProgress) {

@@ -3,6 +3,7 @@ package org.schabi.newpipe.fragments.list.kiosk
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import java.util.function.Supplier
 import org.schabi.newpipe.databinding.PlaylistControlBinding
 import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.StreamingService
@@ -15,7 +16,6 @@ import org.schabi.newpipe.player.playqueue.KioskPlayQueue
 import org.schabi.newpipe.player.playqueue.PlayQueue
 import org.schabi.newpipe.util.PlayButtonHelper
 import org.schabi.newpipe.util.TournesolHelper
-import java.util.function.Supplier
 
 class TournesolKioskFragment : KioskFragment(), PlaylistControlViewHolder {
     private var tournesolFilterController: TournesolFilterController? = null
@@ -24,6 +24,9 @@ class TournesolKioskFragment : KioskFragment(), PlaylistControlViewHolder {
     protected override fun getListHeaderSupplier(): Supplier<View> {
         playlistControlBinding = PlaylistControlBinding
             .inflate(requireActivity().layoutInflater, itemsList, false)
+        // Reduce playlist control bar height for Tournesol to match filter bar proportions
+        val compactHeight = (38 * resources.displayMetrics.density).toInt()
+        playlistControlBinding!!.playlistCtrlPlayBgButton.layoutParams.height = compactHeight
         return Supplier { playlistControlBinding!!.root }
     }
 
@@ -36,15 +39,24 @@ class TournesolKioskFragment : KioskFragment(), PlaylistControlViewHolder {
             tournesolFilterController = TournesolFilterController(
                 this,
                 object : TournesolFilterController.Listener {
-                    override fun onFiltersChanged(languages: List<String>, dateKey: String) {
-                        onTournesolFiltersChanged(languages, dateKey)
+                    override fun onFiltersChanged(
+                        languages: List<String>,
+                        dateKey: String,
+                        includeLowScoreVideos: Boolean
+                    ) {
+                        onTournesolFiltersChanged(languages, dateKey, includeLowScoreVideos)
                     }
                 }
             )
         }
         tournesolFilterController?.init(rootView)
         val controller = tournesolFilterController ?: return
-        applyTournesolFilters(controller.getCurrentLanguages(), controller.getCurrentDateKey(), false)
+        applyTournesolFilters(
+            controller.getCurrentLanguages(),
+            controller.getCurrentDateKey(),
+            controller.getCurrentIncludeLowScoreVideos(),
+            false
+        )
     }
 
     override fun onResume() {
@@ -59,16 +71,21 @@ class TournesolKioskFragment : KioskFragment(), PlaylistControlViewHolder {
         super.onDestroyView()
     }
 
-    private fun onTournesolFiltersChanged(languages: List<String>, dateKey: String) {
-        applyTournesolFilters(languages, dateKey, true)
+    private fun onTournesolFiltersChanged(
+        languages: List<String>,
+        dateKey: String,
+        includeLowScoreVideos: Boolean
+    ) {
+        applyTournesolFilters(languages, dateKey, includeLowScoreVideos, true)
     }
 
     private fun applyTournesolFilters(
         languages: List<String>,
         dateKey: String,
+        includeLowScoreVideos: Boolean,
         reload: Boolean
     ) {
-        url = TournesolHelper.buildTournesolUrl(languages, dateKey)
+        url = TournesolHelper.buildTournesolUrl(languages, dateKey, includeLowScoreVideos)
         if (!reload) {
             return
         }

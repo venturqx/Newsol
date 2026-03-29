@@ -39,7 +39,9 @@ class TournesolAuthActivity : AppCompatActivity() {
     private fun handleIntent(intent: Intent) {
         when (intent.action) {
             "START_AUTH" -> startAuth()
+
             "AUTH_COMPLETE" -> handleAuthResponse(intent)
+
             "AUTH_CANCELLED" -> {
                 Toast.makeText(
                     this,

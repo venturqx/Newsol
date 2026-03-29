@@ -60,7 +60,10 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
         }
         final StreamInfoItem item = (StreamInfoItem) infoItem;
 
-        final String details = getStreamInfoDetailLine(item);
+        String details = getStreamInfoDetailLine(item);
+        if (item.getTournesolScore() != null && !TextUtils.isEmpty(details)) {
+            details = "\u2022 " + details;
+        }
         itemAdditionalDetails.setText(details);
         itemAdditionalDetails.setVisibility(
                 TextUtils.isEmpty(details) ? View.GONE : View.VISIBLE);

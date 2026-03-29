@@ -52,6 +52,7 @@
         android:maxLines="2"
         android:layout_marginTop="@dimen/margin_small"
         android:textAppearance="?textAppearanceListItem"
+        android:textColor="@color/video_title_color"
         app:layout_constraintEnd_toEndOf="@id/itemThumbnailView"
         app:layout_constraintStart_toStartOf="@id/itemThumbnailView"
         app:layout_constraintTop_toBottomOf="@id/itemThumbnailView"

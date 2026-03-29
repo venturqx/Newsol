@@ -9,16 +9,18 @@
         <item name="android:windowBackground">@drawable/splash_background</item>
     </style>
     <style name="Base.OpeningTheme" parent="Base.V21.OpeningTheme">
-        <item name="android:navigationBarColor">@color/light_youtube_primary_color</item>
+        <item name="android:navigationBarColor">@android:color/white</item>
     </style>
     <style name="OpeningTheme" parent="Base.OpeningTheme" />
 
     <!-- Base Theme -->
     <style name="Base.V21" parent="Theme.AppCompat.DayNight.NoActionBar">
-        <item name="actionColor">@color/white</item>
+        <item name="actionColor">#FFCA1D</item>
         <item name="floatingActionButtonStyle">@style/FloatingActionButtonTheme</item>
-        <item name="toolbarSearchColor">@color/white</item>
+        <item name="toolbarSearchColor">#FFCA1D</item>
         <item name="colorControlActivated">?attr/colorPrimary</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">@color/tournesol_chip_group_bg</item>
     </style>
     <style name="Base" parent="Base.V21"/>
 
@@ -155,13 +157,26 @@
 
     <style name="RouterActivityThemeDark" parent="Base.RouterActivityThemeDark" />
 
-    <style name="Widget.NewPipe.Chip.Filter" parent="Widget.MaterialComponents.Chip.Filter">
-        <item name="chipBackgroundColor">@color/tournesol_chip_background_color</item>
-        <item name="android:textColor">@color/white</item>
-        <item name="chipStrokeWidth">0dp</item>
+    <style name="TextAppearance.Chip.Tournesol" parent="TextAppearance.MaterialComponents.Chip">
+        <item name="android:fontFamily">sans-serif-condensed-medium</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:letterSpacing">0.04</item>
     </style>
 
-    <style name="Theme.TournesolFilter.Light" parent="Theme.MaterialComponents.Light.NoActionBar">
+    <style name="Widget.NewPipe.Chip.Filter" parent="Widget.MaterialComponents.Chip.Filter">
+        <item name="chipBackgroundColor">@color/tournesol_chip_background_color</item>
+        <item name="chipSurfaceColor">@android:color/transparent</item>
+        <item name="android:textColor">@color/tournesol_chip_text_color</item>
+        <item name="android:textAppearance">@style/TextAppearance.Chip.Tournesol</item>
+        <item name="chipStrokeColor">@color/tournesol_chip_stroke_color</item>
+        <item name="chipStrokeWidth">0dp</item>
+        <item name="chipMinHeight">29dp</item>
+        <item name="chipCornerRadius">8dp</item>
+        <item name="chipMinTouchTargetSize">0dp</item>
+        <item name="checkedIconVisible">false</item>
+    </style>
+
+<style name="Theme.TournesolFilter.Light" parent="Theme.MaterialComponents.Light.NoActionBar">
         <item name="android:textColorPrimary">@color/light_license_text_color</item>
         <item name="android:textColorSecondary">@color/light_license_text_color</item>
         <item name="colorPrimary">@color/light_youtube_primary_color</item>

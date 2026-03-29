@@ -7,16 +7,16 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import java.net.UnknownHostException
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.schabi.newpipe.R
 import org.schabi.newpipe.error.ErrorInfo
 import org.schabi.newpipe.error.UserAction
-import org.schabi.newpipe.extractor.exceptions.ContentNotAvailableException
 import org.schabi.newpipe.extractor.exceptions.ReCaptchaException
+import org.schabi.newpipe.extractor.exceptions.UnsupportedContentInCountryException
 import org.schabi.newpipe.ui.theme.AppTheme
-import java.net.UnknownHostException
 
 @RunWith(AndroidJUnit4::class)
 class ErrorPanelTest {
@@ -71,10 +71,10 @@ class ErrorPanelTest {
     }
 
     /**
-     * Test Recaptcha Error shows solve, retry and open in browser buttons
+     * Test Recaptcha Error shows all buttons: solve, retry, open in browser, report
      */
     @Test
-    fun recaptchaErrorShowsSolveAndRetryOpenInBrowserButtons() {
+    fun recaptchaErrorShowsAllButtons() {
         var retryClicked = false
         val recaptchaErrorInfo = ErrorInfo(
             throwable = ReCaptchaException(
@@ -99,7 +99,7 @@ class ErrorPanelTest {
         composeRule.onNodeWithText(text(R.string.open_in_browser), ignoreCase = true)
             .assertIsDisplayed()
         composeRule.onNodeWithText(text(R.string.error_snackbar_action), ignoreCase = true)
-            .assertDoesNotExist()
+            .assertIsDisplayed()
         assert(retryClicked) { "onRetry callback should have been invoked" }
     }
 
@@ -109,14 +109,14 @@ class ErrorPanelTest {
     @Test
     fun testNonRetryableErrorHidesRetryAndReportButtons() {
         val contentNotAvailable = ErrorInfo(
-            throwable = ContentNotAvailableException("Video has been removed"),
+            throwable = UnsupportedContentInCountryException("Not available here"),
             userAction = UserAction.REQUESTED_STREAM,
             request = "https://example.com/watch?v=qux"
         )
 
         setErrorPanel(contentNotAvailable)
 
-        composeRule.onNodeWithText(text(R.string.content_not_available))
+        composeRule.onNodeWithText(text(R.string.unsupported_content_in_country))
             .assertIsDisplayed()
         composeRule.onNodeWithText(text(R.string.retry), ignoreCase = true)
             .assertDoesNotExist()
