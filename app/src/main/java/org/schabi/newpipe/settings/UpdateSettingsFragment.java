@@ -56,12 +56,18 @@ public class UpdateSettingsFragment extends BasePreferenceFragment {
                 .show();
     }
 
-    private static void setAutoUpdateCheckEnabled(final Context context, final boolean enabled) {
+    public static void setAutoUpdateCheckEnabled(final Context context, final boolean enabled) {
         PreferenceManager.getDefaultSharedPreferences(context)
                 .edit()
                 .putBoolean(context.getString(R.string.update_app_key), enabled)
                 .putBoolean(context.getString(R.string.update_check_consent_key), true)
                 .apply();
+    }
+
+    public static void disableAutoUpdateChecksByDefault(final Context context) {
+        if (!wasUserAskedForConsent(context)) {
+            setAutoUpdateCheckEnabled(context, false);
+        }
     }
 
     /**
