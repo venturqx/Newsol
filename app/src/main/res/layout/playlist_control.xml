@@ -21,10 +21,10 @@
             android:layout_height="wrap_content"
             android:drawableStart="@drawable/ic_headset"
             android:drawablePadding="4dp"
-            android:drawableTint="@color/tournesol_soft_white"
+            android:drawableTint="@color/tournesol_action_btn"
             android:gravity="center_vertical"
             android:text="@string/controls_background_title"
-            android:textColor="@color/tournesol_soft_white"
+            android:textColor="@color/tournesol_action_btn"
             android:textSize="@dimen/channel_rss_title_size" />
     </LinearLayout>
 
@@ -33,7 +33,7 @@
         android:layout_height="match_parent"
         android:layout_marginTop="@dimen/playlist_ctrl_separator_margin"
         android:layout_marginBottom="@dimen/playlist_ctrl_separator_margin"
-        android:background="?attr/colorAccent"
+        android:background="@color/tournesol_action_separator"
         android:clickable="false" />
 
     <LinearLayout
@@ -51,10 +51,10 @@
             android:layout_height="wrap_content"
             android:drawableStart="@drawable/ic_playlist_play"
             android:drawablePadding="4dp"
-            android:drawableTint="@color/tournesol_soft_white"
+            android:drawableTint="@color/tournesol_action_btn"
             android:gravity="center_vertical"
             android:text="@string/play_all"
-            android:textColor="@color/tournesol_soft_white"
+            android:textColor="@color/tournesol_action_btn"
             android:textSize="@dimen/channel_rss_title_size" />
     </LinearLayout>
 
@@ -63,7 +63,7 @@
         android:layout_height="match_parent"
         android:layout_marginTop="@dimen/playlist_ctrl_separator_margin"
         android:layout_marginBottom="@dimen/playlist_ctrl_separator_margin"
-        android:background="?attr/colorAccent"
+        android:background="@color/tournesol_action_separator"
         android:clickable="false" />
 
     <LinearLayout
@@ -81,10 +81,10 @@
             android:layout_height="wrap_content"
             android:drawableStart="@drawable/ic_picture_in_picture"
             android:drawablePadding="4dp"
-            android:drawableTint="@color/tournesol_soft_white"
+            android:drawableTint="@color/tournesol_action_btn"
             android:gravity="center_vertical"
             android:text="@string/controls_popup_title"
-            android:textColor="@color/tournesol_soft_white"
+            android:textColor="@color/tournesol_action_btn"
             android:textSize="@dimen/channel_rss_title_size" />
     </LinearLayout>
 </LinearLayout>
