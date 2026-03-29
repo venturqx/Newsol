@@ -215,75 +215,85 @@ fun CompareScreen(
                 R.string.compare_submit_label
             }
         )
+        val chipColors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = colorResource(R.color.tournesol_chip_bg_selected),
+            containerColor = colorResource(R.color.tournesol_chip_bg_unselected),
+            selectedLabelColor = colorResource(R.color.tournesol_chip_text_selected),
+            labelColor = colorResource(R.color.tournesol_chip_text_unselected)
+        )
+        val chipShape = RoundedCornerShape(8.dp)
+        val chipTextStyle = TextStyle(
+            fontFamily = FontFamily(Typeface.create("sans-serif-condensed-medium", Typeface.NORMAL)),
+            fontSize = 15.sp,
+            letterSpacing = TextUnit(0.04f, TextUnitType.Em)
+        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp),
-            horizontalArrangement = Arrangement.Center,
+            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.clickable(
-                    enabled = submitEnabled,
-                    onClick = { onSubmit() }
-                ),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = submitLabel,
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = if (submitEnabled) {
-                        lerp(MaterialTheme.colorScheme.onSurface, Color(0xFFFFD54F), 0.35f)
-                    } else {
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    }
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                if (state.submitInProgress) {
-                    SubmitSpinner(
-                        modifier = Modifier.size(18.dp),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                } else {
-                    Image(
-                        painter = painterResource(R.drawable.logo_small),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-            if (showChange) {
-                Spacer(modifier = Modifier.width(14.dp))
-                Row(
-                    modifier = Modifier.clickable(
-                        enabled = changeEnabled,
-                        onClick = { onChangeMainScore() }
-                    ),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(R.string.compare_change_label),
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = if (changeEnabled) {
-                            lerp(MaterialTheme.colorScheme.onSurface, Color(0xFFFFD54F), 0.35f)
+            FilterChip(
+                selected = true,
+                onClick = { onSubmit() },
+                enabled = submitEnabled,
+                label = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (state.submitInProgress) {
+                            SubmitSpinner(
+                                modifier = Modifier.size(16.dp),
+                                color = colorResource(R.color.tournesol_chip_text_selected)
+                            )
                         } else {
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            Image(
+                                painter = painterResource(R.drawable.logo_small),
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    if (state.changeInProgress) {
-                        SubmitSpinner(
-                            modifier = Modifier.size(18.dp),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    } else {
-                        Image(
-                            painter = painterResource(R.drawable.ic_refresh),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
+                        Text(text = submitLabel, style = chipTextStyle)
                     }
-                }
+                },
+                colors = chipColors,
+                shape = chipShape,
+                border = null
+            )
+            if (showChange) {
+                FilterChip(
+                    selected = true,
+                    onClick = { onChangeMainScore() },
+                    enabled = changeEnabled,
+                    label = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (state.changeInProgress) {
+                                SubmitSpinner(
+                                    modifier = Modifier.size(16.dp),
+                                    color = colorResource(R.color.tournesol_chip_text_selected)
+                                )
+                            } else {
+                                Image(
+                                    painter = painterResource(R.drawable.ic_refresh),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            Text(
+                                text = stringResource(R.string.compare_change_label),
+                                style = chipTextStyle
+                            )
+                        }
+                    },
+                    colors = chipColors,
+                    shape = chipShape,
+                    border = null
+                )
             }
         }
 
