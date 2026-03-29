@@ -248,12 +248,6 @@ fun CompareScreen(
                                 modifier = Modifier.size(16.dp),
                                 color = colorResource(R.color.tournesol_chip_text_selected)
                             )
-                        } else {
-                            Image(
-                                painter = painterResource(R.drawable.logo_small),
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
                         }
                         Text(text = submitLabel, style = chipTextStyle)
                     }
@@ -823,7 +817,7 @@ internal fun CompareCompactScreen(
                                             .weight(1f)
                                             .clickable { openHistoryOverlay(OverlayTarget.LEFT) },
                                         shape = RoundedCornerShape(6.dp),
-                                        border = BorderStroke(1.dp, Color(0xFF42A5F5)),
+                                        border = BorderStroke(2.dp, Color(0xFF42A5F5)),
                                         color = MaterialTheme.colorScheme.surface
                                     ) {
                                         Box(
@@ -855,7 +849,7 @@ internal fun CompareCompactScreen(
                                             .weight(1f)
                                             .clickable { openHistoryOverlay(OverlayTarget.RIGHT) },
                                         shape = RoundedCornerShape(6.dp),
-                                        border = BorderStroke(1.dp, Color(0xFFE57373)),
+                                        border = BorderStroke(2.dp, Color(0xFFE57373)),
                                         color = MaterialTheme.colorScheme.surface
                                     ) {
                                         Box(
@@ -885,7 +879,7 @@ internal fun CompareCompactScreen(
                             Box(
                                 modifier = Modifier
                                     .align(Alignment.Center)
-                                    .background(Color(0xFFFFEB3B), RoundedCornerShape(6.dp))
+                                    .background(colorResource(R.color.tournesol_chip_bg_selected), RoundedCornerShape(6.dp))
                                     .padding(horizontal = 4.dp, vertical = 1.dp)
                             ) {
                                 Text(
