@@ -900,19 +900,22 @@ internal fun CompareCompactScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        val submitContentColor = Color(0xFFF3D978)
-                        val submitBorderColor = Color(0xFF7A6A2D)
-                        OutlinedButton(
+                        val submitBgColor = Color(0xFFDBB222)
+                        val submitTextColor = Color(0xFF0F0F0F)
+                        Button(
                             onClick = submitOrUpdateAction,
                             enabled = canSubmit,
-                            shape = RoundedCornerShape(14.dp),
-                            border = BorderStroke(
-                                width = 1.dp,
-                                color = submitBorderColor.copy(alpha = if (canSubmit) 0.95f else 0.45f)
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = submitBgColor,
+                                contentColor = submitTextColor,
+                                disabledContainerColor = submitBgColor.copy(alpha = 0.45f),
+                                disabledContentColor = submitTextColor.copy(alpha = 0.58f)
                             ),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = submitContentColor,
-                                disabledContentColor = submitContentColor.copy(alpha = 0.58f)
+                            elevation = ButtonDefaults.buttonElevation(
+                                defaultElevation = 0.dp,
+                                pressedElevation = 0.dp,
+                                disabledElevation = 0.dp
                             ),
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
                         ) {
@@ -928,27 +931,41 @@ internal fun CompareCompactScreen(
                                 Text(
                                     text = submitButtonLabel,
                                     style = MaterialTheme.typography.labelLarge.copy(
-                                        fontWeight = FontWeight.SemiBold
+                                        fontWeight = FontWeight.Normal
                                     )
                                 )
                             }
                         }
                     }
-                    Text(
-                        text = stringResource(R.string.action_history),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 10.sp
+                    val historyBgColor = Color(0xFF1E2128)
+                    val historyTextColor = Color(0xFF9CA3AF)
+                    Button(
+                        onClick = onViewRecommendations,
+                        enabled = !isBusy,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = historyBgColor,
+                            contentColor = historyTextColor,
+                            disabledContainerColor = historyBgColor.copy(alpha = 0.45f),
+                            disabledContentColor = historyTextColor.copy(alpha = 0.58f)
                         ),
-                        color = Color(0xFFB9BEC7).copy(alpha = if (isBusy) 0.45f else 0.78f),
+                        elevation = ButtonDefaults.buttonElevation(
+                            defaultElevation = 0.dp,
+                            pressedElevation = 0.dp,
+                            disabledElevation = 0.dp
+                        ),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
                         modifier = Modifier
                             .align(Alignment.Center)
                             .offset(x = maxWidth * 0.25f)
-                            .clickable(
-                                enabled = !isBusy,
-                                onClick = onViewRecommendations
+                    ) {
+                        Text(
+                            text = stringResource(R.string.action_history),
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.Normal
                             )
-                    )
+                        )
+                    }
                 }
             }
         }
