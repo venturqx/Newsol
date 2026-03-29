@@ -88,7 +88,7 @@
             android:checkable="false"
             android:text="@string/filter_advanced"
             app:chipIcon="@drawable/ic_filter_list"
-            app:chipIconTint="?android:attr/textColorPrimary" />
+            app:chipIconTint="@color/tournesol_chip_text_color" />
 
     </LinearLayout>
 
