@@ -1,6 +1,7 @@
 package org.schabi.newpipe.fragments.detail
 
 import android.graphics.Paint as AndroidPaint
+import android.graphics.Typeface
 import android.view.MotionEvent
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -49,6 +50,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -96,16 +99,21 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
@@ -895,75 +903,52 @@ internal fun CompareCompactScreen(
                     }
                 }
                 BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val chipColors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = colorResource(R.color.tournesol_chip_bg_selected),
+                        containerColor = colorResource(R.color.tournesol_chip_bg_unselected),
+                        selectedLabelColor = colorResource(R.color.tournesol_chip_text_selected),
+                        labelColor = colorResource(R.color.tournesol_chip_text_unselected)
+                    )
+                    val chipShape = RoundedCornerShape(8.dp)
+                    val chipTextStyle = TextStyle(
+                        fontFamily = FontFamily(Typeface.create("sans-serif-condensed-medium", Typeface.NORMAL)),
+                        fontSize = 15.sp,
+                        letterSpacing = TextUnit(0.04f, TextUnitType.Em)
+                    )
                     Row(
                         modifier = Modifier.align(Alignment.Center),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        val submitBgColor = Color(0xFFDBB222)
-                        val submitTextColor = Color(0xFF0F0F0F)
-                        Button(
+                        FilterChip(
+                            selected = true,
                             onClick = submitOrUpdateAction,
                             enabled = canSubmit,
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = submitBgColor,
-                                contentColor = submitTextColor,
-                                disabledContainerColor = submitBgColor.copy(alpha = 0.45f),
-                                disabledContentColor = submitTextColor.copy(alpha = 0.58f)
-                            ),
-                            elevation = ButtonDefaults.buttonElevation(
-                                defaultElevation = 0.dp,
-                                pressedElevation = 0.dp,
-                                disabledElevation = 0.dp
-                            ),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Image(
-                                    painter = painterResource(R.drawable.logo_small),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Text(
-                                    text = submitButtonLabel,
-                                    style = MaterialTheme.typography.labelLarge.copy(
-                                        fontWeight = FontWeight.Normal
+                            label = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Image(
+                                        painter = painterResource(R.drawable.logo_small),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
                                     )
-                                )
-                            }
-                        }
-                    }
-                    val historyBgColor = Color(0xFF1E2128)
-                    val historyTextColor = Color(0xFF9CA3AF)
-                    Button(
-                        onClick = onViewRecommendations,
-                        enabled = !isBusy,
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = historyBgColor,
-                            contentColor = historyTextColor,
-                            disabledContainerColor = historyBgColor.copy(alpha = 0.45f),
-                            disabledContentColor = historyTextColor.copy(alpha = 0.58f)
-                        ),
-                        elevation = ButtonDefaults.buttonElevation(
-                            defaultElevation = 0.dp,
-                            pressedElevation = 0.dp,
-                            disabledElevation = 0.dp
-                        ),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .offset(x = maxWidth * 0.25f)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.action_history),
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = FontWeight.Normal
-                            )
+                                    Text(text = submitButtonLabel, style = chipTextStyle)
+                                }
+                            },
+                            colors = chipColors,
+                            shape = chipShape,
+                            border = null
+                        )
+                        FilterChip(
+                            selected = false,
+                            onClick = onViewRecommendations,
+                            enabled = !isBusy,
+                            label = { Text(text = stringResource(R.string.action_history), style = chipTextStyle) },
+                            colors = chipColors,
+                            shape = chipShape,
+                            border = null
                         )
                     }
                 }
