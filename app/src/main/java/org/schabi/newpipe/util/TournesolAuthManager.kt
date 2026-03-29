@@ -3,11 +3,15 @@ package org.schabi.newpipe.util
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Base64
+import android.util.Log
 import androidx.preference.PreferenceManager
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
+import java.io.File
+import java.io.IOException
+import java.util.concurrent.TimeUnit
 import net.openid.appauth.AuthState
 import net.openid.appauth.AuthorizationServiceConfiguration
 import net.openid.appauth.TokenRequest
@@ -17,10 +21,9 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
 import org.schabi.newpipe.DownloaderImpl
-import java.io.IOException
-import java.util.concurrent.TimeUnit
 
 object TournesolAuthManager {
+    private const val TAG = "TournesolAuthManager"
     private const val SHARED_PREF_AUTH_STATE = "tournesol_auth_state"
     private const val AUTH_STATE_PREFS_NAME = "tournesol_auth_state_prefs"
     private const val AUTH_URL = "https://api.tournesol.app/o/authorize/"
@@ -28,20 +31,56 @@ object TournesolAuthManager {
     private const val OAUTH_SCOPE = "read write groups"
     private const val DEFAULT_MIN_TTL_MS = 2 * 60 * 1000L
 
-    private fun getAuthStatePrefs(context: Context): SharedPreferences {
+    private fun getAuthStatePrefs(context: Context): SharedPreferences? {
         val appContext = context.applicationContext
+        val encryptedPrefs = try {
+            createEncryptedAuthPrefs(appContext)
+        } catch (firstFailure: Exception) {
+            Log.w(TAG, "Encrypted auth prefs are unreadable. Resetting auth storage.", firstFailure)
+            clearAuthStateStorage(appContext)
+            try {
+                createEncryptedAuthPrefs(appContext)
+            } catch (secondFailure: Exception) {
+                Log.e(TAG, "Failed to recreate encrypted auth prefs after reset", secondFailure)
+                null
+            }
+        } ?: return null
+
+        migrateLegacyAuthState(appContext, encryptedPrefs)
+
+        return encryptedPrefs
+    }
+
+    private fun createEncryptedAuthPrefs(appContext: Context): SharedPreferences {
         val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-        val encryptedPrefs = EncryptedSharedPreferences.create(
+        return EncryptedSharedPreferences.create(
             AUTH_STATE_PREFS_NAME,
             masterKeyAlias,
             appContext,
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
+    }
 
-        migrateLegacyAuthState(appContext, encryptedPrefs)
-
-        return encryptedPrefs
+    private fun clearAuthStateStorage(appContext: Context) {
+        runCatching {
+            appContext.getSharedPreferences(AUTH_STATE_PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .clear()
+                .apply()
+        }
+        runCatching {
+            appContext.deleteSharedPreferences(AUTH_STATE_PREFS_NAME)
+        }
+        runCatching {
+            val prefsFile = File(
+                appContext.applicationInfo.dataDir,
+                "shared_prefs/$AUTH_STATE_PREFS_NAME.xml"
+            )
+            if (prefsFile.exists()) {
+                prefsFile.delete()
+            }
+        }
     }
 
     private fun migrateLegacyAuthState(
@@ -61,7 +100,7 @@ object TournesolAuthManager {
     }
 
     fun saveAuthState(context: Context, authState: AuthState) {
-        val prefs = getAuthStatePrefs(context)
+        val prefs = getAuthStatePrefs(context) ?: return
         prefs.edit().putString(SHARED_PREF_AUTH_STATE, authState.jsonSerializeString()).apply()
     }
 
@@ -76,7 +115,7 @@ object TournesolAuthManager {
     }
 
     fun getAuthState(context: Context): AuthState? {
-        val prefs = getAuthStatePrefs(context)
+        val prefs = getAuthStatePrefs(context) ?: return null
         val json = prefs.getString(SHARED_PREF_AUTH_STATE, null) ?: return null
         return try {
             AuthState.jsonDeserialize(json)

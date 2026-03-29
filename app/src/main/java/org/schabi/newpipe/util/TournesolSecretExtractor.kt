@@ -2,14 +2,14 @@ package org.schabi.newpipe.util
 
 import android.util.Log
 import io.reactivex.rxjava3.core.Single
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import org.schabi.newpipe.DownloaderImpl
 import java.io.IOException
 import java.util.ArrayList
 import java.util.HashSet
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.schabi.newpipe.DownloaderImpl
 
 class TournesolSecretExtractor {
     private val client = DownloaderImpl.getInstance()?.getClient() ?: OkHttpClient.Builder()
