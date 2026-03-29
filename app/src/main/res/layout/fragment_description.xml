@@ -26,7 +26,7 @@
             android:textStyle="bold"
             app:layout_constraintEnd_toStartOf="@+id/detail_select_description_button"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tournesol_info_section"
             tools:text="Published on Oct 2, 2009" />
 
         <ImageView
@@ -44,7 +44,7 @@
             app:layout_constraintBottom_toBottomOf="@+id/detail_upload_date_view"
             app:layout_constraintDimensionRatio="1"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="@+id/detail_upload_date_view" />
 
         <!-- Tournesol info section (shown when data is available) -->
         <LinearLayout
@@ -61,7 +61,7 @@
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/detail_upload_date_view"
+            app:layout_constraintTop_toTopOf="parent"
             tools:visibility="visible">
 
             <!-- Section header: SCORES -->
@@ -167,7 +167,7 @@
             android:textSize="11sp"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/tournesol_info_section" />
+            app:layout_constraintTop_toBottomOf="@+id/detail_upload_date_view" />
 
         <org.schabi.newpipe.views.NewPipeTextView
             android:id="@+id/detail_description_note_view"

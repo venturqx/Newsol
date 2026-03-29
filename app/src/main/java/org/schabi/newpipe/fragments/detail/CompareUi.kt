@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -347,17 +348,11 @@ fun CompareScreen(
                             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         }
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
                     if (state.submitMoreInProgress) {
+                        Spacer(modifier = Modifier.width(8.dp))
                         SubmitSpinner(
                             modifier = Modifier.size(18.dp),
                             color = MaterialTheme.colorScheme.onSurface
-                        )
-                    } else {
-                        Image(
-                            painter = painterResource(R.drawable.logo_small),
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -812,30 +807,34 @@ internal fun CompareCompactScreen(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 if (selectedHistoryEntryLeft != null) {
-                                    Surface(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clickable { openHistoryOverlay(OverlayTarget.LEFT) },
-                                        shape = RoundedCornerShape(6.dp),
-                                        border = BorderStroke(2.dp, Color(0xFF42A5F5)),
-                                        color = MaterialTheme.colorScheme.surface
+                                    Box(
+                                        modifier = Modifier.weight(1f),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Box(
-                                            modifier = Modifier.padding(
-                                                horizontal = 8.dp,
-                                                vertical = 2.dp
-                                            )
+                                        Surface(
+                                            modifier = Modifier
+                                                .clickable { openHistoryOverlay(OverlayTarget.LEFT) },
+                                            shape = RoundedCornerShape(6.dp),
+                                            border = BorderStroke(2.dp, Color(0xFF42A5F5)),
+                                            color = MaterialTheme.colorScheme.surface
                                         ) {
-                                            CompareVideoThumbnailCard(
-                                                entry = selectedHistoryEntryLeft,
-                                                thumbnailHeight = 52.dp,
-                                                showMeta = false,
-                                                contentScale = ContentScale.Fit
-                                            )
-                                            if (isLeftCurrent) {
-                                                CurrentBadge(
-                                                    modifier = Modifier.align(Alignment.TopEnd)
+                                            Box(
+                                                modifier = Modifier.padding(
+                                                    horizontal = 8.dp,
+                                                    vertical = 2.dp
                                                 )
+                                            ) {
+                                                CompareVideoThumbnailCard(
+                                                    entry = selectedHistoryEntryLeft,
+                                                    thumbnailHeight = 52.dp,
+                                                    showMeta = false,
+                                                    contentScale = ContentScale.Fit
+                                                )
+                                                if (isLeftCurrent) {
+                                                    CurrentBadge(
+                                                        modifier = Modifier.align(Alignment.TopEnd)
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -844,30 +843,34 @@ internal fun CompareCompactScreen(
                                 }
 
                                 if (selectedHistoryEntryRight != null) {
-                                    Surface(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clickable { openHistoryOverlay(OverlayTarget.RIGHT) },
-                                        shape = RoundedCornerShape(6.dp),
-                                        border = BorderStroke(2.dp, Color(0xFFE57373)),
-                                        color = MaterialTheme.colorScheme.surface
+                                    Box(
+                                        modifier = Modifier.weight(1f),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Box(
-                                            modifier = Modifier.padding(
-                                                horizontal = 8.dp,
-                                                vertical = 2.dp
-                                            )
+                                        Surface(
+                                            modifier = Modifier
+                                                .clickable { openHistoryOverlay(OverlayTarget.RIGHT) },
+                                            shape = RoundedCornerShape(6.dp),
+                                            border = BorderStroke(2.dp, Color(0xFFE57373)),
+                                            color = MaterialTheme.colorScheme.surface
                                         ) {
-                                            CompareVideoThumbnailCard(
-                                                entry = selectedHistoryEntryRight,
-                                                thumbnailHeight = 52.dp,
-                                                showMeta = false,
-                                                contentScale = ContentScale.Fit
-                                            )
-                                            if (isRightCurrent) {
-                                                CurrentBadge(
-                                                    modifier = Modifier.align(Alignment.TopEnd)
+                                            Box(
+                                                modifier = Modifier.padding(
+                                                    horizontal = 8.dp,
+                                                    vertical = 2.dp
                                                 )
+                                            ) {
+                                                CompareVideoThumbnailCard(
+                                                    entry = selectedHistoryEntryRight,
+                                                    thumbnailHeight = 52.dp,
+                                                    showMeta = false,
+                                                    contentScale = ContentScale.Fit
+                                                )
+                                                if (isRightCurrent) {
+                                                    CurrentBadge(
+                                                        modifier = Modifier.align(Alignment.TopEnd)
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -906,7 +909,7 @@ internal fun CompareCompactScreen(
                         )
                     }
                 }
-                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                Box(modifier = Modifier.fillMaxWidth()) {
                     val chipColors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = colorResource(R.color.tournesol_chip_bg_selected),
                         containerColor = colorResource(R.color.tournesol_chip_bg_unselected),
@@ -919,42 +922,26 @@ internal fun CompareCompactScreen(
                         fontSize = 15.sp,
                         letterSpacing = TextUnit(0.04f, TextUnitType.Em)
                     )
-                    Row(
+                    FilterChip(
+                        selected = true,
+                        onClick = submitOrUpdateAction,
+                        enabled = canSubmit,
                         modifier = Modifier.align(Alignment.Center),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        FilterChip(
-                            selected = true,
-                            onClick = submitOrUpdateAction,
-                            enabled = canSubmit,
-                            label = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Image(
-                                        painter = painterResource(R.drawable.logo_small),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(text = submitButtonLabel, style = chipTextStyle)
-                                }
-                            },
-                            colors = chipColors,
-                            shape = chipShape,
-                            border = null
-                        )
-                        FilterChip(
-                            selected = false,
-                            onClick = onViewRecommendations,
-                            enabled = !isBusy,
-                            label = { Text(text = stringResource(R.string.action_history), style = chipTextStyle) },
-                            colors = chipColors,
-                            shape = chipShape,
-                            border = null
-                        )
-                    }
+                        label = { Text(text = submitButtonLabel, style = chipTextStyle) },
+                        colors = chipColors,
+                        shape = chipShape,
+                        border = null
+                    )
+                    FilterChip(
+                        selected = false,
+                        onClick = onViewRecommendations,
+                        enabled = !isBusy,
+                        modifier = Modifier.align(Alignment.CenterEnd),
+                        label = { Text(text = stringResource(R.string.action_history), style = chipTextStyle) },
+                        colors = chipColors,
+                        shape = chipShape,
+                        border = null
+                    )
                 }
             }
         }
@@ -2208,17 +2195,11 @@ private fun CompactSubmitSection(
                         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     }
                 )
-                Spacer(modifier = Modifier.width(8.dp))
                 if (state.submitInProgress) {
+                    Spacer(modifier = Modifier.width(8.dp))
                     SubmitSpinner(
                         modifier = Modifier.size(18.dp),
                         color = MaterialTheme.colorScheme.onSurface
-                    )
-                } else {
-                    Image(
-                        painter = painterResource(R.drawable.logo_small),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
@@ -2301,17 +2282,11 @@ private fun CompactSubmitSection(
                             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         }
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
                     if (state.submitMoreInProgress) {
+                        Spacer(modifier = Modifier.width(8.dp))
                         SubmitSpinner(
                             modifier = Modifier.size(18.dp),
                             color = MaterialTheme.colorScheme.onSurface
-                        )
-                    } else {
-                        Image(
-                            painter = painterResource(R.drawable.logo_small),
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -3071,7 +3046,7 @@ private fun CompareVideoThumbnailCard(
 ) {
     val stream = remember(entry) { entry.toStreamInfoItem() }
     val thumbnailDescription = stringResource(R.string.compare_thumbnail_description)
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column(modifier = if (showMeta) Modifier.fillMaxWidth() else Modifier) {
         StreamThumbnail(
             stream = stream,
             showProgress = false,
@@ -3079,7 +3054,13 @@ private fun CompareVideoThumbnailCard(
             durationTextStyle = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
             contentScale = contentScale,
             modifier = Modifier
-                .fillMaxWidth()
+                .then(
+                    if (showMeta) {
+                        Modifier.fillMaxWidth()
+                    } else {
+                        Modifier.aspectRatio(16f / 9f)
+                    }
+                )
                 .height(thumbnailHeight)
                 .semantics {
                     contentDescription = thumbnailDescription
