@@ -4,6 +4,8 @@
  */
 import com.mikepenz.aboutlibraries.plugin.DuplicateMode
 
+import com.android.build.api.dsl.ApplicationExtension
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
@@ -17,6 +19,10 @@ plugins {
     alias(libs.plugins.about.libraries)
     checkstyle
 }
+
+val gitWorkingBranch = providers.exec {
+    commandLine("git", "rev-parse", "--abbrev-ref", "HEAD")
+}.standardOutput.asText.map { it.trim() }
 
 java {
     toolchain {
@@ -33,7 +39,7 @@ kotlin {
     }
 }
 
-android {
+configure<ApplicationExtension> {
     compileSdk = 36
     namespace = "org.schabi.newpipe"
 
@@ -64,23 +70,20 @@ android {
         }
     }
 
-    val versionCodeOverride = System.getProperty("versionCodeOverride")
-        ?.trim()
-        ?.takeIf { it.isNotEmpty() }
-        ?.toInt()
-    val versionNameOverride = System.getProperty("versionNameOverride")
-        ?.trim()
-        ?.takeIf { it.isNotEmpty() }
-
     defaultConfig {
         applicationId = "dev.ufonirpt.ufonirpt"
         resValue("string", "app_name", "Ufonirpt")
         minSdk = 23
         targetSdk = 35
 
-        versionCode = versionCodeOverride ?: 1
+        versionCode = System.getProperty("versionCodeOverride")
+            ?.takeIf { it.isNotBlank() }
+            ?.toIntOrNull()
+            ?: 1008
 
-        versionName = versionNameOverride ?: "0.0.1"
+        versionName = System.getProperty("versionNameOverride")
+            ?.takeIf { it.isNotBlank() }
+            ?: "0.28.3"
         System.getProperty("versionNameSuffix")?.let { versionNameSuffix = it }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -89,7 +92,22 @@ android {
     buildTypes {
         debug {
             isDebuggable = true
-            resValue("string", "app_name", "Ufonirpt")
+
+            // suffix the app id and the app name with git branch name
+            val defaultBranches = listOf("master", "dev")
+            val workingBranch = gitWorkingBranch.getOrElse("")
+            val normalizedWorkingBranch = workingBranch
+                .replaceFirst("^[^A-Za-z]+".toRegex(), "")
+                .replace("[^0-9A-Za-z]+".toRegex(), "")
+
+            if (normalizedWorkingBranch.isEmpty() || workingBranch in defaultBranches) {
+                // default values when branch name could not be determined or is master or dev
+                applicationIdSuffix = ".debug"
+                resValue("string", "app_name", "Ufonirpt Debug")
+            } else {
+                applicationIdSuffix = ".debug.$normalizedWorkingBranch"
+                resValue("string", "app_name", "Ufonirpt $workingBranch")
+            }
         }
 
         release {
@@ -98,22 +116,21 @@ android {
                 resValue("string", "app_name", "Ufonirpt $suffix")
             }
             isMinifyEnabled = true
-            isShrinkResources = false // disabled to fix F-Droid"s reproducible build
-            proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
+            isShrinkResources = true
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
             }
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 
     lint {
-        checkReleaseBuilds = false
-        // Or, if you prefer, you can continue to check for errors in release builds,
-        // but continue the build even when errors are found:
+        lintConfig = file("lint.xml")
+        // Continue the debug build even when errors are found
         abortOnError = false
-        // suppress false warning ("Resource IDs will be non-final in Android Gradle Plugin version
-        // 5.0, avoid using them in switch case statements"), which affects only library projects
-        disable += "NonConstantResourceId"
     }
 
     compileOptions {
@@ -124,7 +141,7 @@ android {
 
     sourceSets {
         getByName("androidTest") {
-            assets.srcDir("$projectDir/schemas")
+            assets.directories += "$projectDir/schemas"
         }
     }
 
@@ -136,6 +153,7 @@ android {
         viewBinding = true
         compose = true
         buildConfig = true
+        resValues = true
     }
 
     packaging {
@@ -158,6 +176,13 @@ ksp {
 
 // Custom dependency configuration for ktlint
 val ktlint by configurations.creating
+
+// https://checkstyle.org/#JRE_and_JDK
+tasks.withType<Checkstyle>().configureEach {
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
 
 checkstyle {
     configDirectory = rootProject.file("checkstyle")
@@ -378,8 +403,3 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
-
-
-
-
-
