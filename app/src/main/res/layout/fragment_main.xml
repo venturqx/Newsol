@@ -11,9 +11,9 @@
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:background="?attr/colorPrimary"
-        app:tabRippleColor="#080808"
-        app:tabIconTint="#080808"
-        app:tabIndicatorColor="#080808"
+        app:tabRippleColor="#FFCA1D"
+        app:tabIconTint="#FFCA1D"
+        app:tabIndicatorColor="#FFCA1D"
         app:tabGravity="fill"
         app:tabMinWidth="60dp" />
 
