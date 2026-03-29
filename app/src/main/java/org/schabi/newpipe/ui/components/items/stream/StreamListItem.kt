@@ -17,6 +17,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -29,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import org.schabi.newpipe.R
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import org.schabi.newpipe.ui.theme.AppTheme
+import org.schabi.newpipe.util.TournesolHelper
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -69,24 +72,34 @@ fun StreamListItem(
 
                 val tournesolScore = stream.tournesolScore
                 if (tournesolScore != null) {
+                    val isUnsafe = stream.tournesolUnsafeReasons.isNotEmpty()
+                    val hasInsufficientReason = TournesolHelper.hasInsufficientReason(
+                        stream.tournesolUnsafeReasons
+                    )
+                    val scoreText = stringResource(
+                        R.string.tournesol_score_label,
+                        tournesolScore.toString()
+                    )
                     Row(
+                        modifier = Modifier.alpha(if (isUnsafe) 0.5f else 1f),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Image(
-                            painter = painterResource(R.drawable.logo_small),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
+                        if (hasInsufficientReason) {
+                            Text(text = "\uD83C\uDF31", fontSize = 18.sp)
+                        } else {
+                            Image(
+                                painter = painterResource(R.drawable.logo_small),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                         Text(
-                            text = stringResource(
-                                R.string.tournesol_score_label,
-                                tournesolScore.toString()
-                            ),
+                            text = scoreText,
                             fontSize = 20.sp,
                             fontFamily = FontFamily.SansSerif,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = Color(0xFFD1B65C)
                         )
                     }
                 }
