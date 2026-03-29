@@ -1,35 +1,95 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<HorizontalScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:paddingStart="12dp"
-    android:paddingEnd="12dp"
-    android:paddingTop="8dp"
-    android:paddingBottom="8dp"
-    android:gravity="center_vertical"
-    android:background="?attr/selectableItemBackground">
+    android:scrollbars="none"
+    android:clipToPadding="false"
+    android:fadingEdge="horizontal"
+    android:requiresFadingEdge="horizontal"
+    android:fadingEdgeLength="16dp">
 
-    <com.google.android.material.chip.Chip
-        android:id="@+id/btn_open_filters"
-        style="@style/Widget.MaterialComponents.Chip.Action"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/filter_tournesol"
-        app:chipIcon="@drawable/ic_filter_list"
-        android:layout_marginEnd="12dp" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
 
-    <TextView
-        android:id="@+id/text_active_filters"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:ellipsize="end"
-        android:maxLines="2"
-        android:textAppearance="?attr/textAppearanceBody2"
-        android:textColor="?android:attr/textColorSecondary"
-        tools:text="English, French | Last Month" />
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/quick_date_chips"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_chip_group"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            app:singleLine="true"
+            app:chipSpacingHorizontal="8dp"
+            app:singleSelection="true"
+            app:selectionRequired="true">
 
-</LinearLayout>
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_day"
+                style="@style/Widget.NewPipe.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/date_short_day" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_week"
+                style="@style/Widget.NewPipe.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/date_short_week" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_month"
+                style="@style/Widget.NewPipe.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/date_short_month" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_3_months"
+                style="@style/Widget.NewPipe.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/date_short_3_months" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_year"
+                style="@style/Widget.NewPipe.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/date_short_year" />
+
+        </com.google.android.material.chip.ChipGroup>
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_unsafe"
+            style="@style/Widget.NewPipe.Chip.Filter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:checkable="true"
+            android:text="@string/filter_unsafe_short" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_advanced"
+            style="@style/Widget.NewPipe.Chip.Filter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:checkable="false"
+            android:text="@string/filter_advanced"
+            app:chipIcon="@drawable/ic_filter_list"
+            app:chipIconTint="@color/tournesol_chip_text_color" />
+
+    </LinearLayout>
+
+</HorizontalScrollView>

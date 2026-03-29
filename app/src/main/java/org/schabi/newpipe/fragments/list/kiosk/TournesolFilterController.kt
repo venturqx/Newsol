@@ -5,9 +5,9 @@ import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
+import com.google.android.material.chip.Chip
 import org.schabi.newpipe.R
 import org.schabi.newpipe.util.TournesolHelper
 
@@ -16,12 +16,26 @@ class TournesolFilterController(
     private val listener: Listener
 ) {
     interface Listener {
-        fun onFiltersChanged(languages: List<String>, dateKey: String)
+        fun onFiltersChanged(
+            languages: List<String>,
+            dateKey: String,
+            includeLowScoreVideos: Boolean
+        )
     }
 
     private var currentLanguages: MutableList<String> = ArrayList()
     private var currentDateKey: String = TournesolHelper.DEFAULT_TOURNESOL_FILTER_DATE_KEY
+    private var currentIncludeLowScoreVideos: Boolean =
+        TournesolHelper.DEFAULT_TOURNESOL_FILTER_INCLUDE_LOW_SCORE
     private var tournesolHeaderView: View? = null
+
+    private val quickDateChips = linkedMapOf(
+        "day" to R.id.chip_day,
+        "week" to R.id.chip_week,
+        "month" to R.id.chip_month,
+        "3_months" to R.id.chip_3_months,
+        "year" to R.id.chip_year
+    )
 
     fun init(rootView: View) {
         loadFilters()
@@ -31,10 +45,18 @@ class TournesolFilterController(
     fun onResume() {
         val previousLanguages = ArrayList(currentLanguages)
         val previousDateKey = currentDateKey
+        val previousIncludeLowScoreVideos = currentIncludeLowScoreVideos
         loadFilters()
-        if (previousLanguages != currentLanguages || previousDateKey != currentDateKey) {
-            updateTournesolHeaderSummary()
-            listener.onFiltersChanged(ArrayList(currentLanguages), currentDateKey)
+        if (previousLanguages != currentLanguages ||
+            previousDateKey != currentDateKey ||
+            previousIncludeLowScoreVideos != currentIncludeLowScoreVideos
+        ) {
+            updateQuickChipSelection()
+            listener.onFiltersChanged(
+                ArrayList(currentLanguages),
+                currentDateKey,
+                currentIncludeLowScoreVideos
+            )
         }
     }
 
@@ -50,11 +72,13 @@ class TournesolFilterController(
         return currentDateKey
     }
 
+    fun getCurrentIncludeLowScoreVideos(): Boolean {
+        return currentIncludeLowScoreVideos
+    }
+
     private fun setupTournesolHeader(rootView: View) {
         val headerContainer = rootView.findViewById<ViewGroup>(R.id.kiosk_header_container)
-        if (headerContainer == null) {
-            return
-        }
+            ?: return
 
         if (tournesolHeaderView == null) {
             val contextThemeWrapper = ContextThemeWrapper(
@@ -65,10 +89,24 @@ class TournesolFilterController(
             tournesolHeaderView = LayoutInflater.from(contextThemeWrapper)
                 .inflate(R.layout.tournesol_header, headerContainer, false)
 
-            val btnOpenFilters = tournesolHeaderView?.findViewById<View>(R.id.btn_open_filters)
-            btnOpenFilters?.setOnClickListener { openFilterSheet() }
+            // Wire up quick date chips
+            for ((dateKey, chipId) in quickDateChips) {
+                tournesolHeaderView?.findViewById<Chip>(chipId)?.setOnClickListener {
+                    onQuickDateSelected(dateKey)
+                }
+            }
 
-            updateTournesolHeaderSummary()
+            // Wire up Unsafe toggle
+            tournesolHeaderView?.findViewById<Chip>(R.id.chip_unsafe)?.setOnClickListener {
+                onUnsafeToggled()
+            }
+
+            // Wire up Advanced button
+            tournesolHeaderView?.findViewById<View>(R.id.chip_advanced)?.setOnClickListener {
+                openFilterSheet()
+            }
+
+            updateQuickChipSelection()
         }
 
         if (tournesolHeaderView?.parent == null) {
@@ -77,64 +115,79 @@ class TournesolFilterController(
         headerContainer.visibility = View.VISIBLE
     }
 
+    private fun onUnsafeToggled() {
+        currentIncludeLowScoreVideos = !currentIncludeLowScoreVideos
+        saveFilters()
+        updateQuickChipSelection()
+        listener.onFiltersChanged(
+            ArrayList(currentLanguages),
+            currentDateKey,
+            currentIncludeLowScoreVideos
+        )
+    }
+
+    private fun onQuickDateSelected(dateKey: String) {
+        if (currentDateKey == dateKey) return
+        currentDateKey = dateKey
+        saveFilters()
+        updateQuickChipSelection()
+        listener.onFiltersChanged(
+            ArrayList(currentLanguages),
+            currentDateKey,
+            currentIncludeLowScoreVideos
+        )
+    }
+
+    private fun updateQuickChipSelection() {
+        val headerView = tournesolHeaderView ?: return
+        val isQuickFilter = quickDateChips.containsKey(currentDateKey)
+
+        for ((dateKey, chipId) in quickDateChips) {
+            val chip = headerView.findViewById<Chip>(chipId) ?: continue
+            chip.isChecked = dateKey == currentDateKey
+        }
+
+        // Sync Unsafe chip
+        headerView.findViewById<Chip>(R.id.chip_unsafe)?.isChecked = currentIncludeLowScoreVideos
+
+        // Highlight Advanced chip if a non-quick filter is active (e.g. "forever")
+        val advancedChip = headerView.findViewById<Chip>(R.id.chip_advanced) ?: return
+        if (!isQuickFilter) {
+            advancedChip.isCheckable = true
+            advancedChip.isChecked = true
+        } else {
+            advancedChip.isChecked = false
+            advancedChip.isCheckable = false
+        }
+    }
+
     private fun openFilterSheet() {
         val filterFragment = TournesolFilterFragment()
-        filterFragment.setInitialData(currentLanguages, currentDateKey)
+        filterFragment.setInitialData(
+            currentLanguages,
+            currentDateKey,
+            currentIncludeLowScoreVideos
+        )
         filterFragment.setListener(object : TournesolFilterFragment.FilterListener {
-            override fun onApply(languages: List<String>, dateKey: String) {
+            override fun onApply(
+                languages: List<String>,
+                dateKey: String,
+                includeLowScoreVideos: Boolean
+            ) {
                 currentLanguages = ArrayList(languages)
                 currentDateKey = dateKey
+                currentIncludeLowScoreVideos = includeLowScoreVideos
 
                 saveFilters()
-                updateTournesolHeaderSummary()
-                listener.onFiltersChanged(ArrayList(currentLanguages), currentDateKey)
+                updateQuickChipSelection()
+                listener.onFiltersChanged(
+                    ArrayList(currentLanguages),
+                    currentDateKey,
+                    currentIncludeLowScoreVideos
+                )
             }
         })
         filterFragment.show(fragment.parentFragmentManager, "TournesolFilters")
-    }
-
-    private fun updateTournesolHeaderSummary() {
-        val headerView = tournesolHeaderView ?: return
-        val textActiveFilters = headerView.findViewById<TextView>(R.id.text_active_filters)
-            ?: return
-
-        val sb = StringBuilder()
-
-        if (currentLanguages.isNotEmpty()) {
-            val langNames = ArrayList<String>()
-            for (code in currentLanguages) {
-                when (code) {
-                    "en" -> langNames.add(fragment.getString(R.string.language_english))
-                    "fr" -> langNames.add(fragment.getString(R.string.language_french))
-                    "es" -> langNames.add(fragment.getString(R.string.language_spanish))
-                    "de" -> langNames.add(fragment.getString(R.string.language_german))
-                    "it" -> langNames.add(fragment.getString(R.string.language_italian))
-                    "pt" -> langNames.add(fragment.getString(R.string.language_portuguese))
-                }
-            }
-            for (i in langNames.indices) {
-                sb.append(langNames[i])
-                if (i < langNames.size - 1) {
-                    sb.append(", ")
-                }
-            }
-        } else {
-            sb.append(fragment.getString(R.string.all))
-        }
-
-        sb.append(FILTER_SEPARATOR)
-
-        val dateString = when (currentDateKey) {
-            "forever" -> fragment.getString(R.string.date_since_forever)
-            "year" -> fragment.getString(R.string.date_last_year)
-            "3_months" -> fragment.getString(R.string.date_last_3_months)
-            "month" -> fragment.getString(R.string.date_last_month)
-            "week" -> fragment.getString(R.string.date_last_week)
-            else -> ""
-        }
-        sb.append(dateString)
-
-        textActiveFilters.text = sb.toString()
     }
 
     private fun loadFilters() {
@@ -153,6 +206,10 @@ class TournesolFilterController(
             TournesolHelper.PREF_TOURNESOL_FILTER_DATE_KEY,
             TournesolHelper.DEFAULT_TOURNESOL_FILTER_DATE_KEY
         ) ?: TournesolHelper.DEFAULT_TOURNESOL_FILTER_DATE_KEY
+        currentIncludeLowScoreVideos = prefs.getBoolean(
+            TournesolHelper.PREF_TOURNESOL_FILTER_INCLUDE_LOW_SCORE,
+            TournesolHelper.DEFAULT_TOURNESOL_FILTER_INCLUDE_LOW_SCORE
+        )
     }
 
     private fun saveFilters() {
@@ -162,10 +219,10 @@ class TournesolFilterController(
         prefs.edit()
             .putString(TournesolHelper.PREF_TOURNESOL_FILTER_LANGUAGES, languages)
             .putString(TournesolHelper.PREF_TOURNESOL_FILTER_DATE_KEY, currentDateKey)
+            .putBoolean(
+                TournesolHelper.PREF_TOURNESOL_FILTER_INCLUDE_LOW_SCORE,
+                currentIncludeLowScoreVideos
+            )
             .apply()
-    }
-
-    companion object {
-        private const val FILTER_SEPARATOR = " \u0007 "
     }
 }
