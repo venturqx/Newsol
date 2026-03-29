@@ -500,7 +500,7 @@
     <string name="compare_logged_in_label">Logged in</string>
     <string name="compare_previous_video">Previous video</string>
     <string name="compare_next_video">Next video</string>
-    <string name="compare_swipe_hint">&lt;&lt; Swipe &gt;&gt;</string>
+    <string name="compare_swipe_hint">&lt;&lt; SWIPE &gt;&gt;</string>
     <string name="compare_thumbnail_description">Video thumbnail</string>
     <string name="compare_score_accessibility">Comparison score: %1$d from %2$d to %3$d</string>
     <string name="compare_score_no">NO</string>
