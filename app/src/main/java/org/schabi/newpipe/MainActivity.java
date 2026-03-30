@@ -35,7 +35,6 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.webkit.WebView;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -68,6 +67,7 @@ import org.schabi.newpipe.extractor.exceptions.ExtractionException;
 import org.schabi.newpipe.extractor.services.peertube.PeertubeInstance;
 import org.schabi.newpipe.fragments.BackPressable;
 import org.schabi.newpipe.fragments.MainFragment;
+import org.schabi.newpipe.fragments.detail.CompareHistoryActivity;
 import org.schabi.newpipe.fragments.detail.VideoDetailFragment;
 import org.schabi.newpipe.fragments.list.search.SearchFragment;
 import org.schabi.newpipe.local.feed.notifications.NotificationWorker;
@@ -387,20 +387,6 @@ public class MainActivity extends AppCompatActivity {
     private void setupDrawerHeader() {
         drawerHeaderBinding.drawerHeaderActionButton.setOnClickListener(view -> toggleServices());
 
-        // If the current app name is bigger than the default "NewPipe" (7 chars),
-        // let the text view grow a little more as well.
-        if (getString(R.string.app_name).length() > "NewPipe".length()) {
-            final ViewGroup.LayoutParams layoutParams =
-                    drawerHeaderBinding.drawerHeaderNewpipeTitle.getLayoutParams();
-            layoutParams.width = ViewGroup.LayoutParams.WRAP_CONTENT;
-            drawerHeaderBinding.drawerHeaderNewpipeTitle.setLayoutParams(layoutParams);
-            drawerHeaderBinding.drawerHeaderNewpipeTitle.setMaxLines(2);
-            drawerHeaderBinding.drawerHeaderNewpipeTitle.setMinWidth(getResources()
-                    .getDimensionPixelSize(R.dimen.drawer_header_newpipe_title_default_width));
-            drawerHeaderBinding.drawerHeaderNewpipeTitle.setMaxWidth(getResources()
-                    .getDimensionPixelSize(R.dimen.drawer_header_newpipe_title_max_width));
-        }
-
         drawerHeaderBinding.drawerHeaderLoginButton.setOnClickListener(view -> {
             TournesolLoginDialog.create(this::updateProfileHeader)
                     .show(getSupportFragmentManager(), null);
@@ -408,6 +394,14 @@ public class MainActivity extends AppCompatActivity {
 
         drawerHeaderBinding.drawerHeaderRegisterButton.setOnClickListener(view -> {
             ShareUtils.openUrlInBrowser(this, "https://tournesol.app/signup");
+        });
+
+        drawerHeaderBinding.drawerHeaderSeeHistoryButton.setOnClickListener(view -> {
+            CompareHistoryActivity.start(this);
+        });
+
+        drawerHeaderBinding.drawerHeaderSeeStatsButton.setOnClickListener(view -> {
+            // TODO: navigate to stats screen
         });
 
         updateProfileHeader();
@@ -419,10 +413,14 @@ public class MainActivity extends AppCompatActivity {
             drawerHeaderBinding.drawerHeaderProfileUsername.setText(
                     getString(R.string.tournesol_hi_user, username));
             drawerHeaderBinding.drawerHeaderProfileUsername.setVisibility(View.VISIBLE);
+            drawerHeaderBinding.drawerHeaderSeeHistoryButton.setVisibility(View.VISIBLE);
+            drawerHeaderBinding.drawerHeaderSeeStatsButton.setVisibility(View.VISIBLE);
             drawerHeaderBinding.drawerHeaderLoginButton.setVisibility(View.GONE);
             drawerHeaderBinding.drawerHeaderRegisterButton.setVisibility(View.GONE);
         } else {
             drawerHeaderBinding.drawerHeaderProfileUsername.setVisibility(View.GONE);
+            drawerHeaderBinding.drawerHeaderSeeHistoryButton.setVisibility(View.GONE);
+            drawerHeaderBinding.drawerHeaderSeeStatsButton.setVisibility(View.GONE);
             drawerHeaderBinding.drawerHeaderLoginButton.setVisibility(View.VISIBLE);
             drawerHeaderBinding.drawerHeaderRegisterButton.setVisibility(View.VISIBLE);
         }

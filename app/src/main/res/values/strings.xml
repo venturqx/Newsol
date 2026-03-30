@@ -490,6 +490,7 @@
     <string name="compare_score_label">Score: %1$d</string>
     <string name="compare_action_button">Compare</string>
     <string name="compare_see_history">See history</string>
+    <string name="compare_see_stats">See stats</string>
     <string name="compare_submit_label">Submit</string>
     <string name="compare_submitting_label">Submitting</string>
     <string name="compare_submitted_label">Submitted</string>

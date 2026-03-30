@@ -447,6 +447,10 @@
             android:theme="@style/RouterActivityThemeLight" />
 
         <activity
+            android:name=".fragments.detail.CompareHistoryActivity"
+            android:exported="false" />
+
+        <activity
             android:name="net.openid.appauth.RedirectUriReceiverActivity"
             tools:node="replace"
             android:exported="true">

@@ -421,7 +421,6 @@ internal fun CompareCompactScreen(
     onSubmitSelected: (Set<String>) -> Unit,
     onUpdateSelected: (Set<String>) -> Unit,
     onPairSelectionChange: (ComparePairSelection?) -> Unit,
-    onViewRecommendations: () -> Unit,
     onDismissRecommendations: () -> Unit,
     onDismissLogin: () -> Unit,
     onRegister: () -> Unit,
@@ -921,15 +920,6 @@ internal fun CompareCompactScreen(
                         letterSpacing = TextUnit(0.04f, TextUnitType.Em)
                     )
                     FilterChip(
-                        selected = false,
-                        onClick = onViewRecommendations,
-                        enabled = !isBusy,
-                        label = { Text(text = stringResource(R.string.compare_see_history), style = chipTextStyle) },
-                        colors = chipColors,
-                        shape = chipShape,
-                        border = null
-                    )
-                    FilterChip(
                         selected = true,
                         onClick = submitOrUpdateAction,
                         enabled = canSubmit,
@@ -1386,7 +1376,7 @@ private fun CompactHeader(
 }
 
 @Composable
-private fun CompareComparisonsFullScreen(
+internal fun CompareComparisonsFullScreen(
     recommendations: List<CompareRecommendationItem>,
     isLoading: Boolean,
     errorMessage: String?,
@@ -1475,7 +1465,7 @@ private fun CompareComparisonsFullScreen(
 }
 
 @Composable
-private fun CompareComparisonRow(item: CompareRecommendationItem) {
+internal fun CompareComparisonRow(item: CompareRecommendationItem) {
     val scoreLabel = when (val score = item.largelyRecommendedScore) {
         null -> "-"
         0 -> "0"

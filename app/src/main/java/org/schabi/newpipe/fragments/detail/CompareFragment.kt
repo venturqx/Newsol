@@ -150,7 +150,6 @@ class CompareFragment : Fragment() {
                             onPairSelectionChange = { selection ->
                                 updateCompactPairSelection(selection)
                             },
-                            onViewRecommendations = { openRecommendationsDialog() },
                             onDismissRecommendations = { dismissRecommendationsDialog() },
                             onDismissLogin = { dismissLoginDialog() },
                             onRegister = { openRegisterPage() },
