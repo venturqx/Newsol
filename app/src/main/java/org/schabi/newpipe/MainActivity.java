@@ -402,7 +402,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         drawerHeaderBinding.drawerHeaderLoginButton.setOnClickListener(view -> {
-            new TournesolLoginDialog(this, this::updateProfileHeader).show();
+            TournesolLoginDialog.create(this::updateProfileHeader)
+                    .show(getSupportFragmentManager(), null);
         });
 
         drawerHeaderBinding.drawerHeaderRegisterButton.setOnClickListener(view -> {
