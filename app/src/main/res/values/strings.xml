@@ -436,7 +436,7 @@
     <string name="date_short_3_months">3M</string>
     <string name="date_short_year">1Y</string>
     <string name="filter_advanced">Advanced</string>
-    <string name="filter_unsafe_short">Unsafe</string>
+    <string name="filter_unsafe_short">More</string>
     <string name="apply">Apply</string>
 
     <!-- Language names for Tournesol filter -->

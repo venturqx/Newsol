@@ -146,8 +146,8 @@ private fun TournesolFilterSheet(
     )
     val chipShape = RoundedCornerShape(8.dp)
     val chipTextStyle = TextStyle(
-        fontFamily = FontFamily(Typeface.create("sans-serif-condensed-medium", Typeface.NORMAL)),
-        fontSize = 15.sp,
+        fontFamily = FontFamily(Typeface.create("sans-serif-medium", Typeface.NORMAL)),
+        fontSize = 14.sp,
         letterSpacing = TextUnit(0.04f, TextUnitType.Em)
     )
     val selectedLanguages = remember {

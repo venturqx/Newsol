@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -156,7 +157,7 @@ fun Comment(comment: CommentsInfoItem, onCommentAuthorOpened: () -> Unit) {
                         Icon(
                             imageVector = Icons.Default.Favorite,
                             contentDescription = stringResource(R.string.detail_heart_img_view_description),
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = Color.Red,
                             modifier = Modifier.size(20.dp)
                         )
                     }
