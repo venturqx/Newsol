@@ -66,9 +66,7 @@
         <item name="tint">?attr/actionColor</item>
     </style>
 
-    <style name="DarkPopupMenu" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
-        <item name="colorAccent">@color/dark_settings_accent_color</item>
-    </style>
+    <style name="DarkPopupMenu" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
 
     <style name="ToolbarTheme" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
         <item name="popupTheme">@style/ToolbarPopupTheme</item>
@@ -79,7 +77,6 @@
     </style>
     <style name="ToolbarPopupTheme" parent="ThemeOverlay.AppCompat.DayNight.ActionBar">
         <item name="tint">@color/contrastColor</item>
-        <item name="colorAccent">@color/dark_settings_accent_color</item>
     </style>
     <style name="ContrastToolbarTheme" parent="ThemeOverlay.AppCompat.DayNight.ActionBar">
         <item name="popupTheme">@style/ToolbarPopupTheme</item>
