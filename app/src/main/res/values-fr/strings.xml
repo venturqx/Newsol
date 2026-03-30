@@ -889,6 +889,7 @@
     <string name="language_german">Allemand</string>
     <string name="language_italian">Italien</string>
     <string name="language_portuguese">Portugais</string>
+    <string name="tournesol_hi_user">Salut %1$s</string>
     <string name="compare_title">Comparer</string>
     <string name="compare_instruction_text">%1$s devrait être plus recommandée que %2$s.</string>
     <string name="compare_current_video_header">Vidéo actuelle</string>

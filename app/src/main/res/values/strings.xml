@@ -446,6 +446,7 @@
     <string name="language_german">Deutsch</string>
     <string name="language_italian">Italiano</string>
     <string name="language_portuguese">Portugues</string>
+    <string name="tournesol_hi_user">Hi %1$s</string>
     <string name="tournesol_login_title">Log in to Tournesol</string>
     <string name="tournesol_username_hint">Username</string>
     <string name="tournesol_password_hint">Password</string>

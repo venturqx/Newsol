@@ -25,6 +25,7 @@ import org.schabi.newpipe.DownloaderImpl
 object TournesolAuthManager {
     private const val TAG = "TournesolAuthManager"
     private const val SHARED_PREF_AUTH_STATE = "tournesol_auth_state"
+    private const val SHARED_PREF_USERNAME = "tournesol_username"
     private const val AUTH_STATE_PREFS_NAME = "tournesol_auth_state_prefs"
     private const val AUTH_URL = "https://api.tournesol.app/o/authorize/"
     private const val TOKEN_URL = "https://api.tournesol.app/o/token/"
@@ -97,6 +98,24 @@ object TournesolAuthManager {
             encryptedPrefs.edit().putString(SHARED_PREF_AUTH_STATE, legacyValue).apply()
         }
         legacyPrefs.edit().remove(SHARED_PREF_AUTH_STATE).apply()
+    }
+
+    fun saveUsername(context: Context, username: String) {
+        val prefs = getAuthStatePrefs(context) ?: return
+        prefs.edit().putString(SHARED_PREF_USERNAME, username).apply()
+    }
+
+    fun getUsername(context: Context): String? {
+        val prefs = getAuthStatePrefs(context) ?: return null
+        return prefs.getString(SHARED_PREF_USERNAME, null)?.takeIf { it.isNotBlank() }
+    }
+
+    fun clearAuthState(context: Context) {
+        val prefs = getAuthStatePrefs(context) ?: return
+        prefs.edit()
+            .remove(SHARED_PREF_AUTH_STATE)
+            .remove(SHARED_PREF_USERNAME)
+            .apply()
     }
 
     fun saveAuthState(context: Context, authState: AuthState) {

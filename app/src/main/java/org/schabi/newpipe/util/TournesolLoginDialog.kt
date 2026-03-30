@@ -19,6 +19,9 @@ class TournesolLoginDialog(
     private val context: Context,
     private val onLoginSuccess: (() -> Unit)? = null
 ) {
+    constructor(context: Context, onLoginSuccess: Runnable) :
+        this(context, { onLoginSuccess.run() })
+
     private var loginDisposable: Disposable? = null
 
     fun show() {
@@ -69,6 +72,7 @@ class TournesolLoginDialog(
                 .subscribe(
                     { tokenResponse ->
                         dialog.dismiss()
+                        TournesolAuthManager.saveUsername(context, username)
                         TournesolAuthManager.saveAuthState(context, tokenResponse)
                         onLoginSuccess?.invoke()
                         Toast.makeText(

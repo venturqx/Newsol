@@ -89,6 +89,8 @@ import org.schabi.newpipe.util.SerializedCache;
 import org.schabi.newpipe.util.ServiceHelper;
 import org.schabi.newpipe.util.StateSaver;
 import org.schabi.newpipe.util.ThemeHelper;
+import org.schabi.newpipe.util.TournesolAuthManager;
+import org.schabi.newpipe.util.TournesolLoginDialog;
 import org.schabi.newpipe.util.external_communication.ShareUtils;
 import org.schabi.newpipe.views.FocusOverlayView;
 
@@ -234,6 +236,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onDrawerOpened(final View drawerView) {
                 lastService = ServiceHelper.getSelectedServiceId(MainActivity.this);
+                updateProfileHeader();
             }
 
             @Override
@@ -396,6 +399,31 @@ public class MainActivity extends AppCompatActivity {
                     .getDimensionPixelSize(R.dimen.drawer_header_newpipe_title_default_width));
             drawerHeaderBinding.drawerHeaderNewpipeTitle.setMaxWidth(getResources()
                     .getDimensionPixelSize(R.dimen.drawer_header_newpipe_title_max_width));
+        }
+
+        drawerHeaderBinding.drawerHeaderLoginButton.setOnClickListener(view -> {
+            new TournesolLoginDialog(this, this::updateProfileHeader).show();
+        });
+
+        drawerHeaderBinding.drawerHeaderRegisterButton.setOnClickListener(view -> {
+            ShareUtils.openUrlInBrowser(this, "https://tournesol.app/signup");
+        });
+
+        updateProfileHeader();
+    }
+
+    private void updateProfileHeader() {
+        final String username = TournesolAuthManager.INSTANCE.getUsername(this);
+        if (username != null) {
+            drawerHeaderBinding.drawerHeaderProfileUsername.setText(
+                    getString(R.string.tournesol_hi_user, username));
+            drawerHeaderBinding.drawerHeaderProfileUsername.setVisibility(View.VISIBLE);
+            drawerHeaderBinding.drawerHeaderLoginButton.setVisibility(View.GONE);
+            drawerHeaderBinding.drawerHeaderRegisterButton.setVisibility(View.GONE);
+        } else {
+            drawerHeaderBinding.drawerHeaderProfileUsername.setVisibility(View.GONE);
+            drawerHeaderBinding.drawerHeaderLoginButton.setVisibility(View.VISIBLE);
+            drawerHeaderBinding.drawerHeaderRegisterButton.setVisibility(View.VISIBLE);
         }
     }
 
