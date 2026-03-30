@@ -395,6 +395,35 @@
                                 android:visibility="gone"
                                 tools:ignore="RtlHardcoded"
                                 tools:visibility="visible" />
+
+                            <ImageView
+                                android:id="@+id/detail_tournesol_img_view"
+                                android:layout_width="@dimen/video_item_detail_like_image_width"
+                                android:layout_height="@dimen/video_item_detail_like_image_height"
+                                android:layout_below="@id/detail_thumbs_up_img_view"
+                                android:layout_centerHorizontal="true"
+                                android:layout_marginTop="2dp"
+                                android:src="@drawable/logo_small"
+                                android:visibility="gone"
+                                tools:ignore="ContentDescription,RtlHardcoded"
+                                tools:visibility="visible" />
+
+                            <org.schabi.newpipe.views.NewPipeTextView
+                                android:id="@+id/detail_tournesol_score_view"
+                                android:layout_width="wrap_content"
+                                android:layout_height="@dimen/video_item_detail_like_image_height"
+                                android:layout_below="@id/detail_thumbs_up_img_view"
+                                android:layout_marginLeft="@dimen/video_item_detail_like_margin"
+                                android:layout_marginTop="2dp"
+                                android:layout_toRightOf="@id/detail_tournesol_img_view"
+                                android:gravity="center_vertical"
+                                android:lines="1"
+                                android:textAppearance="?android:attr/textAppearanceMedium"
+                                android:textSize="@dimen/video_item_detail_likes_text_size"
+                                android:visibility="gone"
+                                tools:ignore="RtlHardcoded"
+                                tools:text="85"
+                                tools:visibility="visible" />
                         </RelativeLayout>
                     </RelativeLayout>
 

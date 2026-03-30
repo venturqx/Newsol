@@ -117,6 +117,7 @@ import org.schabi.newpipe.util.PermissionHelper.checkStoragePermissions
 import org.schabi.newpipe.util.PlayButtonHelper
 import org.schabi.newpipe.util.StreamTypeUtil
 import org.schabi.newpipe.util.ThemeHelper
+import org.schabi.newpipe.util.TournesolScoreCache
 import org.schabi.newpipe.util.external_communication.KoreUtils
 import org.schabi.newpipe.util.external_communication.ShareUtils
 import org.schabi.newpipe.util.image.CoilHelper
@@ -842,7 +843,7 @@ class VideoDetailFragment :
             // temp empty fragment. will be updated in handleResult
             if (isTournesolTab) {
                 pageAdapter.addFragment(EmptyFragment.newInstance(false), COMPARE_TAB_TAG)
-                tabIcons.add(R.drawable.ic_art_track)
+                tabIcons.add(R.drawable.logo_small)
                 tabContentDescriptions.add(R.string.compare_tab_description)
             } else {
                 pageAdapter.addFragment(EmptyFragment.newInstance(false), RELATED_TAB_TAG)
@@ -884,7 +885,16 @@ class VideoDetailFragment :
         for (i in tabIcons.indices) {
             val tab = binding.tabLayout.getTabAt(i)
             if (tab != null) {
-                tab.setIcon(tabIcons[i])
+                if (tabIcons[i] == R.drawable.logo_small) {
+                    val logo = AppCompatResources.getDrawable(requireContext(), R.drawable.logo_small)
+                    if (logo != null) {
+                        tab.setIcon(object : android.graphics.drawable.DrawableWrapper(logo) {
+                            override fun setTintList(tint: android.content.res.ColorStateList?) = Unit
+                        })
+                    }
+                } else {
+                    tab.setIcon(tabIcons[i])
+                }
                 tab.setContentDescription(tabContentDescriptions[i])
             }
         }
@@ -1494,6 +1504,17 @@ class VideoDetailFragment :
                 binding.detailThumbsUpImgView.visibility = View.GONE
             }
             binding.detailThumbsDisabledView.visibility = View.GONE
+        }
+
+        val cachedScore = TournesolScoreCache.get(info.originalUrl)
+            ?: TournesolScoreCache.get(info.url)
+        if (cachedScore != null) {
+            binding.detailTournesolScoreView?.text = cachedScore.toString()
+            binding.detailTournesolScoreView?.visibility = View.VISIBLE
+            binding.detailTournesolImgView?.visibility = View.VISIBLE
+        } else {
+            binding.detailTournesolScoreView?.visibility = View.GONE
+            binding.detailTournesolImgView?.visibility = View.GONE
         }
 
         if (info.duration > 0) {

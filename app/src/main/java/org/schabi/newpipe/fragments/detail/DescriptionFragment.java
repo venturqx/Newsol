@@ -29,6 +29,7 @@ import org.schabi.newpipe.extractor.StreamingService;
 import org.schabi.newpipe.extractor.stream.Description;
 import org.schabi.newpipe.extractor.stream.StreamInfo;
 import org.schabi.newpipe.util.Localization;
+import org.schabi.newpipe.util.TournesolScoreCache;
 
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -241,6 +242,10 @@ public class DescriptionFragment extends BaseDescriptionFragment {
         if (Double.isNaN(tournesolScore)) {
             return;
         }
+
+        // Cache the score so the video detail header can use it without re-fetching
+        TournesolScoreCache.INSTANCE.put(streamInfo.getOriginalUrl(),
+                Math.round(tournesolScore));
 
         final int nComparisons = collectiveRating.optInt("n_comparisons", 0);
         final int nContributors = collectiveRating.optInt("n_contributors", 0);

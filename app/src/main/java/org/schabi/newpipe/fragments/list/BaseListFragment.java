@@ -375,6 +375,10 @@ public abstract class BaseListFragment<I, N> extends BaseStateFragment<I>
 
     private void onStreamSelected(final StreamInfoItem selectedItem) {
         onItemSelected(selectedItem);
+        if (selectedItem.getTournesolScore() != null) {
+            org.schabi.newpipe.util.TournesolScoreCache.INSTANCE.put(
+                    selectedItem.getUrl(), selectedItem.getTournesolScore());
+        }
         NavigationHelper.openVideoDetailFragment(requireContext(), getFM(),
                 selectedItem.getServiceId(), selectedItem.getUrl(), selectedItem.getName(),
                 null, false);

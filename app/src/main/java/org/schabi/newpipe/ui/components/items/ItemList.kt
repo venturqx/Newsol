@@ -39,6 +39,9 @@ fun ItemList(
         { item: InfoItem ->
             val fragmentManager = context.findFragmentActivity().supportFragmentManager
             if (item is StreamInfoItem) {
+                item.tournesolScore?.let {
+                    org.schabi.newpipe.util.TournesolScoreCache.put(item.url, it)
+                }
                 NavigationHelper.openVideoDetailFragment(
                     context,
                     fragmentManager,

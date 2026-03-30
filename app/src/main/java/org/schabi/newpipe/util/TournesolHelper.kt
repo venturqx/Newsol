@@ -6,6 +6,26 @@ import java.util.LinkedHashSet
 import java.util.Locale
 import java.util.TimeZone
 
+object TournesolScoreCache {
+    private val cache = LinkedHashMap<String, Long>(32, 0.75f, true)
+
+    fun put(url: String, score: Long) {
+        synchronized(cache) {
+            cache[url] = score
+            // Keep cache bounded
+            if (cache.size > 200) {
+                cache.remove(cache.keys.first())
+            }
+        }
+    }
+
+    fun get(url: String): Long? {
+        synchronized(cache) {
+            return cache[url]
+        }
+    }
+}
+
 object TournesolHelper {
     const val KIOSK_ID = "Tournesol"
     const val PREF_TOURNESOL_FILTER_LANGUAGES = "tournesol_filter_languages"

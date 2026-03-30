@@ -220,12 +220,12 @@ fun CompareScreen(
             selectedContainerColor = colorResource(R.color.tournesol_chip_bg_selected),
             containerColor = colorResource(R.color.tournesol_chip_bg_unselected),
             selectedLabelColor = colorResource(R.color.tournesol_chip_text_selected),
-            labelColor = colorResource(R.color.tournesol_chip_text_unselected)
+            labelColor = MaterialTheme.colorScheme.onSurface
         )
         val chipShape = RoundedCornerShape(8.dp)
         val chipTextStyle = TextStyle(
-            fontFamily = FontFamily(Typeface.create("sans-serif-condensed-medium", Typeface.NORMAL)),
-            fontSize = 15.sp,
+            fontFamily = FontFamily(Typeface.create("sans-serif-medium", Typeface.NORMAL)),
+            fontSize = 14.sp,
             letterSpacing = TextUnit(0.04f, TextUnitType.Em)
         )
         Row(
@@ -819,10 +819,7 @@ internal fun CompareCompactScreen(
                                             color = MaterialTheme.colorScheme.surface
                                         ) {
                                             Box(
-                                                modifier = Modifier.padding(
-                                                    horizontal = 8.dp,
-                                                    vertical = 2.dp
-                                                )
+                                                modifier = Modifier.padding(2.dp)
                                             ) {
                                                 CompareVideoThumbnailCard(
                                                     entry = selectedHistoryEntryLeft,
@@ -855,10 +852,7 @@ internal fun CompareCompactScreen(
                                             color = MaterialTheme.colorScheme.surface
                                         ) {
                                             Box(
-                                                modifier = Modifier.padding(
-                                                    horizontal = 8.dp,
-                                                    vertical = 2.dp
-                                                )
+                                                modifier = Modifier.padding(2.dp)
                                             ) {
                                                 CompareVideoThumbnailCard(
                                                     entry = selectedHistoryEntryRight,
@@ -909,35 +903,37 @@ internal fun CompareCompactScreen(
                         )
                     }
                 }
-                Box(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     val chipColors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = colorResource(R.color.tournesol_chip_bg_selected),
                         containerColor = colorResource(R.color.tournesol_chip_bg_unselected),
                         selectedLabelColor = colorResource(R.color.tournesol_chip_text_selected),
-                        labelColor = colorResource(R.color.tournesol_chip_text_unselected)
+                        labelColor = MaterialTheme.colorScheme.onSurface
                     )
                     val chipShape = RoundedCornerShape(8.dp)
                     val chipTextStyle = TextStyle(
-                        fontFamily = FontFamily(Typeface.create("sans-serif-condensed-medium", Typeface.NORMAL)),
-                        fontSize = 15.sp,
+                        fontFamily = FontFamily(Typeface.create("sans-serif-medium", Typeface.NORMAL)),
+                        fontSize = 14.sp,
                         letterSpacing = TextUnit(0.04f, TextUnitType.Em)
-                    )
-                    FilterChip(
-                        selected = true,
-                        onClick = submitOrUpdateAction,
-                        enabled = canSubmit,
-                        modifier = Modifier.align(Alignment.Center),
-                        label = { Text(text = submitButtonLabel, style = chipTextStyle) },
-                        colors = chipColors,
-                        shape = chipShape,
-                        border = null
                     )
                     FilterChip(
                         selected = false,
                         onClick = onViewRecommendations,
                         enabled = !isBusy,
-                        modifier = Modifier.align(Alignment.CenterEnd),
-                        label = { Text(text = stringResource(R.string.action_history), style = chipTextStyle) },
+                        label = { Text(text = stringResource(R.string.compare_see_history), style = chipTextStyle) },
+                        colors = chipColors,
+                        shape = chipShape,
+                        border = null
+                    )
+                    FilterChip(
+                        selected = true,
+                        onClick = submitOrUpdateAction,
+                        enabled = canSubmit,
+                        label = { Text(text = submitButtonLabel, style = chipTextStyle) },
                         colors = chipColors,
                         shape = chipShape,
                         border = null
