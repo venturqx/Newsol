@@ -62,9 +62,9 @@ public class ChannelRankFragment extends BaseListInfoFragment<StreamInfoItem, Ki
             encoded = URLEncoder.encode(uploader, StandardCharsets.UTF_8.name());
         } catch (final UnsupportedEncodingException ignored) {
             // UTF-8 is always available, but keep a safe fallback.
-            return TournesolHelper.KIOSK_ID + "?languages=&uploader=" + uploader;
+            return TournesolHelper.KIOSK_ID + "?languages=&uploader=" + uploader + "&unsafe=true";
         }
-        return TournesolHelper.KIOSK_ID + "?languages=&uploader=" + encoded;
+        return TournesolHelper.KIOSK_ID + "?languages=&uploader=" + encoded + "&unsafe=true";
     }
 
     @Override
