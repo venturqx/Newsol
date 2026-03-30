@@ -104,7 +104,7 @@ class TournesolFilterFragment : BottomSheetDialogFragment() {
         savedInstanceState: Bundle?
     ): View {
         val seedLanguages = initialLanguages
-            ?: TournesolHelper.DEFAULT_TOURNESOL_FILTER_LANGUAGES.split(",")
+            ?: TournesolHelper.getDefaultFilterLanguages().split(",")
         val seedDateKey = initialDateKey ?: TournesolHelper.DEFAULT_TOURNESOL_FILTER_DATE_KEY
         val seedIncludeLowScoreVideos = initialIncludeLowScoreVideos
 

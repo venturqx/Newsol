@@ -195,7 +195,7 @@ class TournesolFilterController(
             .getDefaultSharedPreferences(fragment.requireContext())
         val langs = prefs.getString(
             TournesolHelper.PREF_TOURNESOL_FILTER_LANGUAGES,
-            TournesolHelper.DEFAULT_TOURNESOL_FILTER_LANGUAGES
+            TournesolHelper.getDefaultFilterLanguages()
         )
         currentLanguages = if (!langs.isNullOrEmpty()) {
             ArrayList(langs.split(","))

@@ -11,7 +11,19 @@ object TournesolHelper {
     const val PREF_TOURNESOL_FILTER_LANGUAGES = "tournesol_filter_languages"
     const val PREF_TOURNESOL_FILTER_DATE_KEY = "tournesol_filter_date_key"
     const val PREF_TOURNESOL_FILTER_INCLUDE_LOW_SCORE = "tournesol_filter_include_low_score"
-    const val DEFAULT_TOURNESOL_FILTER_LANGUAGES = "en"
+
+    /**
+     * Returns the default filter languages based on system locale:
+     * - French or English system → that language only
+     * - Any other language → English + that language
+     */
+    fun getDefaultFilterLanguages(): String {
+        val systemLang = Locale.getDefault().language
+        return when (systemLang) {
+            "fr", "en" -> systemLang
+            else -> "en,$systemLang"
+        }
+    }
     const val DEFAULT_TOURNESOL_FILTER_DATE_KEY = "3_months"
     const val DEFAULT_TOURNESOL_FILTER_INCLUDE_LOW_SCORE = false
     private const val REASON_INSUFFICIENT_TOURNESOL_SCORE = "insufficient_tournesol_score"
