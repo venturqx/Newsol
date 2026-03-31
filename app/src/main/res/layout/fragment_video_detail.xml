@@ -623,6 +623,7 @@
             app:tabBackground="?attr/windowBackground"
             app:tabGravity="fill"
             app:tabIconTint="#FFCA1D"
+            app:tabIndicatorColor="#FFCA1D"
             app:tabIndicatorGravity="top" />
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
