@@ -410,8 +410,27 @@ public class MainActivity extends AppCompatActivity {
     private void updateProfileHeader() {
         final String username = TournesolAuthManager.INSTANCE.getUsername(this);
         if (username != null) {
-            drawerHeaderBinding.drawerHeaderProfileUsername.setText(
-                    getString(R.string.tournesol_hi_user, username));
+            final String greeting = getString(R.string.tournesol_hi_greeting) + " ";
+            final String comma = ",";
+            final android.text.SpannableStringBuilder ssb =
+                    new android.text.SpannableStringBuilder();
+            ssb.append(greeting);
+            ssb.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.NORMAL),
+                    0, greeting.length(),
+                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            ssb.setSpan(new android.text.style.ForegroundColorSpan(0xAAF3F3F3),
+                    0, greeting.length(),
+                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            final int nameStart = ssb.length();
+            ssb.append(username);
+            ssb.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                    nameStart, ssb.length(),
+                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            ssb.append(comma);
+            ssb.setSpan(new android.text.style.ForegroundColorSpan(0xAAF3F3F3),
+                    ssb.length() - comma.length(), ssb.length(),
+                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            drawerHeaderBinding.drawerHeaderProfileUsername.setText(ssb);
             drawerHeaderBinding.drawerHeaderProfileUsername.setVisibility(View.VISIBLE);
             drawerHeaderBinding.drawerHeaderSeeHistoryButton.setVisibility(View.VISIBLE);
             drawerHeaderBinding.drawerHeaderSeeStatsButton.setVisibility(View.VISIBLE);

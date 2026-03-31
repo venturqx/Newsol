@@ -19,7 +19,7 @@
     <string name="recaptcha">reCAPTCHA</string>
     <string name="github_url">https://github.com/TeamNewPipe/NewPipe</string>
     <string name="newpipe_extractor_github_url">https://github.com/TeamNewPipe/NewPipeExtractor</string>
-    <string name="donation_url">https://newpipe.net/donate/</string>
+    <string name="donation_url">https://tournesol.app/about/donate</string>
     <string name="website_url">https://newpipe.net/</string>
     <string name="privacy_policy_url">https://newpipe.net/legal/privacy/</string>
     <string name="faq_url">https://newpipe.net/FAQ/</string>

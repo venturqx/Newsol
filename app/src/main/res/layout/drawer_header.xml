@@ -7,15 +7,6 @@
     android:background="?android:attr/windowBackground"
     android:nextFocusDown="@+id/drawer_header_action_button">
 
-    <View
-        android:id="@+id/drawer_header_action_button"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:background="?selectableItemBackground"
-        android:focusable="true"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -25,6 +16,14 @@
         android:minHeight="@dimen/drawer_header_content_min_height"
         android:orientation="vertical"
         app:layout_constraintTop_toTopOf="parent">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginBottom="4dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:background="#80FFD600" />
 
         <LinearLayout
             android:id="@+id/drawer_header_profile_container"
@@ -40,37 +39,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/tournesol_soft_white"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.02"
+                android:textSize="17sp"
+                android:letterSpacing="0.01"
                 android:visibility="gone"
-                tools:text="Hi user"
-                tools:visibility="visible" />
-
-            <Button
-                android:id="@+id/drawer_header_see_history_button"
-                style="@style/Widget.AppCompat.Button.Borderless"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:drawableStart="@drawable/ic_history"
-                android:drawablePadding="8dp"
-                android:text="@string/compare_see_history"
-                android:textAllCaps="false"
-                android:visibility="gone"
-                tools:visibility="visible" />
-
-            <Button
-                android:id="@+id/drawer_header_see_stats_button"
-                style="@style/Widget.AppCompat.Button.Borderless"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="0dp"
-                android:drawableStart="@drawable/ic_trending_up"
-                android:drawablePadding="8dp"
-                android:text="@string/compare_see_stats"
-                android:textAllCaps="false"
-                android:visibility="gone"
+                tools:text="Hi user,"
                 tools:visibility="visible" />
 
             <LinearLayout
@@ -101,11 +73,51 @@
             </LinearLayout>
         </LinearLayout>
 
+        <Button
+            android:id="@+id/drawer_header_see_history_button"
+            style="@style/Widget.AppCompat.Button.Borderless"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:gravity="center_vertical|start"
+            android:drawableStart="@drawable/ic_history"
+            android:drawablePadding="32dp"
+            android:text="@string/compare_see_history"
+            android:textAllCaps="false"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <Button
+            android:id="@+id/drawer_header_see_stats_button"
+            style="@style/Widget.AppCompat.Button.Borderless"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:gravity="center_vertical|start"
+            android:drawableStart="@drawable/ic_trending_up"
+            android:drawablePadding="32dp"
+            android:text="@string/compare_see_stats"
+            android:textAllCaps="false"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:background="#80FFD600" />
+
         <LinearLayout
+            android:id="@+id/drawer_header_action_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:background="@drawable/drawer_header_bottom_background"
+            android:focusable="true"
             android:gravity="center"
             android:orientation="horizontal"
             android:paddingLeft="6dp"

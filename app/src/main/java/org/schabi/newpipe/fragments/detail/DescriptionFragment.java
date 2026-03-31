@@ -3,7 +3,10 @@ package org.schabi.newpipe.fragments.detail;
 import static org.schabi.newpipe.extractor.stream.StreamExtractor.NO_AGE_LIMIT;
 import static org.schabi.newpipe.util.Localization.getAppLocale;
 
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.text.TextPaint;
@@ -149,6 +152,7 @@ public class DescriptionFragment extends BaseDescriptionFragment {
         }
 
         fetchTournesolInfo();
+        fetchTournesolDistribution();
 
         addMetadataItem(inflater, layout, false, R.string.metadata_category,
                 streamInfo.getCategory());
@@ -439,6 +443,200 @@ public class DescriptionFragment extends BaseDescriptionFragment {
         }
 
         return row;
+    }
+
+    private void fetchTournesolDistribution() {
+        if (binding == null) {
+            return;
+        }
+        if (streamInfo.getServiceId() != YOUTUBE_SERVICE_ID) {
+            return;
+        }
+        final String videoId = streamInfo.getId();
+        if (videoId == null || videoId.isEmpty()) {
+            return;
+        }
+
+        final String encodedUid;
+        try {
+            encodedUid = URLEncoder.encode("yt:" + videoId, "UTF-8");
+        } catch (final Exception e) {
+            return;
+        }
+        final String url = TOURNESOL_API_BASE + "/polls/videos/entities/" + encodedUid
+                + "/criteria_scores_distributions";
+
+        tournesolDisposables.add(
+                Single.fromCallable(() -> {
+                    final OkHttpClient client = DownloaderImpl.getInstance().getClient();
+                    final Request request = new Request.Builder()
+                            .url(url)
+                            .get()
+                            .addHeader("Accept", "application/json")
+                            .build();
+                    try (Response response = client.newCall(request).execute()) {
+                        if (!response.isSuccessful() || response.body() == null) {
+                            return new JSONObject();
+                        }
+                        return new JSONObject(response.body().string());
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                        this::displayDistribution,
+                        throwable -> { /* silently ignore */ }
+                )
+        );
+    }
+
+    private void displayDistribution(final JSONObject data) {
+        if (data == null || binding == null || getContext() == null) {
+            return;
+        }
+        final JSONArray distributions = data.optJSONArray("criteria_scores_distributions");
+        if (distributions == null) {
+            return;
+        }
+
+        JSONArray binsJson = null;
+        JSONArray distributionJson = null;
+        for (int i = 0; i < distributions.length(); i++) {
+            final JSONObject entry = distributions.optJSONObject(i);
+            if (entry == null) {
+                continue;
+            }
+            if ("largely_recommended".equals(entry.optString("criteria"))) {
+                binsJson = entry.optJSONArray("bins");
+                distributionJson = entry.optJSONArray("distribution");
+                break;
+            }
+        }
+
+        if (binsJson == null || distributionJson == null || distributionJson.length() == 0) {
+            return;
+        }
+
+        final int[] bins = new int[binsJson.length()];
+        for (int i = 0; i < binsJson.length(); i++) {
+            bins[i] = binsJson.optInt(i);
+        }
+        final int[] distribution = new int[distributionJson.length()];
+        for (int i = 0; i < distributionJson.length(); i++) {
+            distribution[i] = distributionJson.optInt(i);
+        }
+
+        binding.tournesolDistributionContainer.addView(createDistributionChart(bins, distribution));
+        binding.tournesolDistributionContainer.setVisibility(View.VISIBLE);
+    }
+
+    private static final int CHART_HEIGHT_DP = 28;
+
+    private View createDistributionChart(final int[] bins, final int[] distribution) {
+        int maxCount = 0;
+        for (final int count : distribution) {
+            if (count > maxCount) {
+                maxCount = count;
+            }
+        }
+        if (maxCount == 0) {
+            return new View(requireContext());
+        }
+        final int finalMaxCount = maxCount;
+        final int chartHeightPx = dpToPx(CHART_HEIGHT_DP);
+        final float strokePx = dpToPx(2) / 3f;
+
+        // Custom view — draws a smooth Catmull-Rom curve with filled area + zero separator
+        final View curveView = new View(requireContext()) {
+            private final Paint curvePaint = buildCurvePaint();
+            private final Paint fillPaint = buildFillPaint();
+            private final Paint separatorPaint = buildSeparatorPaint();
+
+            private Paint buildCurvePaint() {
+                final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+                p.setColor(TOURNESOL_SCORE_COLOR);
+                p.setStyle(Paint.Style.STROKE);
+                p.setStrokeWidth(strokePx);
+                p.setStrokeCap(Paint.Cap.ROUND);
+                p.setStrokeJoin(Paint.Join.ROUND);
+                return p;
+            }
+
+            private Paint buildFillPaint() {
+                final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+                p.setColor(Color.argb(55, 0xFF, 0xCA, 0x1D));
+                p.setStyle(Paint.Style.FILL);
+                return p;
+            }
+
+            private Paint buildSeparatorPaint() {
+                final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+                p.setColor(Color.argb(140, 0xFF, 0xFF, 0xFF));
+                p.setStyle(Paint.Style.STROKE);
+                p.setStrokeWidth(strokePx * 0.6f);
+                return p;
+            }
+
+            @Override
+            protected void onDraw(final Canvas canvas) {
+                final int w = getWidth();
+                final int h = getHeight();
+                if (w == 0 || h == 0 || distribution.length == 0) {
+                    return;
+                }
+
+                final int n = distribution.length;
+                final float xMin = bins[0];
+                final float xRange = bins[bins.length - 1] - xMin;
+                final float topPad = strokePx;
+
+                final float[] xs = new float[n];
+                final float[] ys = new float[n];
+                for (int i = 0; i < n; i++) {
+                    final float binCenter = (bins[i] + bins[i + 1]) / 2f;
+                    xs[i] = (binCenter - xMin) / xRange * w;
+                    ys[i] = topPad + (1f - distribution[i] / (float) finalMaxCount)
+                            * (h - topPad - topPad);
+                }
+
+                // Catmull-Rom spline path
+                final Path path = new Path();
+                path.moveTo(xs[0], ys[0]);
+                for (int i = 0; i < n - 1; i++) {
+                    final float p0x = i > 0 ? xs[i - 1] : xs[0];
+                    final float p0y = i > 0 ? ys[i - 1] : ys[0];
+                    final float p1x = xs[i];
+                    final float p1y = ys[i];
+                    final float p2x = xs[i + 1];
+                    final float p2y = ys[i + 1];
+                    final float p3x = i + 2 < n ? xs[i + 2] : xs[n - 1];
+                    final float p3y = i + 2 < n ? ys[i + 2] : ys[n - 1];
+                    path.cubicTo(
+                            p1x + (p2x - p0x) / 6f, p1y + (p2y - p0y) / 6f,
+                            p2x - (p3x - p1x) / 6f, p2y - (p3y - p1y) / 6f,
+                            p2x, p2y);
+                }
+
+                // Fill under curve
+                final Path fill = new Path(path);
+                fill.lineTo(xs[n - 1], h);
+                fill.lineTo(xs[0], h);
+                fill.close();
+                canvas.drawPath(fill, fillPaint);
+
+                // Curve line
+                canvas.drawPath(path, curvePaint);
+
+                // Vertical separator at score = 0
+                final float zeroX = (0f - xMin) / xRange * w;
+                canvas.drawLine(zeroX, 0f, zeroX, (float) h, separatorPaint);
+            }
+        };
+        curveView.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, chartHeightPx));
+
+        // Axis labels: bins[0], 0, bins[last]
+        return curveView;
     }
 
     private int dpToPx(final int dp) {
