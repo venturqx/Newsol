@@ -1654,7 +1654,8 @@ internal fun CompareComparisonsFullScreen(
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 10.dp)
+                        contentPadding = PaddingValues(bottom = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         itemsIndexed(
                             recommendations,
@@ -1743,6 +1744,7 @@ internal fun CompareComparisonRow(item: CompareRecommendationItem, index: Int = 
                                 Box(
                                     modifier = Modifier
                                         .align(Alignment.BottomCenter)
+                                        .offset(y = 4.dp)
                                         .fillMaxWidth(0.4f)
                                         .height(2.dp)
                                         .background(Color(0xFFFFD54F), RoundedCornerShape(1.dp))
@@ -1778,6 +1780,7 @@ internal fun CompareComparisonRow(item: CompareRecommendationItem, index: Int = 
                                 Box(
                                     modifier = Modifier
                                         .align(Alignment.BottomCenter)
+                                        .offset(y = 4.dp)
                                         .fillMaxWidth(0.4f)
                                         .height(2.dp)
                                         .background(Color(0xFFFFD54F), RoundedCornerShape(1.dp))
