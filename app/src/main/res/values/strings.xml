@@ -490,7 +490,8 @@
     <string name="compare_no_comparisons_available">No comparisons available</string>
     <string name="compare_score_label">Score: %1$d</string>
     <string name="compare_action_button">Compare</string>
-    <string name="compare_see_history">Tournesol history</string>
+    <string name="compare_see_history">Your comparisons</string>
+    <string name="compare_you_submitted">You submitted %1$d comparisons.</string>
     <string name="compare_see_stats">Tournesol stats</string>
     <string name="compare_submit_label">Submit</string>
     <string name="compare_submitting_label">Submitting</string>

@@ -17,6 +17,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -143,7 +144,8 @@ fun CompareScreen(
     onSubmitMore: () -> Unit,
     onDismissLogin: () -> Unit,
     onRegister: () -> Unit,
-    onLogin: (String, String) -> Unit
+    onLogin: (String, String) -> Unit,
+    onNavigateToVideo: ((Int, String, String) -> Unit)? = null
 ) {
     val currentEntry = state.selectedEntry
     val scrollState = rememberScrollState()
@@ -174,7 +176,8 @@ fun CompareScreen(
             entries = state.historyEntries,
             selectedIndex = state.selectedIndex,
             historyMessageRes = state.historyMessageRes,
-            onSelectIndex = onSelectIndex
+            onSelectIndex = onSelectIndex,
+            onNavigateToVideo = onNavigateToVideo
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -414,6 +417,7 @@ private val COMPACT_DIMENSIONS = listOf(
 ) + EXTRA_CRITERIA
 
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 internal fun CompareCompactScreen(
     state: CompareUiState,
     onScoreChange: (Int) -> Unit,
@@ -424,7 +428,8 @@ internal fun CompareCompactScreen(
     onDismissRecommendations: () -> Unit,
     onDismissLogin: () -> Unit,
     onRegister: () -> Unit,
-    onLogin: (String, String) -> Unit
+    onLogin: (String, String) -> Unit,
+    onNavigateToVideo: ((Int, String, String) -> Unit)? = null
 ) {
     val dimensions = remember { COMPACT_DIMENSIONS }
     var activeIndex by rememberSaveable { mutableIntStateOf(0) }
@@ -786,7 +791,14 @@ internal fun CompareCompactScreen(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clickable { openHistoryOverlay(OverlayTarget.LEFT) },
+                            .combinedClickable(
+                                onClick = { openHistoryOverlay(OverlayTarget.LEFT) },
+                                onLongClick = {
+                                    selectedHistoryEntryLeft?.streamEntity?.let {
+                                        onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
+                                    }
+                                }
+                            ),
                         contentAlignment = Alignment.CenterEnd
                     ) {
                         CompareSideLabel(
@@ -812,7 +824,14 @@ internal fun CompareCompactScreen(
                                     ) {
                                         Surface(
                                             modifier = Modifier
-                                                .clickable { openHistoryOverlay(OverlayTarget.LEFT) },
+                                                .combinedClickable(
+                                                    onClick = { openHistoryOverlay(OverlayTarget.LEFT) },
+                                                    onLongClick = {
+                                                        selectedHistoryEntryLeft?.streamEntity?.let {
+                                                            onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
+                                                        }
+                                                    }
+                                                ),
                                             shape = RoundedCornerShape(6.dp),
                                             border = BorderStroke(2.dp, Color(0xFF42A5F5)),
                                             color = MaterialTheme.colorScheme.surface
@@ -845,7 +864,14 @@ internal fun CompareCompactScreen(
                                     ) {
                                         Surface(
                                             modifier = Modifier
-                                                .clickable { openHistoryOverlay(OverlayTarget.RIGHT) },
+                                                .combinedClickable(
+                                                    onClick = { openHistoryOverlay(OverlayTarget.RIGHT) },
+                                                    onLongClick = {
+                                                        selectedHistoryEntryRight?.streamEntity?.let {
+                                                            onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
+                                                        }
+                                                    }
+                                                ),
                                             shape = RoundedCornerShape(6.dp),
                                             border = BorderStroke(2.dp, Color(0xFFE57373)),
                                             color = MaterialTheme.colorScheme.surface
@@ -892,7 +918,14 @@ internal fun CompareCompactScreen(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clickable { openHistoryOverlay(OverlayTarget.RIGHT) },
+                            .combinedClickable(
+                                onClick = { openHistoryOverlay(OverlayTarget.RIGHT) },
+                                onLongClick = {
+                                    selectedHistoryEntryRight?.streamEntity?.let {
+                                        onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
+                                    }
+                                }
+                            ),
                         contentAlignment = Alignment.CenterStart
                     ) {
                         CompareSideLabel(
@@ -1323,6 +1356,7 @@ internal fun CompareCompactScreen(
     if (state.showRecommendationsDialog) {
         CompareComparisonsFullScreen(
             recommendations = state.recommendations,
+            totalCount = state.recommendationsTotalCount,
             isLoading = state.recommendationsLoading,
             errorMessage = state.recommendationsError,
             onDismiss = onDismissRecommendations
@@ -1378,6 +1412,7 @@ private fun CompactHeader(
 @Composable
 internal fun CompareComparisonsFullScreen(
     recommendations: List<CompareRecommendationItem>,
+    totalCount: Int? = null,
     isLoading: Boolean,
     errorMessage: String?,
     onDismiss: () -> Unit
@@ -1401,8 +1436,13 @@ internal fun CompareComparisonsFullScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                val title = if (totalCount != null) {
+                    stringResource(R.string.compare_you_submitted, totalCount)
+                } else {
+                    stringResource(R.string.compare_title)
+                }
                 Text(
-                    text = stringResource(R.string.compare_title),
+                    text = title,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f)
@@ -2451,7 +2491,8 @@ private fun HistoryWheel(
     entries: List<StreamHistoryEntry>,
     selectedIndex: Int,
     historyMessageRes: Int?,
-    onSelectIndex: (Int) -> Unit
+    onSelectIndex: (Int) -> Unit,
+    onNavigateToVideo: ((Int, String, String) -> Unit)? = null
 ) {
     val itemHeight = 64.dp
     if (entries.isEmpty()) {
@@ -2685,6 +2726,14 @@ private fun HistoryWheel(
                 contentAlpha = contentAlpha,
                 backgroundAlpha = backgroundAlpha,
                 elevation = elevation,
+                onLongClick = {
+                    val entity = entries[page].streamEntity
+                    onNavigateToVideo?.invoke(
+                        entity.serviceId,
+                        entity.url,
+                        entity.title
+                    )
+                },
                 modifier = Modifier
                     .height(itemHeight)
                     .zIndex(focus)
@@ -2721,6 +2770,7 @@ private fun HistoryWheel(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HistoryCard(
     entry: StreamHistoryEntry,
@@ -2728,6 +2778,7 @@ private fun HistoryCard(
     contentAlpha: Float,
     backgroundAlpha: Float,
     elevation: androidx.compose.ui.unit.Dp,
+    onLongClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val clampedFocus = focus.coerceIn(0f, 1f)
@@ -2756,6 +2807,10 @@ private fun HistoryCard(
         Column(
             modifier = Modifier
                 .graphicsLayer(alpha = contentAlpha.coerceIn(0f, 1f))
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = onLongClick
+                )
                 .padding(horizontal = 10.dp, vertical = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {

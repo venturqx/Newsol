@@ -67,7 +67,7 @@ import org.schabi.newpipe.extractor.exceptions.ExtractionException;
 import org.schabi.newpipe.extractor.services.peertube.PeertubeInstance;
 import org.schabi.newpipe.fragments.BackPressable;
 import org.schabi.newpipe.fragments.MainFragment;
-import org.schabi.newpipe.fragments.detail.CompareHistoryActivity;
+import org.schabi.newpipe.fragments.detail.CompareFragment;
 import org.schabi.newpipe.fragments.detail.VideoDetailFragment;
 import org.schabi.newpipe.fragments.list.search.SearchFragment;
 import org.schabi.newpipe.local.feed.notifications.NotificationWorker;
@@ -76,6 +76,7 @@ import org.schabi.newpipe.player.event.OnKeyDownListener;
 import org.schabi.newpipe.player.helper.PlayerHolder;
 import org.schabi.newpipe.player.playqueue.PlayQueue;
 import org.schabi.newpipe.settings.UpdateSettingsFragment;
+import org.schabi.newpipe.settings.tabs.Tab;
 import org.schabi.newpipe.settings.migration.MigrationManager;
 import org.schabi.newpipe.util.Constants;
 import org.schabi.newpipe.util.DeviceUtils;
@@ -397,11 +398,13 @@ public class MainActivity extends AppCompatActivity {
         });
 
         drawerHeaderBinding.drawerHeaderSeeHistoryButton.setOnClickListener(view -> {
-            CompareHistoryActivity.start(this);
-        });
-
-        drawerHeaderBinding.drawerHeaderSeeStatsButton.setOnClickListener(view -> {
-            // TODO: navigate to stats screen
+            CompareFragment.setPendingOpenComparisons(true);
+            final Fragment fragment = getSupportFragmentManager()
+                    .findFragmentById(R.id.fragment_holder);
+            if (fragment instanceof MainFragment) {
+                ((MainFragment) fragment).selectTabById(Tab.CompareTab.ID);
+            }
+            mainBinding.getRoot().closeDrawers();
         });
 
         updateProfileHeader();
@@ -416,20 +419,44 @@ public class MainActivity extends AppCompatActivity {
             ssb.append(greeting);
             final int nameStart = ssb.length();
             ssb.append(username);
-            ssb.append(",");
+            ssb.append("  "); // space before icon
             ssb.setSpan(new android.text.style.TypefaceSpan("sans-serif-medium"),
                     nameStart, nameStart + username.length(),
                     android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            final int textSizePx = (int) drawerHeaderBinding.drawerHeaderProfileUsername
+                    .getTextSize();
+            final android.graphics.drawable.Drawable logo =
+                    androidx.core.content.ContextCompat.getDrawable(this, R.drawable.logo_small);
+            if (logo != null) {
+                logo.setBounds(0, 0, textSizePx, textSizePx);
+                final android.text.style.ImageSpan logoSpan =
+                        new android.text.style.ImageSpan(logo,
+                                android.text.style.ImageSpan.ALIGN_CENTER);
+                final int iconPos = ssb.length() - 1;
+                ssb.setSpan(logoSpan, iconPos, ssb.length(),
+                        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            final Integer comparisonCount =
+                    TournesolAuthManager.INSTANCE.getComparisonCount(this);
+            if (comparisonCount != null) {
+                ssb.append(" ");
+                final int countStart = ssb.length();
+                ssb.append(String.valueOf(comparisonCount));
+                ssb.setSpan(new android.text.style.ForegroundColorSpan(0x99FFFFFF),
+                        countStart, ssb.length(),
+                        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                ssb.setSpan(new android.text.style.RelativeSizeSpan(0.85f),
+                        countStart, ssb.length(),
+                        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
             drawerHeaderBinding.drawerHeaderProfileUsername.setText(ssb);
             drawerHeaderBinding.drawerHeaderProfileUsername.setVisibility(View.VISIBLE);
             drawerHeaderBinding.drawerHeaderSeeHistoryButton.setVisibility(View.VISIBLE);
-            drawerHeaderBinding.drawerHeaderSeeStatsButton.setVisibility(View.VISIBLE);
             drawerHeaderBinding.drawerHeaderLoginButton.setVisibility(View.GONE);
             drawerHeaderBinding.drawerHeaderRegisterButton.setVisibility(View.GONE);
         } else {
             drawerHeaderBinding.drawerHeaderProfileUsername.setVisibility(View.GONE);
             drawerHeaderBinding.drawerHeaderSeeHistoryButton.setVisibility(View.GONE);
-            drawerHeaderBinding.drawerHeaderSeeStatsButton.setVisibility(View.GONE);
             drawerHeaderBinding.drawerHeaderLoginButton.setVisibility(View.VISIBLE);
             drawerHeaderBinding.drawerHeaderRegisterButton.setVisibility(View.VISIBLE);
         }

@@ -33,6 +33,7 @@ import org.schabi.newpipe.ktx.serializable
 import org.schabi.newpipe.local.history.HistoryRecordManager
 import org.schabi.newpipe.ui.theme.AppTheme
 import org.schabi.newpipe.util.KEY_INFO
+import org.schabi.newpipe.util.NavigationHelper
 import org.schabi.newpipe.util.TournesolAuthManager
 
 class CompareFragment : Fragment() {
@@ -57,6 +58,7 @@ class CompareFragment : Fragment() {
     private var submitMoreInProgress by mutableStateOf(false)
     private var compactPopupVisible by mutableStateOf(false)
     private var recommendations by mutableStateOf<List<CompareRecommendationItem>>(emptyList())
+    private var recommendationsTotalCount by mutableStateOf<Int?>(null)
     private var recommendationsLoading by mutableStateOf(false)
     private var recommendationsError by mutableStateOf<String?>(null)
     private var showRecommendationsDialog by mutableStateOf(false)
@@ -129,6 +131,7 @@ class CompareFragment : Fragment() {
                         changeInProgress = changeInProgress,
                         submitMoreInProgress = submitMoreInProgress,
                         recommendations = recommendations,
+                        recommendationsTotalCount = recommendationsTotalCount,
                         recommendationsLoading = recommendationsLoading,
                         recommendationsError = recommendationsError,
                         showRecommendationsDialog = showRecommendationsDialog,
@@ -153,7 +156,10 @@ class CompareFragment : Fragment() {
                             onDismissRecommendations = { dismissRecommendationsDialog() },
                             onDismissLogin = { dismissLoginDialog() },
                             onRegister = { openRegisterPage() },
-                            onLogin = { username, password -> performLogin(username, password) }
+                            onLogin = { username, password -> performLogin(username, password) },
+                            onNavigateToVideo = { serviceId, url, title ->
+                                navigateToVideo(serviceId, url, title)
+                            }
                         )
                     } else {
                         CompareScreen(
@@ -166,7 +172,10 @@ class CompareFragment : Fragment() {
                             onSubmitMore = { sendAdditionalCriteria() },
                             onDismissLogin = { dismissLoginDialog() },
                             onRegister = { openRegisterPage() },
-                            onLogin = { username, password -> performLogin(username, password) }
+                            onLogin = { username, password -> performLogin(username, password) },
+                            onNavigateToVideo = { serviceId, url, title ->
+                                navigateToVideo(serviceId, url, title)
+                            }
                         )
                     }
                 }
@@ -284,17 +293,23 @@ class CompareFragment : Fragment() {
         loginDisposable = null
     }
 
+    private fun navigateToVideo(serviceId: Int, url: String, title: String) {
+        val ctx = context ?: return
+        NavigationHelper.openVideoDetail(ctx, serviceId, url, title, null, false)
+    }
+
     private fun openRegisterPage() {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(REGISTER_URL))
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         requireContext().startActivity(intent)
     }
 
-    private fun openRecommendationsDialog() {
+    fun openRecommendationsDialog() {
         showRecommendationsDialog = true
         recommendationsLoading = true
         recommendationsError = null
         recommendations = emptyList()
+        recommendationsTotalCount = null
         recommendationsDisposable?.dispose()
         recommendationsDisposable = TournesolAuthManager.getValidAccessToken(requireContext())
             .subscribeOn(Schedulers.io())
@@ -310,10 +325,14 @@ class CompareFragment : Fragment() {
             }
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
-                { items ->
+                { result ->
                     recommendationsLoading = false
-                    recommendations = items
-                    if (items.isEmpty()) {
+                    recommendations = result.comparisons
+                    recommendationsTotalCount = result.totalCount
+                    result.totalCount?.let {
+                        TournesolAuthManager.saveComparisonCount(requireContext(), it)
+                    }
+                    if (result.comparisons.isEmpty()) {
                         recommendationsError =
                             getString(R.string.compare_no_comparisons_available)
                     }
@@ -433,6 +452,7 @@ class CompareFragment : Fragment() {
                             CompareKey(lastUid, currentUid),
                             mainScore = score
                         )
+                        TournesolAuthManager.incrementComparisonCount(requireContext())
                         Toast.makeText(
                             requireContext(),
                             getString(messageRes),
@@ -526,6 +546,7 @@ class CompareFragment : Fragment() {
                             mainScore = payload.mainScore,
                             extraScores = payload.extraScores
                         )
+                        TournesolAuthManager.incrementComparisonCount(requireContext())
                         Toast.makeText(
                             requireContext(),
                             getString(messageRes),
@@ -1072,7 +1093,22 @@ class CompareFragment : Fragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        consumePendingOpenComparisons()
+    }
+
+    fun consumePendingOpenComparisons() {
+        if (pendingOpenComparisons) {
+            pendingOpenComparisons = false
+            openRecommendationsDialog()
+        }
+    }
+
     companion object {
+        @JvmStatic
+        var pendingOpenComparisons = false
+
         private const val PREF_SUBMITTED_COMPARISONS = "compare_submitted_pairs_v1"
         private const val PREF_COMPARISON_SCORES = "compare_submitted_scores_v1"
         private const val KEY_COMPACT_UI = "compare_compact_ui"
@@ -1080,7 +1116,7 @@ class CompareFragment : Fragment() {
         private const val COMPARISONS_LIMIT = 20
 
         @JvmStatic
-        fun getInstance(info: StreamInfo, useCompactUi: Boolean = false): CompareFragment {
+        fun getInstance(info: StreamInfo?, useCompactUi: Boolean = false): CompareFragment {
             return CompareFragment().apply {
                 arguments = bundleOf(
                     KEY_INFO to info,

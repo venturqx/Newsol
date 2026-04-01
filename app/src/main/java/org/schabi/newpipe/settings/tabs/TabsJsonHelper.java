@@ -23,7 +23,7 @@ public final class TabsJsonHelper {
 
     private static final List<Tab> FALLBACK_INITIAL_TABS_LIST = List.of(
             Tab.Type.LIVE.getTab(),
-            Tab.Type.FEED.getTab(),
+            Tab.Type.COMPARE.getTab(),
             Tab.Type.SUBSCRIPTIONS.getTab(),
             Tab.Type.BOOKMARKS.getTab());
 
@@ -121,13 +121,15 @@ public final class TabsJsonHelper {
             firstTab = Tab.Type.TRENDING_MOVIES.getTab();
         } else if ("TOURNESOL".equals(selectedType)) {
             firstTab = Tab.Type.TOURNESOL.getTab();
+        } else if ("COMPARE".equals(selectedType)) {
+            firstTab = Tab.Type.COMPARE.getTab();
         } else {
             firstTab = Tab.Type.LIVE.getTab();
         }
 
         return List.of(
                 firstTab,
-                Tab.Type.FEED.getTab(),
+                Tab.Type.COMPARE.getTab(),
                 Tab.Type.SUBSCRIPTIONS.getTab(),
                 Tab.Type.BOOKMARKS.getTab());
     }

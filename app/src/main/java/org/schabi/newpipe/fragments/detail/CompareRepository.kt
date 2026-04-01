@@ -145,7 +145,7 @@ object CompareRepository {
         token: String,
         username: String = "me",
         limit: Int = 20
-    ): Single<List<CompareRecommendationItem>> = Single.fromCallable {
+    ): Single<CompareComparisonsResult> = Single.fromCallable {
         val encodedUsername = if (username == "me") {
             "me"
         } else {
@@ -212,15 +212,16 @@ object CompareRepository {
         return scores
     }
 
-    private fun parseComparisons(responseBody: String): List<CompareRecommendationItem> {
+    private fun parseComparisons(responseBody: String): CompareComparisonsResult {
         val root = JSONObject(responseBody)
+        val totalCount = root.optInt("count", -1).takeIf { it >= 0 }
         val results = root.optJSONArray("results") ?: JSONArray()
         val parsed = ArrayList<CompareRecommendationItem>(results.length())
         for (index in 0 until results.length()) {
             val result = results.optJSONObject(index) ?: continue
             parsed.add(parseComparisonItem(result, index))
         }
-        return parsed
+        return CompareComparisonsResult(totalCount = totalCount, comparisons = parsed)
     }
 
     private fun parseComparisonItem(

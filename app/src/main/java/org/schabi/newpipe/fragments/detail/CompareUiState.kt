@@ -18,6 +18,7 @@ data class CompareUiState(
     val changeInProgress: Boolean = false,
     val submitMoreInProgress: Boolean = false,
     val recommendations: List<CompareRecommendationItem> = emptyList(),
+    val recommendationsTotalCount: Int? = null,
     val recommendationsLoading: Boolean = false,
     val recommendationsError: String? = null,
     val showRecommendationsDialog: Boolean = false,

@@ -15,3 +15,8 @@ data class CompareRecommendationItem(
     val largelyRecommendedScore: Int?,
     val scoreMax: Int?
 )
+
+data class CompareComparisonsResult(
+    val totalCount: Int?,
+    val comparisons: List<CompareRecommendationItem>
+)
