@@ -3,6 +3,7 @@ package org.schabi.newpipe.fragments.detail
 import android.graphics.Paint as AndroidPaint
 import android.graphics.Typeface
 import android.view.MotionEvent
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -74,6 +75,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -429,7 +431,9 @@ internal fun CompareCompactScreen(
     onDismissLogin: () -> Unit,
     onRegister: () -> Unit,
     onLogin: (String, String) -> Unit,
-    onNavigateToVideo: ((Int, String, String) -> Unit)? = null
+    onNavigateToVideo: ((Int, String, String) -> Unit)? = null,
+    onRandomizeLeft: () -> Unit = {},
+    onRandomizeRight: () -> Unit = {}
 ) {
     val dimensions = remember { COMPACT_DIMENSIONS }
     var activeIndex by rememberSaveable { mutableIntStateOf(0) }
@@ -513,7 +517,27 @@ internal fun CompareCompactScreen(
         ?: leftEntries.firstOrNull()
     val selectedHistoryEntryRight = rightEntries.getOrNull(rightHistoryIndex)
         ?: rightEntries.firstOrNull()
-    val currentPairSelection = if (selectedHistoryEntryLeft != null &&
+    val hasSuggestedLeft = state.suggestedLeft != null
+    val hasSuggestedRight = state.suggestedRight != null
+    val hasSuggestions = hasSuggestedLeft || hasSuggestedRight
+    val suggestedLeftTitle = state.suggestedLeft?.title.orEmpty()
+    val suggestedLeftUploader = state.suggestedLeft?.uploader.orEmpty()
+    val suggestedRightTitle = state.suggestedRight?.title.orEmpty()
+    val suggestedRightUploader = state.suggestedRight?.uploader.orEmpty()
+    val currentPairSelection = if (hasSuggestedLeft && hasSuggestedRight) {
+        val leftUrl = state.suggestedLeft!!.videoUrl
+        val rightUrl = state.suggestedRight!!.videoUrl
+        if (leftUrl != null && rightUrl != null && state.suggestedLeft.uid != state.suggestedRight.uid) {
+            ComparePairSelection(
+                leftServiceId = CompareRepository.uidToServiceId(state.suggestedLeft.uid),
+                leftUrl = leftUrl,
+                rightServiceId = CompareRepository.uidToServiceId(state.suggestedRight.uid),
+                rightUrl = rightUrl
+            )
+        } else {
+            null
+        }
+    } else if (selectedHistoryEntryLeft != null &&
         selectedHistoryEntryRight != null &&
         !(
             selectedHistoryEntryLeft.streamEntity.serviceId ==
@@ -532,11 +556,11 @@ internal fun CompareCompactScreen(
         null
     }
     val currentEntry = state.currentEntry
-    val isLeftCurrent = selectedHistoryEntryLeft != null &&
+    val isLeftCurrent = !hasSuggestedLeft && selectedHistoryEntryLeft != null &&
         currentEntry != null &&
         selectedHistoryEntryLeft.streamEntity.serviceId == currentEntry.streamEntity.serviceId &&
         selectedHistoryEntryLeft.streamEntity.url == currentEntry.streamEntity.url
-    val isRightCurrent = selectedHistoryEntryRight != null &&
+    val isRightCurrent = !hasSuggestedRight && selectedHistoryEntryRight != null &&
         currentEntry != null &&
         selectedHistoryEntryRight.streamEntity.serviceId == currentEntry.streamEntity.serviceId &&
         selectedHistoryEntryRight.streamEntity.url == currentEntry.streamEntity.url
@@ -567,6 +591,9 @@ internal fun CompareCompactScreen(
                 rightHistoryIndex = 0
             }
         }
+    }
+    BackHandler(enabled = showHistoryOverlay) {
+        showHistoryOverlay = false
     }
     LaunchedEffect(showHistoryOverlay) {
         if (showHistoryOverlay) {
@@ -782,7 +809,29 @@ internal fun CompareCompactScreen(
                     .then(gestureModifier)
             )
 
-            if (selectedHistoryEntryLeft != null || selectedHistoryEntryRight != null) {
+            val showLeftContent = hasSuggestedLeft || selectedHistoryEntryLeft != null
+            val showRightContent = hasSuggestedRight || selectedHistoryEntryRight != null
+            if (showLeftContent || showRightContent) {
+                val effectiveLeftTitle = if (hasSuggestedLeft) {
+                    suggestedLeftTitle
+                } else {
+                    selectedHistoryEntryLeft?.streamEntity?.title.orEmpty()
+                }
+                val effectiveLeftUploader = if (hasSuggestedLeft) {
+                    suggestedLeftUploader
+                } else {
+                    selectedHistoryEntryLeft?.streamEntity?.uploader.orEmpty()
+                }
+                val effectiveRightTitle = if (hasSuggestedRight) {
+                    suggestedRightTitle
+                } else {
+                    selectedHistoryEntryRight?.streamEntity?.title.orEmpty()
+                }
+                val effectiveRightUploader = if (hasSuggestedRight) {
+                    suggestedRightUploader
+                } else {
+                    selectedHistoryEntryRight?.streamEntity?.uploader.orEmpty()
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -792,18 +841,33 @@ internal fun CompareCompactScreen(
                         modifier = Modifier
                             .weight(1f)
                             .combinedClickable(
-                                onClick = { openHistoryOverlay(OverlayTarget.LEFT) },
+                                onClick = {
+                                    if (!hasSuggestedLeft) {
+                                        openHistoryOverlay(OverlayTarget.LEFT)
+                                    }
+                                },
                                 onLongClick = {
-                                    selectedHistoryEntryLeft?.streamEntity?.let {
-                                        onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
+                                    if (hasSuggestedLeft) {
+                                        val sl = state.suggestedLeft
+                                        if (sl?.videoUrl != null) {
+                                            onNavigateToVideo?.invoke(
+                                                CompareRepository.uidToServiceId(sl.uid),
+                                                sl.videoUrl,
+                                                sl.title
+                                            )
+                                        }
+                                    } else {
+                                        selectedHistoryEntryLeft?.streamEntity?.let {
+                                            onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
+                                        }
                                     }
                                 }
                             ),
                         contentAlignment = Alignment.CenterEnd
                     ) {
                         CompareSideLabel(
-                            title = selectedHistoryEntryLeft?.streamEntity?.title.orEmpty(),
-                            uploader = selectedHistoryEntryLeft?.streamEntity?.uploader.orEmpty(),
+                            title = effectiveLeftTitle,
+                            uploader = effectiveLeftUploader,
                             textAlign = TextAlign.End
                         )
                     }
@@ -817,7 +881,7 @@ internal fun CompareCompactScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                if (selectedHistoryEntryLeft != null) {
+                                if (showLeftContent) {
                                     Box(
                                         modifier = Modifier.weight(1f),
                                         contentAlignment = Alignment.Center
@@ -825,10 +889,25 @@ internal fun CompareCompactScreen(
                                         Surface(
                                             modifier = Modifier
                                                 .combinedClickable(
-                                                    onClick = { openHistoryOverlay(OverlayTarget.LEFT) },
+                                                    onClick = {
+                                                        if (!hasSuggestedLeft) {
+                                                            openHistoryOverlay(OverlayTarget.LEFT)
+                                                        }
+                                                    },
                                                     onLongClick = {
-                                                        selectedHistoryEntryLeft?.streamEntity?.let {
-                                                            onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
+                                                        if (hasSuggestedLeft) {
+                                                            val sl = state.suggestedLeft
+                                                            if (sl?.videoUrl != null) {
+                                                                onNavigateToVideo?.invoke(
+                                                                    CompareRepository.uidToServiceId(sl.uid),
+                                                                    sl.videoUrl,
+                                                                    sl.title
+                                                                )
+                                                            }
+                                                        } else {
+                                                            selectedHistoryEntryLeft?.streamEntity?.let {
+                                                                onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
+                                                            }
                                                         }
                                                     }
                                                 ),
@@ -839,12 +918,19 @@ internal fun CompareCompactScreen(
                                             Box(
                                                 modifier = Modifier.padding(2.dp)
                                             ) {
-                                                CompareVideoThumbnailCard(
-                                                    entry = selectedHistoryEntryLeft,
-                                                    thumbnailHeight = 52.dp,
-                                                    showMeta = false,
-                                                    contentScale = ContentScale.Fit
-                                                )
+                                                if (hasSuggestedLeft) {
+                                                    SuggestedVideoThumbnail(
+                                                        thumbnailUrl = state.suggestedLeft?.thumbnailUrl,
+                                                        thumbnailHeight = 52.dp
+                                                    )
+                                                } else {
+                                                    CompareVideoThumbnailCard(
+                                                        entry = selectedHistoryEntryLeft!!,
+                                                        thumbnailHeight = 52.dp,
+                                                        showMeta = false,
+                                                        contentScale = ContentScale.Fit
+                                                    )
+                                                }
                                                 if (isLeftCurrent) {
                                                     CurrentBadge(
                                                         modifier = Modifier.align(Alignment.TopEnd)
@@ -857,7 +943,7 @@ internal fun CompareCompactScreen(
                                     Spacer(modifier = Modifier.weight(1f))
                                 }
 
-                                if (selectedHistoryEntryRight != null) {
+                                if (showRightContent) {
                                     Box(
                                         modifier = Modifier.weight(1f),
                                         contentAlignment = Alignment.Center
@@ -865,10 +951,25 @@ internal fun CompareCompactScreen(
                                         Surface(
                                             modifier = Modifier
                                                 .combinedClickable(
-                                                    onClick = { openHistoryOverlay(OverlayTarget.RIGHT) },
+                                                    onClick = {
+                                                        if (!hasSuggestedRight) {
+                                                            openHistoryOverlay(OverlayTarget.RIGHT)
+                                                        }
+                                                    },
                                                     onLongClick = {
-                                                        selectedHistoryEntryRight?.streamEntity?.let {
-                                                            onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
+                                                        if (hasSuggestedRight) {
+                                                            val sr = state.suggestedRight
+                                                            if (sr?.videoUrl != null) {
+                                                                onNavigateToVideo?.invoke(
+                                                                    CompareRepository.uidToServiceId(sr.uid),
+                                                                    sr.videoUrl,
+                                                                    sr.title
+                                                                )
+                                                            }
+                                                        } else {
+                                                            selectedHistoryEntryRight?.streamEntity?.let {
+                                                                onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
+                                                            }
                                                         }
                                                     }
                                                 ),
@@ -879,12 +980,19 @@ internal fun CompareCompactScreen(
                                             Box(
                                                 modifier = Modifier.padding(2.dp)
                                             ) {
-                                                CompareVideoThumbnailCard(
-                                                    entry = selectedHistoryEntryRight,
-                                                    thumbnailHeight = 52.dp,
-                                                    showMeta = false,
-                                                    contentScale = ContentScale.Fit
-                                                )
+                                                if (hasSuggestedRight) {
+                                                    SuggestedVideoThumbnail(
+                                                        thumbnailUrl = state.suggestedRight?.thumbnailUrl,
+                                                        thumbnailHeight = 52.dp
+                                                    )
+                                                } else {
+                                                    CompareVideoThumbnailCard(
+                                                        entry = selectedHistoryEntryRight!!,
+                                                        thumbnailHeight = 52.dp,
+                                                        showMeta = false,
+                                                        contentScale = ContentScale.Fit
+                                                    )
+                                                }
                                                 if (isRightCurrent) {
                                                     CurrentBadge(
                                                         modifier = Modifier.align(Alignment.TopEnd)
@@ -919,25 +1027,40 @@ internal fun CompareCompactScreen(
                         modifier = Modifier
                             .weight(1f)
                             .combinedClickable(
-                                onClick = { openHistoryOverlay(OverlayTarget.RIGHT) },
+                                onClick = {
+                                    if (!hasSuggestedRight) {
+                                        openHistoryOverlay(OverlayTarget.RIGHT)
+                                    }
+                                },
                                 onLongClick = {
-                                    selectedHistoryEntryRight?.streamEntity?.let {
-                                        onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
+                                    if (hasSuggestedRight) {
+                                        val sr = state.suggestedRight
+                                        if (sr?.videoUrl != null) {
+                                            onNavigateToVideo?.invoke(
+                                                CompareRepository.uidToServiceId(sr.uid),
+                                                sr.videoUrl,
+                                                sr.title
+                                            )
+                                        }
+                                    } else {
+                                        selectedHistoryEntryRight?.streamEntity?.let {
+                                            onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
+                                        }
                                     }
                                 }
                             ),
                         contentAlignment = Alignment.CenterStart
                     ) {
                         CompareSideLabel(
-                            title = selectedHistoryEntryRight?.streamEntity?.title.orEmpty(),
-                            uploader = selectedHistoryEntryRight?.streamEntity?.uploader.orEmpty(),
+                            title = effectiveRightTitle,
+                            uploader = effectiveRightUploader,
                             textAlign = TextAlign.Start
                         )
                     }
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val chipColors = FilterChipDefaults.filterChipColors(
@@ -961,6 +1084,49 @@ internal fun CompareCompactScreen(
                         shape = chipShape,
                         border = null
                     )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    val diceEnabled = !state.suggestionsLoading
+                    Surface(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clickable(enabled = diceEnabled) { onRandomizeLeft() },
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF42A5F5).copy(alpha = 0.15f)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Image(
+                                painter = painterResource(R.drawable.ic_casino),
+                                contentDescription = stringResource(R.string.compare_randomize_left),
+                                colorFilter = ColorFilter.tint(Color(0xFF42A5F5)),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Surface(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clickable(enabled = diceEnabled) { onRandomizeRight() },
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFE57373).copy(alpha = 0.15f)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Image(
+                                painter = painterResource(R.drawable.ic_casino),
+                                contentDescription = stringResource(R.string.compare_randomize_right),
+                                colorFilter = ColorFilter.tint(Color(0xFFE57373)),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                    if (state.suggestionsLoading) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = Color(0xFFFFD54F)
+                        )
+                    }
                 }
             }
         }
@@ -1331,11 +1497,11 @@ internal fun CompareCompactScreen(
                 }
             } else if (showHistoryOverlay) {
                 Dialog(
-                    onDismissRequest = { },
+                    onDismissRequest = { showHistoryOverlay = false },
                     properties = DialogProperties(
                         usePlatformDefaultWidth = false,
                         decorFitsSystemWindows = false,
-                        dismissOnBackPress = false,
+                        dismissOnBackPress = true,
                         dismissOnClickOutside = false
                     )
                 ) {
@@ -1488,14 +1654,13 @@ internal fun CompareComparisonsFullScreen(
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
                         contentPadding = PaddingValues(bottom = 10.dp)
                     ) {
                         itemsIndexed(
                             recommendations,
                             key = { index, item -> "${item.uid}-$index" }
-                        ) { _, item ->
-                            CompareComparisonRow(item)
+                        ) { index, item ->
+                            CompareComparisonRow(item, index)
                         }
                     }
                 }
@@ -1505,122 +1670,157 @@ internal fun CompareComparisonsFullScreen(
 }
 
 @Composable
-internal fun CompareComparisonRow(item: CompareRecommendationItem) {
-    val scoreLabel = when (val score = item.largelyRecommendedScore) {
-        null -> "-"
-        0 -> "0"
-        else -> "${abs(score)} ${if (score > 0) "<-" else "->"}"
-    }
+internal fun CompareComparisonRow(item: CompareRecommendationItem, index: Int = 0) {
+    val score = item.largelyRecommendedScore
+    val leftWins = score != null && score > 0
+    val rightWins = score != null && score < 0
+    val leftBorderColor = Color(0xFF42A5F5)
+    val rightBorderColor = Color(0xFFE57373)
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow
+        color = if (index % 2 == 0) {
+            MaterialTheme.colorScheme.surface
+        } else {
+            colorResource(R.color.tournesol_chip_bg_unselected)
+        }
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 6.dp, vertical = 5.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                .padding(horizontal = 6.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            CompareComparisonSideText(
-                title = item.videoA.title,
-                uploader = item.videoA.uploader,
-                textAlign = TextAlign.End,
-                modifier = Modifier.weight(1f)
-            )
-            AsyncImage(
-                model = item.videoA.thumbnailUrl,
-                contentDescription = null,
-                placeholder = painterResource(R.drawable.placeholder_thumbnail_video),
-                error = painterResource(R.drawable.placeholder_thumbnail_video),
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .width(72.dp)
-                    .height(40.dp)
-            )
-            Column(
-                modifier = Modifier.widthIn(min = 42.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            // Left label (video A)
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterEnd
             ) {
-                Image(
-                    painter = painterResource(R.drawable.logo_small),
-                    contentDescription = null,
-                    modifier = Modifier.size(12.dp)
-                )
-                Text(
-                    text = scoreLabel,
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                    color = Color(0xFFD1B65C),
-                    textAlign = TextAlign.Center
+                CompareSideLabel(
+                    title = item.videoA.title,
+                    uploader = item.videoA.uploader,
+                    textAlign = TextAlign.End
                 )
             }
-            AsyncImage(
-                model = item.videoB.thumbnailUrl,
-                contentDescription = null,
-                placeholder = painterResource(R.drawable.placeholder_thumbnail_video),
-                error = painterResource(R.drawable.placeholder_thumbnail_video),
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .width(72.dp)
-                    .height(40.dp)
-            )
-            CompareComparisonSideText(
-                title = item.videoB.title,
-                uploader = item.videoB.uploader,
-                textAlign = TextAlign.Start,
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
 
-@Composable
-private fun CompareComparisonSideText(
-    title: String,
-    uploader: String,
-    textAlign: TextAlign,
-    modifier: Modifier = Modifier
-) {
-    val titleColor = compareMetaTitleColor()
-    val uploaderColor = compareMetaUploaderColor()
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Medium
-            ),
-            textAlign = textAlign,
-            modifier = Modifier.fillMaxWidth(),
-            color = titleColor,
-            maxLines = 4,
-            overflow = TextOverflow.Ellipsis
-        )
-        if (uploader.isNotBlank()) {
-            Text(
-                text = uploader,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 9.sp
-                ),
-                textAlign = textAlign,
-                modifier = Modifier.fillMaxWidth(),
-                color = uploaderColor,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-        } else {
-            Text(
-                text = "",
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                textAlign = textAlign,
-                modifier = Modifier.fillMaxWidth(),
-                maxLines = 2
-            )
+            Spacer(modifier = Modifier.width(4.dp))
+
+            // Center: thumbnails + VS badge
+            Box(
+                modifier = Modifier.weight(2f),
+                contentAlignment = Alignment.Center
+            ) {
+                Box {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        // Left thumbnail (video A)
+                        Box(
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                border = BorderStroke(2.dp, leftBorderColor),
+                                color = MaterialTheme.colorScheme.surface
+                            ) {
+                                Box(modifier = Modifier.padding(2.dp)) {
+                                    AsyncImage(
+                                        model = item.videoA.thumbnailUrl,
+                                        contentDescription = null,
+                                        placeholder = painterResource(R.drawable.placeholder_thumbnail_video),
+                                        error = painterResource(R.drawable.placeholder_thumbnail_video),
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .aspectRatio(16f / 9f)
+                                            .clip(RoundedCornerShape(4.dp))
+                                    )
+                                }
+                            }
+                            if (leftWins) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomCenter)
+                                        .fillMaxWidth(0.4f)
+                                        .height(2.dp)
+                                        .background(Color(0xFFFFD54F), RoundedCornerShape(1.dp))
+                                )
+                            }
+                        }
+
+                        // Right thumbnail (video B)
+                        Box(
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                border = BorderStroke(2.dp, rightBorderColor),
+                                color = MaterialTheme.colorScheme.surface
+                            ) {
+                                Box(modifier = Modifier.padding(2.dp)) {
+                                    AsyncImage(
+                                        model = item.videoB.thumbnailUrl,
+                                        contentDescription = null,
+                                        placeholder = painterResource(R.drawable.placeholder_thumbnail_video),
+                                        error = painterResource(R.drawable.placeholder_thumbnail_video),
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .aspectRatio(16f / 9f)
+                                            .clip(RoundedCornerShape(4.dp))
+                                    )
+                                }
+                            }
+                            if (rightWins) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomCenter)
+                                        .fillMaxWidth(0.4f)
+                                        .height(2.dp)
+                                        .background(Color(0xFFFFD54F), RoundedCornerShape(1.dp))
+                                )
+                            }
+                        }
+                    }
+
+                    // VS badge
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .background(
+                                colorResource(R.color.tournesol_chip_bg_selected),
+                                RoundedCornerShape(6.dp)
+                            )
+                            .padding(horizontal = 4.dp, vertical = 1.dp)
+                    ) {
+                        Text(
+                            text = "VS",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 9.sp
+                            ),
+                            color = Color(0xFF1B1B1B)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            // Right label (video B)
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                CompareSideLabel(
+                    title = item.videoB.title,
+                    uploader = item.videoB.uploader,
+                    textAlign = TextAlign.Start
+                )
+            }
         }
     }
 }
@@ -3124,6 +3324,25 @@ private fun CompareVideoThumbnailCard(
             )
         }
     }
+}
+
+@Composable
+private fun SuggestedVideoThumbnail(
+    thumbnailUrl: String?,
+    thumbnailHeight: androidx.compose.ui.unit.Dp = 52.dp
+) {
+    val context = LocalContext.current
+    AsyncImage(
+        model = ImageRequest.Builder(context)
+            .data(thumbnailUrl)
+            .build(),
+        imageLoader = context.imageLoader,
+        contentDescription = stringResource(R.string.compare_thumbnail_description),
+        contentScale = ContentScale.Fit,
+        modifier = Modifier
+            .aspectRatio(16f / 9f)
+            .height(thumbnailHeight)
+    )
 }
 
 @Composable

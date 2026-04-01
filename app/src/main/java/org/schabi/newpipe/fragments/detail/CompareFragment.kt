@@ -71,6 +71,11 @@ class CompareFragment : Fragment() {
     private val submittedComparisons = LinkedHashSet<CompareKey>()
     private val storedScores = LinkedHashMap<String, ComparisonScores>()
     private var compactPairSelection: ComparePairSelection? = null
+    private var suggestedLeft by mutableStateOf<CompareComparisonVideo?>(null)
+    private var suggestedRight by mutableStateOf<CompareComparisonVideo?>(null)
+    private var suggestionsLoading by mutableStateOf(false)
+    private var suggestionsDisposable: Disposable? = null
+    private val suggestionPool = mutableListOf<CompareComparisonVideo>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -106,6 +111,9 @@ class CompareFragment : Fragment() {
             historyEntries = emptyList()
             historyMessageRes = R.string.compare_history_unavailable
         }
+        if (currentInfo == null && useCompactUi) {
+            loadRandomPair()
+        }
         return ComposeView(requireContext()).apply {
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -138,7 +146,10 @@ class CompareFragment : Fragment() {
                         showLoginDialog = showLoginDialog,
                         loginInProgress = loginInProgress,
                         loginError = loginError,
-                        compactPopupVisible = compactPopupVisible
+                        compactPopupVisible = compactPopupVisible,
+                        suggestedLeft = suggestedLeft,
+                        suggestedRight = suggestedRight,
+                        suggestionsLoading = suggestionsLoading
                     )
                     val onExtraScoreChange = { criteria: String, value: Int ->
                         updateExtraScore(criteria, value)
@@ -159,7 +170,9 @@ class CompareFragment : Fragment() {
                             onLogin = { username, password -> performLogin(username, password) },
                             onNavigateToVideo = { serviceId, url, title ->
                                 navigateToVideo(serviceId, url, title)
-                            }
+                            },
+                            onRandomizeLeft = { randomizeLeft() },
+                            onRandomizeRight = { randomizeRight() }
                         )
                     } else {
                         CompareScreen(
@@ -189,6 +202,8 @@ class CompareFragment : Fragment() {
         loginDisposable = null
         recommendationsDisposable?.dispose()
         recommendationsDisposable = null
+        suggestionsDisposable?.dispose()
+        suggestionsDisposable = null
         super.onDestroyView()
     }
 
@@ -1091,6 +1106,84 @@ class CompareFragment : Fragment() {
                 }
             }
         }
+    }
+
+    private fun loadRandomPair() {
+        fetchPoolThen { pool ->
+            if (pool.size >= 2) {
+                val first = pool.removeAt((Math.random() * pool.size).toInt())
+                val second = pool.removeAt((Math.random() * pool.size).toInt())
+                suggestedLeft = first
+                suggestedRight = second
+            } else if (pool.size == 1) {
+                suggestedLeft = pool.removeAt(0)
+            }
+        }
+    }
+
+    private fun randomizeLeft() {
+        val excludeUid = suggestedRight?.uid
+        pickFromPool(excludeUid) { video -> suggestedLeft = video }
+    }
+
+    private fun randomizeRight() {
+        val excludeUid = suggestedLeft?.uid
+        pickFromPool(excludeUid) { video -> suggestedRight = video }
+    }
+
+    private fun pickFromPool(excludeUid: String?, onPicked: (CompareComparisonVideo) -> Unit) {
+        val candidates = if (excludeUid != null) {
+            suggestionPool.filter { it.uid != excludeUid }
+        } else {
+            suggestionPool.toList()
+        }
+        if (candidates.isNotEmpty()) {
+            val picked = candidates[(Math.random() * candidates.size).toInt()]
+            suggestionPool.remove(picked)
+            onPicked(picked)
+            return
+        }
+        fetchPoolThen { pool ->
+            val filtered = if (excludeUid != null) {
+                pool.filter { it.uid != excludeUid }
+            } else {
+                pool.toList()
+            }
+            if (filtered.isNotEmpty()) {
+                val picked = filtered[(Math.random() * filtered.size).toInt()]
+                pool.remove(picked)
+                onPicked(picked)
+            }
+        }
+    }
+
+    private fun fetchPoolThen(action: (MutableList<CompareComparisonVideo>) -> Unit) {
+        suggestionsLoading = true
+        suggestionsDisposable?.dispose()
+        suggestionsDisposable = TournesolAuthManager.getValidAccessToken(requireContext())
+            .subscribeOn(Schedulers.io())
+            .switchIfEmpty(
+                io.reactivex.rxjava3.core.Maybe.error(MissingTokenException())
+            )
+            .flatMapSingle { token ->
+                CompareRepository.fetchSuggestedVideos(token)
+            }
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(
+                { videos ->
+                    suggestionsLoading = false
+                    suggestionPool.clear()
+                    suggestionPool.addAll(videos)
+                    action(suggestionPool)
+                },
+                { throwable ->
+                    suggestionsLoading = false
+                    if (throwable is MissingTokenException) {
+                        showLoginDialog()
+                    }
+                }
+            )
+        suggestionsDisposable?.let { disposables.add(it) }
     }
 
     override fun onResume() {

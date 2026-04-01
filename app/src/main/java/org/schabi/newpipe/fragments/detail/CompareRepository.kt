@@ -1,5 +1,6 @@
 package org.schabi.newpipe.fragments.detail
 
+import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import java.io.IOException
@@ -449,6 +450,97 @@ object CompareRepository {
 
     private fun getHttpClient(): OkHttpClient {
         return DownloaderImpl.getInstance()?.getClient() ?: OkHttpClient.Builder().build()
+    }
+
+    fun fetchSuggestedVideos(
+        token: String
+    ): Single<List<CompareComparisonVideo>> = Single.fromCallable {
+        val url = "$BASE_URL/users/me/suggestions/videos/tocompare/"
+        val request = Request.Builder()
+            .url(url)
+            .get()
+            .addHeader("Authorization", "Bearer $token")
+            .build()
+
+        val client = getHttpClient()
+        client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IOException("HTTP ${response.code} $responseBody")
+            }
+            return@fromCallable parseSuggestedVideos(responseBody)
+        }
+    }.subscribeOn(Schedulers.io())
+
+    fun fetchEntityToCompare(
+        token: String,
+        firstEntityUid: String
+    ): Maybe<CompareComparisonVideo> = Maybe.fromCallable {
+        val encoded = URLEncoder.encode(firstEntityUid, Charsets.UTF_8.name())
+        val url = "$BASE_URL/users/me/entities_to_compare/videos/" +
+            "?first_entity_uid=$encoded&limit=1"
+        val request = Request.Builder()
+            .url(url)
+            .get()
+            .addHeader("Authorization", "Bearer $token")
+            .build()
+
+        val client = getHttpClient()
+        client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IOException("HTTP ${response.code} $responseBody")
+            }
+            val videos = parseSuggestedVideos(responseBody)
+            return@fromCallable videos.firstOrNull()
+        }
+    }.subscribeOn(Schedulers.io())
+
+    private fun parseSuggestedVideos(responseBody: String): List<CompareComparisonVideo> {
+        val trimmed = responseBody.trim()
+        val results = if (trimmed.startsWith("[")) {
+            JSONArray(trimmed)
+        } else {
+            val root = JSONObject(trimmed)
+            root.optJSONArray("results") ?: JSONArray()
+        }
+        val parsed = ArrayList<CompareComparisonVideo>(results.length())
+        for (index in 0 until results.length()) {
+            val item = results.optJSONObject(index) ?: continue
+            val entity = item.optJSONObject("entity") ?: item
+            val uid = entity.optString("uid").takeIf { it.isNotBlank() } ?: continue
+            val metadataCandidates = ArrayList<JSONObject>()
+            metadataCandidates.addAll(extractEntityMetadataCandidates(entity))
+            val title = findFirstText(metadataCandidates, TITLE_KEYS) ?: uid
+            val uploader = findFirstText(metadataCandidates, UPLOADER_KEYS).orEmpty()
+            val thumbnailUrl = findFirstThumbnailUrl(metadataCandidates)
+                ?: buildFallbackThumbnailUrl(uid)
+            val videoUrl = findFirstText(metadataCandidates, URL_KEYS)?.let(::normalizeUrl)
+                ?: buildFallbackVideoUrl(uid)
+            parsed.add(
+                CompareComparisonVideo(
+                    uid = uid,
+                    title = title,
+                    uploader = uploader,
+                    thumbnailUrl = thumbnailUrl,
+                    videoUrl = videoUrl
+                )
+            )
+        }
+        return parsed
+    }
+
+    fun uidToServiceId(uid: String): Int {
+        return when {
+            uid.startsWith("yt:") -> ServiceList.YouTube.serviceId
+            uid.startsWith("sc:") -> ServiceList.SoundCloud.serviceId
+            uid.startsWith("peertube:") -> ServiceList.PeerTube.serviceId
+            else -> ServiceList.YouTube.serviceId
+        }
+    }
+
+    fun uidToVideoUrl(uid: String): String? {
+        return buildFallbackVideoUrl(uid)
     }
 
     private const val BASE_URL = "https://api.tournesol.app"
