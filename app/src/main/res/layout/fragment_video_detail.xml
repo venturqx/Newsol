@@ -620,7 +620,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|center"
             app:elevation="16dp"
-            app:tabBackground="?attr/windowBackground"
+            app:tabBackground="?attr/colorPrimary"
             app:tabGravity="fill"
             app:tabIconTint="#FFCA1D"
             app:tabIndicatorColor="#FFCA1D"

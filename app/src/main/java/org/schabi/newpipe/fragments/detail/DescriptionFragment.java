@@ -534,9 +534,7 @@ public class DescriptionFragment extends BaseDescriptionFragment {
     private View createDistributionChart(final int[] bins, final int[] distribution) {
         int maxCount = 0;
         for (final int count : distribution) {
-            if (count > maxCount) {
-                maxCount = count;
-            }
+            maxCount = Math.max(maxCount, count);
         }
         if (maxCount == 0) {
             return new View(requireContext());
