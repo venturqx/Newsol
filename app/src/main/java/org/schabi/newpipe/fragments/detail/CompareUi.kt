@@ -561,7 +561,8 @@ internal fun CompareCompactScreen(
     onLogin: (String, String) -> Unit,
     onNavigateToVideo: ((Int, String, String) -> Unit)? = null,
     onRandomizeLeft: () -> Unit = {},
-    onRandomizeRight: () -> Unit = {}
+    onRandomizeRight: () -> Unit = {},
+    showGreeting: Boolean = true
 ) {
     val dimensions = remember { COMPACT_DIMENSIONS }
     var activeIndex by rememberSaveable { mutableIntStateOf(0) }
@@ -923,14 +924,16 @@ internal fun CompareCompactScreen(
                 .zIndex(1f),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            UserGreetingBanner(
-                username = state.username,
-                comparisonCount = state.comparisonCount,
-                onLogin = onShowLogin,
-                onRegister = onRegister
-            )
+            if (showGreeting) {
+                UserGreetingBanner(
+                    username = state.username,
+                    comparisonCount = state.comparisonCount,
+                    onLogin = onShowLogin,
+                    onRegister = onRegister
+                )
 
-            WeeklyGoalWidget(weeklyComparisons = state.weeklyComparisons)
+                WeeklyGoalWidget(weeklyComparisons = state.weeklyComparisons)
+            }
 
             CompactDimensionList(
                 dimensions = dimensions,

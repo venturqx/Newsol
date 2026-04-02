@@ -182,7 +182,8 @@ class CompareFragment : Fragment() {
                                 navigateToVideo(serviceId, url, title)
                             },
                             onRandomizeLeft = { randomizeLeft() },
-                            onRandomizeRight = { randomizeRight() }
+                            onRandomizeRight = { randomizeRight() },
+                            showGreeting = currentInfo == null
                         )
                     } else {
                         CompareScreen(
