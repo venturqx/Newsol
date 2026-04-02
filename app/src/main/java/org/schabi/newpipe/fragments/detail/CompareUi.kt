@@ -53,6 +53,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
@@ -213,7 +215,8 @@ private fun UserGreetingBanner(
     weeklyComparisons: Int?,
     dailyComparisons: Int?,
     onLogin: () -> Unit,
-    onRegister: () -> Unit
+    onRegister: () -> Unit,
+    onOpenComparisons: () -> Unit = {}
 ) {
     if (username != null) {
         Row(
@@ -236,7 +239,17 @@ private fun UserGreetingBanner(
                     )
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                IconButton(onClick = onOpenComparisons) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_history),
+                        contentDescription = stringResource(R.string.compare_see_history),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
                 if (dailyComparisons != null) {
                     GoalRing(
                         current = dailyComparisons,
@@ -586,6 +599,7 @@ internal fun CompareCompactScreen(
     onNavigateToVideo: ((Int, String, String) -> Unit)? = null,
     onRandomizeLeft: () -> Unit = {},
     onRandomizeRight: () -> Unit = {},
+    onOpenComparisons: () -> Unit = {},
     showGreeting: Boolean = true
 ) {
     val dimensions = remember { COMPACT_DIMENSIONS }
@@ -959,7 +973,8 @@ internal fun CompareCompactScreen(
                         weeklyComparisons = state.weeklyComparisons,
                         dailyComparisons = state.dailyComparisons,
                         onLogin = onShowLogin,
-                        onRegister = onRegister
+                        onRegister = onRegister,
+                        onOpenComparisons = onOpenComparisons
                     )
                 }
 

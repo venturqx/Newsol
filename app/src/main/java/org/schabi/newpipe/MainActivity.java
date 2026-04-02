@@ -397,16 +397,6 @@ public class MainActivity extends AppCompatActivity {
             ShareUtils.openUrlInBrowser(this, "https://tournesol.app/signup");
         });
 
-        drawerHeaderBinding.drawerHeaderSeeHistoryButton.setOnClickListener(view -> {
-            CompareFragment.setPendingOpenComparisons(true);
-            final Fragment fragment = getSupportFragmentManager()
-                    .findFragmentById(R.id.fragment_holder);
-            if (fragment instanceof MainFragment) {
-                ((MainFragment) fragment).selectTabById(Tab.CompareTab.ID);
-            }
-            mainBinding.getRoot().closeDrawers();
-        });
-
         updateProfileHeader();
     }
 
@@ -451,12 +441,10 @@ public class MainActivity extends AppCompatActivity {
             }
             drawerHeaderBinding.drawerHeaderProfileUsername.setText(ssb);
             drawerHeaderBinding.drawerHeaderProfileUsername.setVisibility(View.VISIBLE);
-            drawerHeaderBinding.drawerHeaderSeeHistoryButton.setVisibility(View.VISIBLE);
             drawerHeaderBinding.drawerHeaderLoginButton.setVisibility(View.GONE);
             drawerHeaderBinding.drawerHeaderRegisterButton.setVisibility(View.GONE);
         } else {
             drawerHeaderBinding.drawerHeaderProfileUsername.setVisibility(View.GONE);
-            drawerHeaderBinding.drawerHeaderSeeHistoryButton.setVisibility(View.GONE);
             drawerHeaderBinding.drawerHeaderLoginButton.setVisibility(View.VISIBLE);
             drawerHeaderBinding.drawerHeaderRegisterButton.setVisibility(View.VISIBLE);
         }

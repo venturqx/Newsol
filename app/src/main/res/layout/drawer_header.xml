@@ -72,20 +72,6 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <Button
-                android:id="@+id/drawer_header_see_history_button"
-                style="@style/Widget.AppCompat.Button.Borderless"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:paddingEnd="16dp"
-                android:gravity="center_vertical|start"
-                android:drawableStart="@drawable/ic_history"
-                android:drawablePadding="32dp"
-                android:text="@string/compare_see_history"
-                android:textAllCaps="false"
-                android:visibility="gone"
-                tools:visibility="visible" />
-
         </LinearLayout>
 
         <LinearLayout
