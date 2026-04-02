@@ -138,66 +138,8 @@ import org.schabi.newpipe.ui.components.items.stream.StreamThumbnail
 private const val WEEKLY_GOAL = 2500
 
 @Composable
-private fun UserGreetingBanner(
-    username: String?,
-    comparisonCount: Int?,
-    onLogin: () -> Unit,
-    onRegister: () -> Unit
-) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 6.dp)
-    ) {
-        if (username != null) {
-            Column(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.compare_greeting, username),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                if (comparisonCount != null) {
-                    Text(
-                        text = stringResource(R.string.compare_greeting_comparisons, comparisonCount),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-                }
-            }
-        } else {
-            Column(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = stringResource(R.string.compare_login_prompt),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(onClick = onLogin) {
-                        Text(text = stringResource(R.string.tournesol_login_button))
-                    }
-                    OutlinedButton(onClick = onRegister) {
-                        Text(text = stringResource(R.string.tournesol_register_button))
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun WeeklyGoalWidget(weeklyComparisons: Int?) {
-    if (weeklyComparisons == null) return
-
+private fun WeeklyGoalRing(weeklyComparisons: Int, modifier: Modifier = Modifier) {
     val progress = weeklyComparisons.toFloat() / WEEKLY_GOAL
-    val percentage = (progress * 100).coerceAtMost(999f)
     val emoji = when {
         progress > 1.25f -> "\u2764\uFE0F\u200D\uD83D\uDD25"
         progress > 1f -> "\uD83E\uDD73\uD83C\uDF89"
@@ -207,57 +149,118 @@ private fun WeeklyGoalWidget(weeklyComparisons: Int?) {
         else -> "\uD83C\uDF31"
     }
 
-    val barProgress by animateFloatAsState(
+    val animatedProgress by animateFloatAsState(
         targetValue = progress.coerceIn(0f, 1f),
         animationSpec = tween(durationMillis = 600, easing = LinearOutSlowInEasing),
-        label = "weeklyProgress"
+        label = "weeklyRing"
     )
-    val trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-    val barColor = when {
-        progress > 1f -> Color(0xFF4CAF50)
-        progress > 0.75f -> Color(0xFF8BC34A)
-        progress > 0.5f -> Color(0xFFFFC107)
-        progress > 0.25f -> Color(0xFFFF9800)
-        else -> Color(0xFFE57373)
-    }
+    val trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+    val ringColor = MaterialTheme.colorScheme.primary
 
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 6.dp)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
-        ) {
-            Text(
-                text = "Weekly collective goal – ${"%.1f".format(percentage)}% $emoji",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(trackColor)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(barProgress)
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(barColor)
+        Box(contentAlignment = Alignment.Center) {
+            Canvas(modifier = Modifier.size(44.dp)) {
+                val stroke = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+                drawArc(
+                    color = trackColor,
+                    startAngle = -90f,
+                    sweepAngle = 360f,
+                    useCenter = false,
+                    style = stroke
+                )
+                drawArc(
+                    color = ringColor,
+                    startAngle = -90f,
+                    sweepAngle = animatedProgress * 360f,
+                    useCenter = false,
+                    style = stroke
                 )
             }
-            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "$weeklyComparisons/$WEEKLY_GOAL",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                text = emoji,
+                fontSize = 16.sp
             )
+        }
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = "$weeklyComparisons / $WEEKLY_GOAL",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            fontSize = 9.sp
+        )
+        Text(
+            text = "Weekly goal",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+            fontSize = 8.sp
+        )
+    }
+}
+
+@Composable
+private fun UserGreetingBanner(
+    username: String?,
+    comparisonCount: Int?,
+    weeklyComparisons: Int?,
+    onLogin: () -> Unit,
+    onRegister: () -> Unit
+) {
+    if (username != null) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.compare_greeting, username),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (comparisonCount != null) {
+                    Text(
+                        text = stringResource(R.string.compare_greeting_comparisons, comparisonCount),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                }
+            }
+            if (weeklyComparisons != null) {
+                WeeklyGoalRing(weeklyComparisons = weeklyComparisons)
+            }
+        }
+    } else {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = stringResource(R.string.compare_login_prompt),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                modifier = Modifier.weight(1f)
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = onLogin,
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
+                ) {
+                    Text(text = stringResource(R.string.tournesol_login_button))
+                }
+                OutlinedButton(
+                    onClick = onRegister,
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
+                ) {
+                    Text(text = stringResource(R.string.tournesol_register_button))
+                }
+            }
         }
     }
 }
@@ -920,365 +923,367 @@ internal fun CompareCompactScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = bottomContentPadding)
-                .zIndex(1f),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .zIndex(1f)
         ) {
-            if (showGreeting) {
-                UserGreetingBanner(
-                    username = state.username,
-                    comparisonCount = state.comparisonCount,
-                    onLogin = onShowLogin,
-                    onRegister = onRegister
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(bottom = bottomContentPadding),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (showGreeting) {
+                    UserGreetingBanner(
+                        username = state.username,
+                        comparisonCount = state.comparisonCount,
+                        weeklyComparisons = state.weeklyComparisons,
+                        onLogin = onShowLogin,
+                        onRegister = onRegister
+                    )
+                }
+
+                CompactDimensionList(
+                    dimensions = dimensions,
+                    activeIndex = activeIndexSafe,
+                    scores = state,
+                    selectedIds = selectedIds,
+                    onToggleSelected = { id, selected -> onSelectionChange(id, selected) },
+                    onSelect = { index ->
+                        activeIndex = index
+                    },
+                    modifier = Modifier
+                        .then(criteriaTouchLockModifier)
+                        .then(gestureModifier)
                 )
 
-                WeeklyGoalWidget(weeklyComparisons = state.weeklyComparisons)
-            }
-
-            CompactDimensionList(
-                dimensions = dimensions,
-                activeIndex = activeIndexSafe,
-                scores = state,
-                selectedIds = selectedIds,
-                onToggleSelected = { id, selected -> onSelectionChange(id, selected) },
-                onSelect = { index ->
-                    activeIndex = index
-                },
-                modifier = Modifier
-                    .then(criteriaTouchLockModifier)
-                    .then(gestureModifier)
-            )
-
-            val showLeftContent = hasSuggestedLeft || selectedHistoryEntryLeft != null
-            val showRightContent = hasSuggestedRight || selectedHistoryEntryRight != null
-            if (showLeftContent || showRightContent) {
-                val effectiveLeftTitle = if (hasSuggestedLeft) {
-                    suggestedLeftTitle
-                } else {
-                    selectedHistoryEntryLeft?.streamEntity?.title.orEmpty()
-                }
-                val effectiveLeftUploader = if (hasSuggestedLeft) {
-                    suggestedLeftUploader
-                } else {
-                    selectedHistoryEntryLeft?.streamEntity?.uploader.orEmpty()
-                }
-                val effectiveRightTitle = if (hasSuggestedRight) {
-                    suggestedRightTitle
-                } else {
-                    selectedHistoryEntryRight?.streamEntity?.title.orEmpty()
-                }
-                val effectiveRightUploader = if (hasSuggestedRight) {
-                    suggestedRightUploader
-                } else {
-                    selectedHistoryEntryRight?.streamEntity?.uploader.orEmpty()
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .combinedClickable(
-                                onClick = {
-                                    if (!hasSuggestedLeft) {
-                                        openHistoryOverlay(OverlayTarget.LEFT)
+                val showLeftContent = hasSuggestedLeft || selectedHistoryEntryLeft != null
+                val showRightContent = hasSuggestedRight || selectedHistoryEntryRight != null
+                if (showLeftContent || showRightContent) {
+                    val effectiveLeftTitle = if (hasSuggestedLeft) {
+                        suggestedLeftTitle
+                    } else {
+                        selectedHistoryEntryLeft?.streamEntity?.title.orEmpty()
+                    }
+                    val effectiveLeftUploader = if (hasSuggestedLeft) {
+                        suggestedLeftUploader
+                    } else {
+                        selectedHistoryEntryLeft?.streamEntity?.uploader.orEmpty()
+                    }
+                    val effectiveRightTitle = if (hasSuggestedRight) {
+                        suggestedRightTitle
+                    } else {
+                        selectedHistoryEntryRight?.streamEntity?.title.orEmpty()
+                    }
+                    val effectiveRightUploader = if (hasSuggestedRight) {
+                        suggestedRightUploader
+                    } else {
+                        selectedHistoryEntryRight?.streamEntity?.uploader.orEmpty()
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .combinedClickable(
+                                    onClick = {
+                                        if (!hasSuggestedLeft) {
+                                            openHistoryOverlay(OverlayTarget.LEFT)
+                                        }
+                                    },
+                                    onLongClick = {
+                                        if (hasSuggestedLeft) {
+                                            val sl = state.suggestedLeft
+                                            if (sl?.videoUrl != null) {
+                                                onNavigateToVideo?.invoke(
+                                                    CompareRepository.uidToServiceId(sl.uid),
+                                                    sl.videoUrl,
+                                                    sl.title
+                                                )
+                                            }
+                                        } else {
+                                            selectedHistoryEntryLeft?.streamEntity?.let {
+                                                onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
+                                            }
+                                        }
                                     }
-                                },
-                                onLongClick = {
-                                    if (hasSuggestedLeft) {
-                                        val sl = state.suggestedLeft
-                                        if (sl?.videoUrl != null) {
-                                            onNavigateToVideo?.invoke(
-                                                CompareRepository.uidToServiceId(sl.uid),
-                                                sl.videoUrl,
-                                                sl.title
-                                            )
+                                ),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            CompareSideLabel(
+                                title = effectiveLeftTitle,
+                                uploader = effectiveLeftUploader,
+                                textAlign = TextAlign.End
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier.weight(2f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Box {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    if (showLeftContent) {
+                                        Box(
+                                            modifier = Modifier.weight(1f),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Surface(
+                                                modifier = Modifier
+                                                    .combinedClickable(
+                                                        onClick = {
+                                                            if (!hasSuggestedLeft) {
+                                                                openHistoryOverlay(OverlayTarget.LEFT)
+                                                            }
+                                                        },
+                                                        onLongClick = {
+                                                            if (hasSuggestedLeft) {
+                                                                val sl = state.suggestedLeft
+                                                                if (sl?.videoUrl != null) {
+                                                                    onNavigateToVideo?.invoke(
+                                                                        CompareRepository.uidToServiceId(sl.uid),
+                                                                        sl.videoUrl,
+                                                                        sl.title
+                                                                    )
+                                                                }
+                                                            } else {
+                                                                selectedHistoryEntryLeft?.streamEntity?.let {
+                                                                    onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
+                                                                }
+                                                            }
+                                                        }
+                                                    ),
+                                                shape = RoundedCornerShape(6.dp),
+                                                border = BorderStroke(2.dp, Color(0xFF42A5F5)),
+                                                color = MaterialTheme.colorScheme.surface
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier.padding(2.dp)
+                                                ) {
+                                                    if (hasSuggestedLeft) {
+                                                        SuggestedVideoThumbnail(
+                                                            thumbnailUrl = state.suggestedLeft?.thumbnailUrl,
+                                                            thumbnailHeight = 52.dp
+                                                        )
+                                                    } else {
+                                                        CompareVideoThumbnailCard(
+                                                            entry = selectedHistoryEntryLeft!!,
+                                                            thumbnailHeight = 52.dp,
+                                                            showMeta = false,
+                                                            contentScale = ContentScale.Fit
+                                                        )
+                                                    }
+                                                    if (isLeftCurrent) {
+                                                        CurrentBadge(
+                                                            modifier = Modifier.align(Alignment.TopEnd)
+                                                        )
+                                                    }
+                                                }
+                                            }
                                         }
                                     } else {
-                                        selectedHistoryEntryLeft?.streamEntity?.let {
-                                            onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
-                                        }
+                                        Spacer(modifier = Modifier.weight(1f))
                                     }
-                                }
-                            ),
-                        contentAlignment = Alignment.CenterEnd
-                    ) {
-                        CompareSideLabel(
-                            title = effectiveLeftTitle,
-                            uploader = effectiveLeftUploader,
-                            textAlign = TextAlign.End
-                        )
-                    }
 
-                    Box(
-                        modifier = Modifier.weight(2f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Box {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                if (showLeftContent) {
-                                    Box(
-                                        modifier = Modifier.weight(1f),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Surface(
-                                            modifier = Modifier
-                                                .combinedClickable(
-                                                    onClick = {
-                                                        if (!hasSuggestedLeft) {
-                                                            openHistoryOverlay(OverlayTarget.LEFT)
-                                                        }
-                                                    },
-                                                    onLongClick = {
-                                                        if (hasSuggestedLeft) {
-                                                            val sl = state.suggestedLeft
-                                                            if (sl?.videoUrl != null) {
-                                                                onNavigateToVideo?.invoke(
-                                                                    CompareRepository.uidToServiceId(sl.uid),
-                                                                    sl.videoUrl,
-                                                                    sl.title
-                                                                )
-                                                            }
-                                                        } else {
-                                                            selectedHistoryEntryLeft?.streamEntity?.let {
-                                                                onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
-                                                            }
-                                                        }
-                                                    }
-                                                ),
-                                            shape = RoundedCornerShape(6.dp),
-                                            border = BorderStroke(2.dp, Color(0xFF42A5F5)),
-                                            color = MaterialTheme.colorScheme.surface
+                                    if (showRightContent) {
+                                        Box(
+                                            modifier = Modifier.weight(1f),
+                                            contentAlignment = Alignment.Center
                                         ) {
-                                            Box(
-                                                modifier = Modifier.padding(2.dp)
+                                            Surface(
+                                                modifier = Modifier
+                                                    .combinedClickable(
+                                                        onClick = {
+                                                            if (!hasSuggestedRight) {
+                                                                openHistoryOverlay(OverlayTarget.RIGHT)
+                                                            }
+                                                        },
+                                                        onLongClick = {
+                                                            if (hasSuggestedRight) {
+                                                                val sr = state.suggestedRight
+                                                                if (sr?.videoUrl != null) {
+                                                                    onNavigateToVideo?.invoke(
+                                                                        CompareRepository.uidToServiceId(sr.uid),
+                                                                        sr.videoUrl,
+                                                                        sr.title
+                                                                    )
+                                                                }
+                                                            } else {
+                                                                selectedHistoryEntryRight?.streamEntity?.let {
+                                                                    onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
+                                                                }
+                                                            }
+                                                        }
+                                                    ),
+                                                shape = RoundedCornerShape(6.dp),
+                                                border = BorderStroke(2.dp, Color(0xFFE57373)),
+                                                color = MaterialTheme.colorScheme.surface
                                             ) {
-                                                if (hasSuggestedLeft) {
-                                                    SuggestedVideoThumbnail(
-                                                        thumbnailUrl = state.suggestedLeft?.thumbnailUrl,
-                                                        thumbnailHeight = 52.dp
-                                                    )
-                                                } else {
-                                                    CompareVideoThumbnailCard(
-                                                        entry = selectedHistoryEntryLeft!!,
-                                                        thumbnailHeight = 52.dp,
-                                                        showMeta = false,
-                                                        contentScale = ContentScale.Fit
-                                                    )
-                                                }
-                                                if (isLeftCurrent) {
-                                                    CurrentBadge(
-                                                        modifier = Modifier.align(Alignment.TopEnd)
-                                                    )
+                                                Box(
+                                                    modifier = Modifier.padding(2.dp)
+                                                ) {
+                                                    if (hasSuggestedRight) {
+                                                        SuggestedVideoThumbnail(
+                                                            thumbnailUrl = state.suggestedRight?.thumbnailUrl,
+                                                            thumbnailHeight = 52.dp
+                                                        )
+                                                    } else {
+                                                        CompareVideoThumbnailCard(
+                                                            entry = selectedHistoryEntryRight!!,
+                                                            thumbnailHeight = 52.dp,
+                                                            showMeta = false,
+                                                            contentScale = ContentScale.Fit
+                                                        )
+                                                    }
+                                                    if (isRightCurrent) {
+                                                        CurrentBadge(
+                                                            modifier = Modifier.align(Alignment.TopEnd)
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }
+                                    } else {
+                                        Spacer(modifier = Modifier.weight(1f))
                                     }
-                                } else {
-                                    Spacer(modifier = Modifier.weight(1f))
                                 }
 
-                                if (showRightContent) {
-                                    Box(
-                                        modifier = Modifier.weight(1f),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Surface(
-                                            modifier = Modifier
-                                                .combinedClickable(
-                                                    onClick = {
-                                                        if (!hasSuggestedRight) {
-                                                            openHistoryOverlay(OverlayTarget.RIGHT)
-                                                        }
-                                                    },
-                                                    onLongClick = {
-                                                        if (hasSuggestedRight) {
-                                                            val sr = state.suggestedRight
-                                                            if (sr?.videoUrl != null) {
-                                                                onNavigateToVideo?.invoke(
-                                                                    CompareRepository.uidToServiceId(sr.uid),
-                                                                    sr.videoUrl,
-                                                                    sr.title
-                                                                )
-                                                            }
-                                                        } else {
-                                                            selectedHistoryEntryRight?.streamEntity?.let {
-                                                                onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
-                                                            }
-                                                        }
-                                                    }
-                                                ),
-                                            shape = RoundedCornerShape(6.dp),
-                                            border = BorderStroke(2.dp, Color(0xFFE57373)),
-                                            color = MaterialTheme.colorScheme.surface
-                                        ) {
-                                            Box(
-                                                modifier = Modifier.padding(2.dp)
-                                            ) {
-                                                if (hasSuggestedRight) {
-                                                    SuggestedVideoThumbnail(
-                                                        thumbnailUrl = state.suggestedRight?.thumbnailUrl,
-                                                        thumbnailHeight = 52.dp
-                                                    )
-                                                } else {
-                                                    CompareVideoThumbnailCard(
-                                                        entry = selectedHistoryEntryRight!!,
-                                                        thumbnailHeight = 52.dp,
-                                                        showMeta = false,
-                                                        contentScale = ContentScale.Fit
-                                                    )
-                                                }
-                                                if (isRightCurrent) {
-                                                    CurrentBadge(
-                                                        modifier = Modifier.align(Alignment.TopEnd)
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    Spacer(modifier = Modifier.weight(1f))
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.Center)
+                                        .background(colorResource(R.color.tournesol_chip_bg_selected), RoundedCornerShape(6.dp))
+                                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                                ) {
+                                    Text(
+                                        text = "VS",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        color = Color(0xFF1B1B1B)
+                                    )
                                 }
                             }
+                        }
 
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.Center)
-                                    .background(colorResource(R.color.tournesol_chip_bg_selected), RoundedCornerShape(6.dp))
-                                    .padding(horizontal = 4.dp, vertical = 1.dp)
-                            ) {
-                                Text(
-                                    text = "VS",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    color = Color(0xFF1B1B1B)
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .combinedClickable(
+                                    onClick = {
+                                        if (!hasSuggestedRight) {
+                                            openHistoryOverlay(OverlayTarget.RIGHT)
+                                        }
+                                    },
+                                    onLongClick = {
+                                        if (hasSuggestedRight) {
+                                            val sr = state.suggestedRight
+                                            if (sr?.videoUrl != null) {
+                                                onNavigateToVideo?.invoke(
+                                                    CompareRepository.uidToServiceId(sr.uid),
+                                                    sr.videoUrl,
+                                                    sr.title
+                                                )
+                                            }
+                                        } else {
+                                            selectedHistoryEntryRight?.streamEntity?.let {
+                                                onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
+                                            }
+                                        }
+                                    }
+                                ),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            CompareSideLabel(
+                                title = effectiveRightTitle,
+                                uploader = effectiveRightUploader,
+                                textAlign = TextAlign.Start
+                            )
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val chipColors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = colorResource(R.color.tournesol_chip_bg_selected),
+                            containerColor = colorResource(R.color.tournesol_chip_bg_unselected),
+                            selectedLabelColor = colorResource(R.color.tournesol_chip_text_selected),
+                            labelColor = MaterialTheme.colorScheme.onSurface
+                        )
+                        val chipShape = RoundedCornerShape(8.dp)
+                        val chipTextStyle = TextStyle(
+                            fontFamily = FontFamily(Typeface.create("sans-serif-medium", Typeface.NORMAL)),
+                            fontSize = 14.sp,
+                            letterSpacing = TextUnit(0.04f, TextUnitType.Em)
+                        )
+                        FilterChip(
+                            selected = true,
+                            onClick = submitOrUpdateAction,
+                            enabled = canSubmit,
+                            label = { Text(text = submitButtonLabel, style = chipTextStyle) },
+                            colors = chipColors,
+                            shape = chipShape,
+                            border = null
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        val diceEnabled = !state.suggestionsLoading
+                        Surface(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clickable(enabled = diceEnabled) { onRandomizeLeft() },
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFF42A5F5).copy(alpha = 0.15f)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Image(
+                                    painter = painterResource(R.drawable.ic_casino),
+                                    contentDescription = stringResource(R.string.compare_randomize_left),
+                                    colorFilter = ColorFilter.tint(Color(0xFF42A5F5)),
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .combinedClickable(
-                                onClick = {
-                                    if (!hasSuggestedRight) {
-                                        openHistoryOverlay(OverlayTarget.RIGHT)
-                                    }
-                                },
-                                onLongClick = {
-                                    if (hasSuggestedRight) {
-                                        val sr = state.suggestedRight
-                                        if (sr?.videoUrl != null) {
-                                            onNavigateToVideo?.invoke(
-                                                CompareRepository.uidToServiceId(sr.uid),
-                                                sr.videoUrl,
-                                                sr.title
-                                            )
-                                        }
-                                    } else {
-                                        selectedHistoryEntryRight?.streamEntity?.let {
-                                            onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
-                                        }
-                                    }
-                                }
-                            ),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        CompareSideLabel(
-                            title = effectiveRightTitle,
-                            uploader = effectiveRightUploader,
-                            textAlign = TextAlign.Start
-                        )
-                    }
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val chipColors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = colorResource(R.color.tournesol_chip_bg_selected),
-                        containerColor = colorResource(R.color.tournesol_chip_bg_unselected),
-                        selectedLabelColor = colorResource(R.color.tournesol_chip_text_selected),
-                        labelColor = MaterialTheme.colorScheme.onSurface
-                    )
-                    val chipShape = RoundedCornerShape(8.dp)
-                    val chipTextStyle = TextStyle(
-                        fontFamily = FontFamily(Typeface.create("sans-serif-medium", Typeface.NORMAL)),
-                        fontSize = 14.sp,
-                        letterSpacing = TextUnit(0.04f, TextUnitType.Em)
-                    )
-                    FilterChip(
-                        selected = true,
-                        onClick = submitOrUpdateAction,
-                        enabled = canSubmit,
-                        label = { Text(text = submitButtonLabel, style = chipTextStyle) },
-                        colors = chipColors,
-                        shape = chipShape,
-                        border = null
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    val diceEnabled = !state.suggestionsLoading
-                    Surface(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clickable(enabled = diceEnabled) { onRandomizeLeft() },
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF42A5F5).copy(alpha = 0.15f)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Image(
-                                painter = painterResource(R.drawable.ic_casino),
-                                contentDescription = stringResource(R.string.compare_randomize_left),
-                                colorFilter = ColorFilter.tint(Color(0xFF42A5F5)),
-                                modifier = Modifier.size(20.dp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Surface(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clickable(enabled = diceEnabled) { onRandomizeRight() },
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFE57373).copy(alpha = 0.15f)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Image(
+                                    painter = painterResource(R.drawable.ic_casino),
+                                    contentDescription = stringResource(R.string.compare_randomize_right),
+                                    colorFilter = ColorFilter.tint(Color(0xFFE57373)),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        if (state.suggestionsLoading) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = Color(0xFFFFD54F)
                             )
                         }
-                    }
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Surface(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clickable(enabled = diceEnabled) { onRandomizeRight() },
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFE57373).copy(alpha = 0.15f)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Image(
-                                painter = painterResource(R.drawable.ic_casino),
-                                contentDescription = stringResource(R.string.compare_randomize_right),
-                                colorFilter = ColorFilter.tint(Color(0xFFE57373)),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                    if (state.suggestionsLoading) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = Color(0xFFFFD54F)
-                        )
                     }
                 }
             }
-        }
 
-        CompactHeader(
-            description = activeDescription,
-            iconRes = activeDimension.iconRes,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(start = 12.dp, end = 12.dp, bottom = bottomContentPadding)
-                .zIndex(2f)
-        )
+            CompactHeader(
+                description = activeDescription,
+                iconRes = activeDimension.iconRes,
+                modifier = Modifier
+                    .padding(start = 12.dp, end = 12.dp, bottom = 4.dp)
+            )
+        }
 
         if (hasOpenedHistoryOverlay) {
             val accentColor = if (activeOverlayTarget == OverlayTarget.RIGHT) {

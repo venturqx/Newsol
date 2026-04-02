@@ -589,31 +589,76 @@ public class DescriptionFragment extends BaseDescriptionFragment {
                 final float xRange = bins[bins.length - 1] - xMin;
                 final float topPad = h * 0.12f;
 
+                // Pre-smooth with [0.25, 0.5, 0.25] weighted average
+                final float[] smoothed = new float[n];
+                smoothed[0] = distribution[0];
+                smoothed[n - 1] = distribution[n - 1];
+                for (int i = 1; i < n - 1; i++) {
+                    smoothed[i] = distribution[i - 1] * 0.25f
+                            + distribution[i] * 0.5f
+                            + distribution[i + 1] * 0.25f;
+                }
+
                 final float[] xs = new float[n];
                 final float[] ys = new float[n];
                 for (int i = 0; i < n; i++) {
                     final float binCenter = (bins[i] + bins[i + 1]) / 2f;
                     xs[i] = (binCenter - xMin) / xRange * w;
-                    ys[i] = topPad + (1f - distribution[i] / (float) finalMaxCount)
-                            * (h - topPad - topPad);
+                    ys[i] = topPad + (1f - smoothed[i] / (float) finalMaxCount)
+                            * (h - topPad);
                 }
 
-                // Catmull-Rom spline path
+                // Fritsch-Carlson monotone cubic interpolation
+                // Step 1: compute slopes (deltas) and secants
+                final float[] dx = new float[n - 1];
+                final float[] dy = new float[n - 1];
+                final float[] slopes = new float[n - 1];
+                for (int i = 0; i < n - 1; i++) {
+                    dx[i] = xs[i + 1] - xs[i];
+                    dy[i] = ys[i + 1] - ys[i];
+                    slopes[i] = dx[i] == 0 ? 0 : dy[i] / dx[i];
+                }
+
+                // Step 2: compute tangents at each point
+                final float[] m = new float[n];
+                m[0] = slopes[0];
+                m[n - 1] = slopes[n - 2];
+                for (int i = 1; i < n - 1; i++) {
+                    if (slopes[i - 1] * slopes[i] <= 0) {
+                        // Sign change or zero — flat tangent prevents overshoot
+                        m[i] = 0;
+                    } else {
+                        m[i] = (slopes[i - 1] + slopes[i]) / 2f;
+                    }
+                }
+
+                // Step 3: enforce monotonicity (Fritsch-Carlson conditions)
+                for (int i = 0; i < n - 1; i++) {
+                    if (slopes[i] == 0) {
+                        m[i] = 0;
+                        m[i + 1] = 0;
+                    } else {
+                        final float alpha = m[i] / slopes[i];
+                        final float beta = m[i + 1] / slopes[i];
+                        // Restrict to circle of radius 3 to ensure monotonicity
+                        final float mag = alpha * alpha + beta * beta;
+                        if (mag > 9f) {
+                            final float s = 3f / (float) Math.sqrt(mag);
+                            m[i] = s * alpha * slopes[i];
+                            m[i + 1] = s * beta * slopes[i];
+                        }
+                    }
+                }
+
+                // Step 4: build cubic bezier path from Hermite tangents
                 final Path path = new Path();
                 path.moveTo(xs[0], ys[0]);
                 for (int i = 0; i < n - 1; i++) {
-                    final float p0x = i > 0 ? xs[i - 1] : xs[0];
-                    final float p0y = i > 0 ? ys[i - 1] : ys[0];
-                    final float p1x = xs[i];
-                    final float p1y = ys[i];
-                    final float p2x = xs[i + 1];
-                    final float p2y = ys[i + 1];
-                    final float p3x = i + 2 < n ? xs[i + 2] : xs[n - 1];
-                    final float p3y = i + 2 < n ? ys[i + 2] : ys[n - 1];
+                    final float seg = dx[i] / 3f;
                     path.cubicTo(
-                            p1x + (p2x - p0x) / 6f, p1y + (p2y - p0y) / 6f,
-                            p2x - (p3x - p1x) / 6f, p2y - (p3y - p1y) / 6f,
-                            p2x, p2y);
+                            xs[i] + seg, ys[i] + m[i] * seg,
+                            xs[i + 1] - seg, ys[i + 1] - m[i + 1] * seg,
+                            xs[i + 1], ys[i + 1]);
                 }
 
                 // Fill under curve
