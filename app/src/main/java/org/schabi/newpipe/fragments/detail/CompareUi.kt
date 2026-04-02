@@ -136,10 +136,17 @@ import org.schabi.newpipe.database.history.model.StreamHistoryEntry
 import org.schabi.newpipe.ui.components.items.stream.StreamThumbnail
 
 private const val WEEKLY_GOAL = 2500
+private const val DAILY_GOAL = 2
 
 @Composable
-private fun WeeklyGoalRing(weeklyComparisons: Int, modifier: Modifier = Modifier) {
-    val progress = weeklyComparisons.toFloat() / WEEKLY_GOAL
+private fun GoalRing(
+    current: Int,
+    goal: Int,
+    label: String,
+    ringColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary,
+    modifier: Modifier = Modifier
+) {
+    val progress = current.toFloat() / goal
     val emoji = when {
         progress > 1.25f -> "\u2764\uFE0F\u200D\uD83D\uDD25"
         progress > 1f -> "\uD83E\uDD73\uD83C\uDF89"
@@ -152,10 +159,9 @@ private fun WeeklyGoalRing(weeklyComparisons: Int, modifier: Modifier = Modifier
     val animatedProgress by animateFloatAsState(
         targetValue = progress.coerceIn(0f, 1f),
         animationSpec = tween(durationMillis = 600, easing = LinearOutSlowInEasing),
-        label = "weeklyRing"
+        label = "goalRing"
     )
     val trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
-    val ringColor = MaterialTheme.colorScheme.primary
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -186,13 +192,13 @@ private fun WeeklyGoalRing(weeklyComparisons: Int, modifier: Modifier = Modifier
         }
         Spacer(modifier = Modifier.height(2.dp))
         Text(
-            text = "$weeklyComparisons / $WEEKLY_GOAL",
+            text = "$current / $goal",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
             fontSize = 9.sp
         )
         Text(
-            text = "Weekly goal",
+            text = label,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
             fontSize = 8.sp
@@ -205,6 +211,7 @@ private fun UserGreetingBanner(
     username: String?,
     comparisonCount: Int?,
     weeklyComparisons: Int?,
+    dailyComparisons: Int?,
     onLogin: () -> Unit,
     onRegister: () -> Unit
 ) {
@@ -229,8 +236,22 @@ private fun UserGreetingBanner(
                     )
                 }
             }
-            if (weeklyComparisons != null) {
-                WeeklyGoalRing(weeklyComparisons = weeklyComparisons)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (dailyComparisons != null) {
+                    GoalRing(
+                        current = dailyComparisons,
+                        goal = DAILY_GOAL,
+                        label = "Your daily",
+                        ringColor = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+                if (weeklyComparisons != null) {
+                    GoalRing(
+                        current = weeklyComparisons,
+                        goal = WEEKLY_GOAL,
+                        label = "Weekly collective"
+                    )
+                }
             }
         }
     } else {
@@ -936,6 +957,7 @@ internal fun CompareCompactScreen(
                         username = state.username,
                         comparisonCount = state.comparisonCount,
                         weeklyComparisons = state.weeklyComparisons,
+                        dailyComparisons = state.dailyComparisons,
                         onLogin = onShowLogin,
                         onRegister = onRegister
                     )
@@ -988,9 +1010,7 @@ internal fun CompareCompactScreen(
                                 .weight(1f)
                                 .combinedClickable(
                                     onClick = {
-                                        if (!hasSuggestedLeft) {
-                                            openHistoryOverlay(OverlayTarget.LEFT)
-                                        }
+                                        openHistoryOverlay(OverlayTarget.LEFT)
                                     },
                                     onLongClick = {
                                         if (hasSuggestedLeft) {
@@ -1036,9 +1056,7 @@ internal fun CompareCompactScreen(
                                                 modifier = Modifier
                                                     .combinedClickable(
                                                         onClick = {
-                                                            if (!hasSuggestedLeft) {
-                                                                openHistoryOverlay(OverlayTarget.LEFT)
-                                                            }
+                                                            openHistoryOverlay(OverlayTarget.LEFT)
                                                         },
                                                         onLongClick = {
                                                             if (hasSuggestedLeft) {
@@ -1098,9 +1116,7 @@ internal fun CompareCompactScreen(
                                                 modifier = Modifier
                                                     .combinedClickable(
                                                         onClick = {
-                                                            if (!hasSuggestedRight) {
-                                                                openHistoryOverlay(OverlayTarget.RIGHT)
-                                                            }
+                                                            openHistoryOverlay(OverlayTarget.RIGHT)
                                                         },
                                                         onLongClick = {
                                                             if (hasSuggestedRight) {
@@ -1174,9 +1190,7 @@ internal fun CompareCompactScreen(
                                 .weight(1f)
                                 .combinedClickable(
                                     onClick = {
-                                        if (!hasSuggestedRight) {
-                                            openHistoryOverlay(OverlayTarget.RIGHT)
-                                        }
+                                        openHistoryOverlay(OverlayTarget.RIGHT)
                                     },
                                     onLongClick = {
                                         if (hasSuggestedRight) {

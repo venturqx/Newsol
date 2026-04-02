@@ -78,6 +78,7 @@ class CompareFragment : Fragment() {
     private val suggestionPool = mutableListOf<CompareComparisonVideo>()
     private var weeklyComparisons by mutableStateOf<Int?>(null)
     private var weeklyStatsDisposable: Disposable? = null
+    private var dailyComparisons by mutableStateOf<Int?>(null)
     private var username by mutableStateOf<String?>(null)
     private var comparisonCount by mutableStateOf<Int?>(null)
 
@@ -157,6 +158,7 @@ class CompareFragment : Fragment() {
                         suggestedRight = suggestedRight,
                         suggestionsLoading = suggestionsLoading,
                         weeklyComparisons = weeklyComparisons,
+                        dailyComparisons = dailyComparisons,
                         username = username,
                         comparisonCount = comparisonCount
                     )
@@ -1228,6 +1230,7 @@ class CompareFragment : Fragment() {
         val ctx = context ?: return
         username = TournesolAuthManager.getUsername(ctx)
         comparisonCount = TournesolAuthManager.getComparisonCount(ctx)
+        dailyComparisons = TournesolAuthManager.getDailyComparisons(ctx)
     }
 
     companion object {

@@ -30,6 +30,7 @@ data class CompareUiState(
     val suggestedRight: CompareComparisonVideo? = null,
     val suggestionsLoading: Boolean = false,
     val weeklyComparisons: Int? = null,
+    val dailyComparisons: Int? = null,
     val username: String? = null,
     val comparisonCount: Int? = null
 ) {
