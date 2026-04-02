@@ -28,7 +28,10 @@ data class CompareUiState(
     val compactPopupVisible: Boolean = false,
     val suggestedLeft: CompareComparisonVideo? = null,
     val suggestedRight: CompareComparisonVideo? = null,
-    val suggestionsLoading: Boolean = false
+    val suggestionsLoading: Boolean = false,
+    val weeklyComparisons: Int? = null,
+    val username: String? = null,
+    val comparisonCount: Int? = null
 ) {
     val selectedEntry: StreamHistoryEntry?
         get() = historyEntries.getOrNull(selectedIndex)

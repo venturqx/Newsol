@@ -76,6 +76,10 @@ class CompareFragment : Fragment() {
     private var suggestionsLoading by mutableStateOf(false)
     private var suggestionsDisposable: Disposable? = null
     private val suggestionPool = mutableListOf<CompareComparisonVideo>()
+    private var weeklyComparisons by mutableStateOf<Int?>(null)
+    private var weeklyStatsDisposable: Disposable? = null
+    private var username by mutableStateOf<String?>(null)
+    private var comparisonCount by mutableStateOf<Int?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -114,6 +118,8 @@ class CompareFragment : Fragment() {
         if (currentInfo == null && useCompactUi) {
             loadRandomPair()
         }
+        loadWeeklyStats()
+        refreshUserInfo()
         return ComposeView(requireContext()).apply {
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -149,7 +155,10 @@ class CompareFragment : Fragment() {
                         compactPopupVisible = compactPopupVisible,
                         suggestedLeft = suggestedLeft,
                         suggestedRight = suggestedRight,
-                        suggestionsLoading = suggestionsLoading
+                        suggestionsLoading = suggestionsLoading,
+                        weeklyComparisons = weeklyComparisons,
+                        username = username,
+                        comparisonCount = comparisonCount
                     )
                     val onExtraScoreChange = { criteria: String, value: Int ->
                         updateExtraScore(criteria, value)
@@ -166,6 +175,7 @@ class CompareFragment : Fragment() {
                             },
                             onDismissRecommendations = { dismissRecommendationsDialog() },
                             onDismissLogin = { dismissLoginDialog() },
+                            onShowLogin = { showLoginDialog() },
                             onRegister = { openRegisterPage() },
                             onLogin = { username, password -> performLogin(username, password) },
                             onNavigateToVideo = { serviceId, url, title ->
@@ -204,6 +214,8 @@ class CompareFragment : Fragment() {
         recommendationsDisposable = null
         suggestionsDisposable?.dispose()
         suggestionsDisposable = null
+        weeklyStatsDisposable?.dispose()
+        weeklyStatsDisposable = null
         super.onDestroyView()
     }
 
@@ -390,6 +402,7 @@ class CompareFragment : Fragment() {
                     TournesolAuthManager.saveAuthState(requireContext(), tokenResponse)
                     loginInProgress = false
                     showLoginDialog = false
+                    refreshUserInfo()
                     Toast.makeText(
                         requireContext(),
                         getString(R.string.tournesol_login_success),
@@ -468,6 +481,7 @@ class CompareFragment : Fragment() {
                             mainScore = score
                         )
                         TournesolAuthManager.incrementComparisonCount(requireContext())
+                        refreshUserInfo()
                         Toast.makeText(
                             requireContext(),
                             getString(messageRes),
@@ -562,6 +576,7 @@ class CompareFragment : Fragment() {
                             extraScores = payload.extraScores
                         )
                         TournesolAuthManager.incrementComparisonCount(requireContext())
+                        refreshUserInfo()
                         Toast.makeText(
                             requireContext(),
                             getString(messageRes),
@@ -1196,6 +1211,22 @@ class CompareFragment : Fragment() {
             pendingOpenComparisons = false
             openRecommendationsDialog()
         }
+    }
+
+    private fun loadWeeklyStats() {
+        weeklyStatsDisposable?.dispose()
+        weeklyStatsDisposable = CompareRepository.fetchWeeklyComparisons()
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(
+                { count -> weeklyComparisons = count },
+                { /* silently ignore stats errors */ }
+            )
+    }
+
+    private fun refreshUserInfo() {
+        val ctx = context ?: return
+        username = TournesolAuthManager.getUsername(ctx)
+        comparisonCount = TournesolAuthManager.getComparisonCount(ctx)
     }
 
     companion object {

@@ -135,6 +135,133 @@ import org.schabi.newpipe.R
 import org.schabi.newpipe.database.history.model.StreamHistoryEntry
 import org.schabi.newpipe.ui.components.items.stream.StreamThumbnail
 
+private const val WEEKLY_GOAL = 2500
+
+@Composable
+private fun UserGreetingBanner(
+    username: String?,
+    comparisonCount: Int?,
+    onLogin: () -> Unit,
+    onRegister: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 6.dp)
+    ) {
+        if (username != null) {
+            Column(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.compare_greeting, username),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (comparisonCount != null) {
+                    Text(
+                        text = stringResource(R.string.compare_greeting_comparisons, comparisonCount),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            }
+        } else {
+            Column(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = stringResource(R.string.compare_login_prompt),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(onClick = onLogin) {
+                        Text(text = stringResource(R.string.tournesol_login_button))
+                    }
+                    OutlinedButton(onClick = onRegister) {
+                        Text(text = stringResource(R.string.tournesol_register_button))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeeklyGoalWidget(weeklyComparisons: Int?) {
+    if (weeklyComparisons == null) return
+
+    val progress = weeklyComparisons.toFloat() / WEEKLY_GOAL
+    val percentage = (progress * 100).coerceAtMost(999f)
+    val emoji = when {
+        progress > 1.25f -> "\u2764\uFE0F\u200D\uD83D\uDD25"
+        progress > 1f -> "\uD83E\uDD73\uD83C\uDF89"
+        progress > 0.75f -> "\uD83C\uDF3B"
+        progress > 0.5f -> "\uD83C\uDF37"
+        progress > 0.25f -> "\uD83C\uDF40"
+        else -> "\uD83C\uDF31"
+    }
+
+    val barProgress by animateFloatAsState(
+        targetValue = progress.coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 600, easing = LinearOutSlowInEasing),
+        label = "weeklyProgress"
+    )
+    val trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+    val barColor = when {
+        progress > 1f -> Color(0xFF4CAF50)
+        progress > 0.75f -> Color(0xFF8BC34A)
+        progress > 0.5f -> Color(0xFFFFC107)
+        progress > 0.25f -> Color(0xFFFF9800)
+        else -> Color(0xFFE57373)
+    }
+
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 6.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+        ) {
+            Text(
+                text = "Weekly collective goal – ${"%.1f".format(percentage)}% $emoji",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(trackColor)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(barProgress)
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(barColor)
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "$weeklyComparisons/$WEEKLY_GOAL",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
+        }
+    }
+}
+
 @Composable
 fun CompareScreen(
     state: CompareUiState,
@@ -429,6 +556,7 @@ internal fun CompareCompactScreen(
     onPairSelectionChange: (ComparePairSelection?) -> Unit,
     onDismissRecommendations: () -> Unit,
     onDismissLogin: () -> Unit,
+    onShowLogin: () -> Unit,
     onRegister: () -> Unit,
     onLogin: (String, String) -> Unit,
     onNavigateToVideo: ((Int, String, String) -> Unit)? = null,
@@ -795,6 +923,15 @@ internal fun CompareCompactScreen(
                 .zIndex(1f),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            UserGreetingBanner(
+                username = state.username,
+                comparisonCount = state.comparisonCount,
+                onLogin = onShowLogin,
+                onRegister = onRegister
+            )
+
+            WeeklyGoalWidget(weeklyComparisons = state.weeklyComparisons)
+
             CompactDimensionList(
                 dimensions = dimensions,
                 activeIndex = activeIndexSafe,
@@ -1654,8 +1791,7 @@ internal fun CompareComparisonsFullScreen(
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 10.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        contentPadding = PaddingValues(bottom = 10.dp)
                     ) {
                         itemsIndexed(
                             recommendations,
@@ -1689,7 +1825,7 @@ internal fun CompareComparisonRow(item: CompareRecommendationItem, index: Int = 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 6.dp, vertical = 6.dp),
+                .padding(horizontal = 6.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Left label (video A)

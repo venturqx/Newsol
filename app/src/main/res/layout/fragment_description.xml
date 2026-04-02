@@ -91,6 +91,14 @@
                     android:src="@drawable/logo_small" />
 
                 <org.schabi.newpipe.views.NewPipeTextView
+                    android:id="@+id/tournesol_unsafe_emoji"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🌱"
+                    android:textSize="18sp"
+                    android:visibility="gone" />
+
+                <org.schabi.newpipe.views.NewPipeTextView
                     android:id="@+id/tournesol_score_value"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"

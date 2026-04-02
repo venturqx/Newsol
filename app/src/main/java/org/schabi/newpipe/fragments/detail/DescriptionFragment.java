@@ -264,12 +264,11 @@ public class DescriptionFragment extends BaseDescriptionFragment {
         binding.tournesolComparisons.setText(
                 getString(R.string.tournesol_detail_comparisons, nComparisons));
 
-        // Check unsafe status
+        // Check unsafe status – show plant emoji instead of tournesol logo
         final JSONObject unsafe = collectiveRating.optJSONObject("unsafe");
         if (unsafe != null && unsafe.optBoolean("status", false)) {
-            binding.tournesolUnsafeWarning.setText(R.string.tournesol_detail_unsafe_warning);
-            binding.tournesolUnsafeWarning.setTextColor(TOURNESOL_UNSAFE_COLOR);
-            binding.tournesolUnsafeWarning.setVisibility(View.VISIBLE);
+            binding.tournesolLogo.setVisibility(View.GONE);
+            binding.tournesolUnsafeEmoji.setVisibility(View.VISIBLE);
         }
 
         // Criteria scores

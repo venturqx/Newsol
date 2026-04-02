@@ -448,6 +448,31 @@ object CompareRepository {
         }
     }
 
+    fun fetchWeeklyComparisons(): Single<Int> = Single.fromCallable {
+        val url = "$BASE_URL/stats/?poll=$COMPARE_POLL"
+        val request = Request.Builder()
+            .url(url)
+            .get()
+            .build()
+
+        val client = getHttpClient()
+        client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw IOException("HTTP ${response.code} $responseBody")
+            }
+            val json = JSONObject(responseBody)
+            val polls = json.optJSONArray("polls")
+            if (polls != null && polls.length() > 0) {
+                val poll = polls.getJSONObject(0)
+                val comparisons = poll.optJSONObject("comparisons")
+                comparisons?.optInt("added_current_week", 0) ?: 0
+            } else {
+                0
+            }
+        }
+    }.subscribeOn(Schedulers.io())
+
     private fun getHttpClient(): OkHttpClient {
         return DownloaderImpl.getInstance()?.getClient() ?: OkHttpClient.Builder().build()
     }

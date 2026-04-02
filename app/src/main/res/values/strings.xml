@@ -514,6 +514,9 @@
     <string name="compare_current_unavailable">Current video unavailable</string>
     <string name="compare_current_label">CURRENT</string>
     <string name="compare_login_required">Tournesol login required</string>
+    <string name="compare_greeting">Hi %1$s,</string>
+    <string name="compare_greeting_comparisons">You\'ve made %1$d comparisons!</string>
+    <string name="compare_login_prompt">You need to login to compare:</string>
     <string name="compare_service_not_supported">Service not supported</string>
     <string name="compare_submitted">Comparison submitted</string>
     <string name="compare_score_updated">Comparison updated</string>
@@ -554,6 +557,7 @@
     <string name="recently_added">Recently added</string>
     <string name="most_liked">Most liked</string>
     <string name="conferences">Conferences</string>
+    <string name="explore">Explore</string>
     <!-- Play Queue -->
     <string name="title_activity_play_queue">Play queue</string>
     <string name="play_queue_remove">Remove</string>

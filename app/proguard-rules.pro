@@ -10,6 +10,7 @@
     public void setLanguages(java.util.List);
     public void setDateGte(java.lang.String);
     public void setUploader(java.lang.String);
+    public void setIncludeUnsafe(boolean);
 }
 ## Rules for Rhino and Rhino Engine
 -keep class org.mozilla.javascript.* { *; }
