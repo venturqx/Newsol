@@ -395,6 +395,11 @@ public class MainActivity extends AppCompatActivity {
             ShareUtils.openUrlInBrowser(this, "https://tournesol.app/signup");
         });
 
+        drawerHeaderBinding.drawerHeaderLogoutButton.setOnClickListener(view -> {
+            TournesolAuthManager.INSTANCE.clearAuthState(this);
+            updateProfileHeader();
+        });
+
         updateProfileHeader();
     }
 
@@ -439,10 +444,12 @@ public class MainActivity extends AppCompatActivity {
             }
             drawerHeaderBinding.drawerHeaderProfileUsername.setText(ssb);
             drawerHeaderBinding.drawerHeaderProfileUsername.setVisibility(View.VISIBLE);
+            drawerHeaderBinding.drawerHeaderLogoutButton.setVisibility(View.VISIBLE);
             drawerHeaderBinding.drawerHeaderLoginButton.setVisibility(View.GONE);
             drawerHeaderBinding.drawerHeaderRegisterButton.setVisibility(View.GONE);
         } else {
             drawerHeaderBinding.drawerHeaderProfileUsername.setVisibility(View.GONE);
+            drawerHeaderBinding.drawerHeaderLogoutButton.setVisibility(View.GONE);
             drawerHeaderBinding.drawerHeaderLoginButton.setVisibility(View.VISIBLE);
             drawerHeaderBinding.drawerHeaderRegisterButton.setVisibility(View.VISIBLE);
         }
