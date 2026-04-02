@@ -1265,14 +1265,6 @@ internal fun CompareCompactScreen(
                                 )
                             }
                         }
-                        if (state.suggestionsLoading) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = Color(0xFFFFD54F)
-                            )
-                        }
                     }
                 }
             }
