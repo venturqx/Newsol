@@ -587,7 +587,7 @@ public class DescriptionFragment extends BaseDescriptionFragment {
                 final int n = distribution.length;
                 final float xMin = bins[0];
                 final float xRange = bins[bins.length - 1] - xMin;
-                final float topPad = strokePx;
+                final float topPad = h * 0.12f;
 
                 final float[] xs = new float[n];
                 final float[] ys = new float[n];
