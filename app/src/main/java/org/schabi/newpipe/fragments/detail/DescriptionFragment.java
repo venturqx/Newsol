@@ -3,24 +3,20 @@ package org.schabi.newpipe.fragments.detail;
 import static org.schabi.newpipe.extractor.stream.StreamExtractor.NO_AGE_LIMIT;
 import static org.schabi.newpipe.util.Localization.getAppLocale;
 
-import android.graphics.BlurMaskFilter;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.DashPathEffect;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.RadialGradient;
-import android.graphics.Shader;
 import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
-import android.text.TextPaint;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.StyleSpan;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
-import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -339,145 +335,13 @@ public class DescriptionFragment extends BaseDescriptionFragment {
             return Integer.compare(ia, ib);
         });
 
-        // Measure the widest label and widest score so columns align
-        final TextPaint labelPaint = new TextPaint();
-        labelPaint.setTextSize(TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_SP, 12,
-                requireContext().getResources().getDisplayMetrics()));
-        final TextPaint scorePaint = new TextPaint();
-        scorePaint.setTextSize(labelPaint.getTextSize());
-        scorePaint.setTypeface(Typeface.DEFAULT_BOLD);
-        int maxLabelWidth = 0;
-        int maxScoreWidth = 0;
-        for (final CriterionEntry entry : entries) {
-            final int lw = (int) Math.ceil(labelPaint.measureText(entry.label));
-            if (lw > maxLabelWidth) {
-                maxLabelWidth = lw;
-            }
-            final String scoreText = String.format(Locale.US, "%.1f", entry.score);
-            final int sw = (int) Math.ceil(scorePaint.measureText(scoreText));
-            if (sw > maxScoreWidth) {
-                maxScoreWidth = sw;
-            }
-        }
-
-        // Create rows
-        for (final CriterionEntry entry : entries) {
-            binding.tournesolCriteriaContainer.addView(
-                    createCriterionRow(entry.id, entry.label, entry.score,
-                            maxLabelWidth, maxScoreWidth));
-        }
-
-        // Add lollipop chart below the bars
+        // Add lollipop chart
         if (!entries.isEmpty()) {
             createLollipopChart(entries);
         }
-
-        // Add radar chart below the bars
-        if (!entries.isEmpty()) {
-            createRadarChart(entries);
-        }
     }
 
-    private static final int BAR_HEIGHT_DP = 10;
-    private static final int BAR_CORNER_RADIUS_DP = 4;
-    private static final int BAR_BORDER_WIDTH_DP = 2;
-    private static final double BAR_MAX_SCORE = 50.0;
 
-    private View createCriterionRow(final String id, final String label,
-                                     final double score, final int labelWidth,
-                                     final int scoreWidth) {
-        final LinearLayout row = new LinearLayout(requireContext());
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        final LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT);
-        rowParams.topMargin = dpToPx(3);
-        row.setLayoutParams(rowParams);
-
-        // Criterion label — fixed width (widest label) so bar area is uniform
-        final TextView labelView = new TextView(requireContext());
-        labelView.setText(label);
-        labelView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        labelView.setLayoutParams(new LinearLayout.LayoutParams(
-                labelWidth, LinearLayout.LayoutParams.WRAP_CONTENT));
-        row.addView(labelView);
-
-        // Bar container — fills remaining space, bar is RIGHT-aligned inside
-        final LinearLayout barContainer = new LinearLayout(requireContext());
-        barContainer.setOrientation(LinearLayout.HORIZONTAL);
-        barContainer.setGravity(Gravity.CENTER_VERTICAL);
-        final LinearLayout.LayoutParams barContainerParams = new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-        barContainerParams.leftMargin = dpToPx(4);
-        barContainerParams.rightMargin = dpToPx(4);
-        barContainer.setLayoutParams(barContainerParams);
-        row.addView(barContainer);
-
-        final int scoreColor = score >= 0 ? TOURNESOL_SCORE_COLOR : TOURNESOL_UNSAFE_COLOR;
-        final int barHeight = dpToPx(BAR_HEIGHT_DP);
-        final float r = dpToPx(BAR_CORNER_RADIUS_DP);
-        final double clamped = Math.max(0, Math.min(BAR_MAX_SCORE, score));
-
-        // Left spacer — pushes bar+border to the right
-        if (clamped < BAR_MAX_SCORE) {
-            final View spacer = new View(requireContext());
-            spacer.setLayoutParams(new LinearLayout.LayoutParams(
-                    0, barHeight, (float) (BAR_MAX_SCORE - clamped)));
-            barContainer.addView(spacer);
-        }
-
-        // Bar — grows leftward (rounded left end, flat right end against border)
-        if (clamped > 0) {
-            final View bar = new View(requireContext());
-            final GradientDrawable drawable = new GradientDrawable();
-            drawable.setColor(TOURNESOL_SCORE_COLOR);
-            // Rounded left, flat right
-            drawable.setCornerRadii(new float[]{r, r, 0, 0, 0, 0, r, r});
-            bar.setBackground(drawable);
-            bar.setLayoutParams(new LinearLayout.LayoutParams(
-                    0, barHeight, (float) clamped));
-            barContainer.addView(bar);
-        }
-
-        // Right border "|" — flat edge, always visible
-        final View rightBorder = new View(requireContext());
-        rightBorder.setBackgroundColor(scoreColor);
-        rightBorder.setLayoutParams(new LinearLayout.LayoutParams(
-                dpToPx(BAR_BORDER_WIDTH_DP), barHeight));
-        barContainer.addView(rightBorder);
-
-        // Score value — fixed width (widest score), right-aligned
-        final TextView scoreView = new TextView(requireContext());
-        scoreView.setText(String.format(Locale.US, "%.1f", score));
-        scoreView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        scoreView.setTypeface(null, Typeface.BOLD);
-        scoreView.setTextColor(scoreColor);
-        scoreView.setGravity(Gravity.END);
-        scoreView.setLayoutParams(new LinearLayout.LayoutParams(
-                scoreWidth, LinearLayout.LayoutParams.WRAP_CONTENT));
-        row.addView(scoreView);
-
-        // Criterion icon
-        final Integer iconRes = CRITERIA_ICON_MAP.get(id);
-        if (iconRes != null) {
-            final ImageView icon = new ImageView(requireContext());
-            icon.setImageResource(iconRes);
-            final int iconSize = dpToPx(14);
-            final LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(
-                    iconSize, iconSize);
-            iconParams.leftMargin = dpToPx(3);
-            icon.setLayoutParams(iconParams);
-            row.addView(icon);
-        }
-
-        return row;
-    }
-
-    private static final double RADAR_MIN_SCORE = -100.0;
-    private static final double RADAR_MAX_SCORE = 100.0;
-    private static final double RADAR_MID_SCORE = 0.0;
 
     private List<android.graphics.drawable.Drawable> loadRadarIcons(
             final List<CriterionEntry> entries) {
@@ -498,20 +362,6 @@ public class DescriptionFragment extends BaseDescriptionFragment {
             }
         }
         return icons;
-    }
-
-    private void createRadarChart(final List<CriterionEntry> entries) {
-        final List<android.graphics.drawable.Drawable> icons = loadRadarIcons(entries);
-        final View radarView = new RadarChartView(
-                requireContext(), entries, icons, dpToPx(32));
-
-        final int chartSize = dpToPx(340);
-        radarView.setLayoutParams(new FrameLayout.LayoutParams(
-                chartSize, chartSize, Gravity.CENTER));
-
-        binding.tournesolRadarContainer.removeAllViews();
-        binding.tournesolRadarContainer.addView(radarView);
-        binding.tournesolRadarContainer.setVisibility(View.VISIBLE);
     }
 
     private static final Map<String, Integer> CRITERIA_COLOR_MAP;
@@ -541,14 +391,19 @@ public class DescriptionFragment extends BaseDescriptionFragment {
         final LinearLayout wrapper = new LinearLayout(requireContext());
         wrapper.setOrientation(LinearLayout.VERTICAL);
         wrapper.setGravity(Gravity.CENTER_HORIZONTAL);
+        wrapper.setClipChildren(false);
+        wrapper.setClipToPadding(false);
 
         final LollipopChartView lollipopView = new LollipopChartView(
                 requireContext(), entries, icons, colors, dpToPx(24));
 
+        final int glowPadding = dpToPx(8);
         final int chartWidth = dpToPx(340);
         final int chartHeight = dpToPx(260);
-        lollipopView.setLayoutParams(new LinearLayout.LayoutParams(
-                chartWidth, chartHeight));
+        final LinearLayout.LayoutParams chartParams = new LinearLayout.LayoutParams(
+                chartWidth + glowPadding * 2, chartHeight + glowPadding * 2);
+        lollipopView.setLayoutParams(chartParams);
+        lollipopView.setPadding(glowPadding, glowPadding, glowPadding, glowPadding);
 
         // Description row: icon + text
         final LinearLayout descRow = new LinearLayout(requireContext());
@@ -568,7 +423,7 @@ public class DescriptionFragment extends BaseDescriptionFragment {
         descText.setLayoutParams(textParams);
         descText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         descText.setTextColor(Color.parseColor("#B8FFFFFF"));
-        descText.setMaxLines(3);
+        descText.setMaxLines(4);
 
         descRow.addView(descIcon);
         descRow.addView(descText);
@@ -583,7 +438,13 @@ public class DescriptionFragment extends BaseDescriptionFragment {
             final Integer descRes = CRITERIA_DESCRIPTION_MAP.get(entry.id);
             if (iconRes != null && descRes != null) {
                 descIcon.setImageResource(iconRes);
-                descText.setText(getString(descRes));
+                final Integer labelRes = CRITERIA_LABEL_MAP.get(entry.id);
+                final String title = labelRes != null ? getString(labelRes) : entry.label;
+                final String full = title + "\n" + getString(descRes);
+                final SpannableString spannable = new SpannableString(full);
+                spannable.setSpan(new StyleSpan(Typeface.BOLD),
+                        0, title.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                descText.setText(spannable);
                 descRow.setVisibility(View.VISIBLE);
             }
         });
@@ -1043,10 +904,23 @@ public class DescriptionFragment extends BaseDescriptionFragment {
                 final android.graphics.drawable.Drawable icon =
                         i < icons.size() ? icons.get(i) : null;
                 if (icon != null) {
-                    final int halfIcon = iconSizePx / 2;
+                    int halfIconW = iconSizePx / 2;
+                    int halfIconH = iconSizePx / 2;
+                    float iconOffsetY = 0;
+                    final String entryId = entry.id;
+                    // layman_friendly icon is slightly too large / stretched vertically
+                    if ("layman_friendly".equals(entryId)) {
+                        halfIconW = (int) (halfIconW * 0.88f);
+                        halfIconH = (int) (halfIconH * 0.88f);
+                    }
+                    // backfire_risk icon content sits slightly high in its viewport
+                    if ("backfire_risk".equals(entryId)) {
+                        iconOffsetY = dp(1f);
+                    }
+                    final float iy = barEndY + iconOffsetY;
                     icon.setBounds(
-                            (int) (cx - halfIcon), (int) (barEndY - halfIcon),
-                            (int) (cx + halfIcon), (int) (barEndY + halfIcon));
+                            (int) (cx - halfIconW), (int) (iy - halfIconH),
+                            (int) (cx + halfIconW), (int) (iy + halfIconH));
                     icon.setTintList(null);
                     icon.draw(canvas);
                 }
@@ -1069,442 +943,6 @@ public class DescriptionFragment extends BaseDescriptionFragment {
         }
     }
 
-    private static class RadarChartView extends View {
-        private final List<CriterionEntry> entries;
-        private final List<android.graphics.drawable.Drawable> icons;
-        private final int iconSizePx;
-
-        // Zone colors
-        private static final int COLOR_BAD_ZONE = Color.parseColor("#30E53935");
-        private static final int COLOR_BAD_ZONE_CENTER = Color.parseColor("#50B71C1C");
-        private static final int COLOR_GOOD_ZONE = Color.parseColor("#1843A047");
-        private static final int COLOR_GOOD_ZONE_EDGE = Color.parseColor("#0843A047");
-        private static final int COLOR_MID_RING = Color.parseColor("#AAFFFFFF");
-        private static final int COLOR_GOLD = Color.parseColor("#FFCA1D");
-        private static final int COLOR_GOLD_BRIGHT = Color.parseColor("#FFD54F");
-        private static final int COLOR_RED = Color.parseColor("#EF5350");
-        private static final int COLOR_RED_DARK = Color.parseColor("#C62828");
-        private static final int COLOR_GREEN_ACCENT = Color.parseColor("#66BB6A");
-
-        private final Paint gridPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint gridPaintOuter = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint axisPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint dotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint dotOutlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint dotGlowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint valuePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint midRingPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint midRingGlowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint badZonePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint goodZonePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint dotBadPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint dotBadOutlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint dotGlowBadPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint valueBadPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint zoneLabelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Path dataPath = new Path();
-        private final Path gridPath = new Path();
-        private final Path zonePath = new Path();
-
-        RadarChartView(final android.content.Context context,
-                       final List<CriterionEntry> entries,
-                       final List<android.graphics.drawable.Drawable> icons,
-                       final int iconSizePx) {
-            super(context);
-            this.entries = entries;
-            this.icons = icons;
-            this.iconSizePx = iconSizePx;
-            initPaints();
-        }
-
-        private int dp(final float dpVal) {
-            return (int) TypedValue.applyDimension(
-                    TypedValue.COMPLEX_UNIT_DIP, dpVal,
-                    getResources().getDisplayMetrics());
-        }
-
-        private float dpF(final float dpVal) {
-            return TypedValue.applyDimension(
-                    TypedValue.COMPLEX_UNIT_DIP, dpVal,
-                    getResources().getDisplayMetrics());
-        }
-
-        private void initPaints() {
-            // Grid lines - very subtle
-            gridPaint.setStyle(Paint.Style.STROKE);
-            gridPaint.setColor(Color.parseColor("#15FFFFFF"));
-            gridPaint.setStrokeWidth(dpF(0.75f));
-
-            gridPaintOuter.setStyle(Paint.Style.STROKE);
-            gridPaintOuter.setColor(Color.parseColor("#30FFFFFF"));
-            gridPaintOuter.setStrokeWidth(dpF(1.2f));
-
-            // Axis lines - barely visible
-            axisPaint.setStyle(Paint.Style.STROKE);
-            axisPaint.setColor(Color.parseColor("#0DFFFFFF"));
-            axisPaint.setStrokeWidth(dpF(0.5f));
-
-            // Data fill
-            fillPaint.setStyle(Paint.Style.FILL);
-
-            // Data stroke - gold line
-            strokePaint.setStyle(Paint.Style.STROKE);
-            strokePaint.setColor(COLOR_GOLD);
-            strokePaint.setStrokeWidth(dpF(2f));
-            strokePaint.setStrokeJoin(Paint.Join.ROUND);
-            strokePaint.setStrokeCap(Paint.Cap.ROUND);
-
-            // Glow behind data stroke
-            glowPaint.setStyle(Paint.Style.STROKE);
-            glowPaint.setColor(Color.parseColor("#40FFCA1D"));
-            glowPaint.setStrokeWidth(dpF(5));
-            glowPaint.setStrokeJoin(Paint.Join.ROUND);
-            glowPaint.setMaskFilter(new BlurMaskFilter(
-                    dpF(10), BlurMaskFilter.Blur.NORMAL));
-
-            // Good dots - gold with white outline
-            dotPaint.setStyle(Paint.Style.FILL);
-            dotPaint.setColor(COLOR_GOLD_BRIGHT);
-
-            dotOutlinePaint.setStyle(Paint.Style.STROKE);
-            dotOutlinePaint.setColor(Color.parseColor("#DDFFFFFF"));
-            dotOutlinePaint.setStrokeWidth(dpF(1.5f));
-
-            dotGlowPaint.setStyle(Paint.Style.FILL);
-            dotGlowPaint.setColor(Color.parseColor("#66FFCA1D"));
-            dotGlowPaint.setMaskFilter(new BlurMaskFilter(
-                    dpF(8), BlurMaskFilter.Blur.NORMAL));
-
-            // Bad dots - red with outline
-            dotBadPaint.setStyle(Paint.Style.FILL);
-            dotBadPaint.setColor(COLOR_RED);
-
-            dotBadOutlinePaint.setStyle(Paint.Style.STROKE);
-            dotBadOutlinePaint.setColor(Color.parseColor("#AAFFFFFF"));
-            dotBadOutlinePaint.setStrokeWidth(dpF(1.5f));
-
-            dotGlowBadPaint.setStyle(Paint.Style.FILL);
-            dotGlowBadPaint.setColor(Color.parseColor("#66E53935"));
-            dotGlowBadPaint.setMaskFilter(new BlurMaskFilter(
-                    dpF(8), BlurMaskFilter.Blur.NORMAL));
-
-            // Value labels
-            valuePaint.setTextSize(TypedValue.applyDimension(
-                    TypedValue.COMPLEX_UNIT_SP, 12,
-                    getResources().getDisplayMetrics()));
-            valuePaint.setColor(Color.parseColor("#EEFFFFFF"));
-            valuePaint.setTextAlign(Paint.Align.CENTER);
-            valuePaint.setTypeface(Typeface.create("sans-serif-medium",
-                    Typeface.NORMAL));
-
-            valueBadPaint.setTextSize(valuePaint.getTextSize());
-            valueBadPaint.setColor(COLOR_RED);
-            valueBadPaint.setTextAlign(Paint.Align.CENTER);
-            valueBadPaint.setTypeface(Typeface.create("sans-serif-medium",
-                    Typeface.NORMAL));
-
-            // Mid ring (score = 0 boundary) - dashed, prominent
-            midRingPaint.setStyle(Paint.Style.STROKE);
-            midRingPaint.setColor(COLOR_MID_RING);
-            midRingPaint.setStrokeWidth(dpF(1.2f));
-            midRingPaint.setPathEffect(new DashPathEffect(
-                    new float[]{dpF(4), dpF(3)}, 0));
-
-            midRingGlowPaint.setStyle(Paint.Style.STROKE);
-            midRingGlowPaint.setColor(Color.parseColor("#22FFFFFF"));
-            midRingGlowPaint.setStrokeWidth(dpF(4));
-            midRingGlowPaint.setMaskFilter(new BlurMaskFilter(
-                    dpF(3), BlurMaskFilter.Blur.NORMAL));
-
-            // Background
-            bgPaint.setStyle(Paint.Style.FILL);
-
-            // Bad zone fill
-            badZonePaint.setStyle(Paint.Style.FILL);
-
-            // Good zone fill
-            goodZonePaint.setStyle(Paint.Style.FILL);
-
-            // Zone labels ("BAD" / "GOOD")
-            zoneLabelPaint.setTextSize(TypedValue.applyDimension(
-                    TypedValue.COMPLEX_UNIT_SP, 9,
-                    getResources().getDisplayMetrics()));
-            zoneLabelPaint.setTextAlign(Paint.Align.CENTER);
-            zoneLabelPaint.setTypeface(Typeface.create("sans-serif",
-                    Typeface.BOLD));
-            zoneLabelPaint.setLetterSpacing(0.15f);
-        }
-
-        @Override
-        protected void onDraw(final Canvas canvas) {
-            super.onDraw(canvas);
-            final int n = entries.size();
-            if (n < 3) {
-                return;
-            }
-
-            setLayerType(LAYER_TYPE_SOFTWARE, null);
-
-            final float w = getWidth();
-            final float h = getHeight();
-            final float cx = w / 2f;
-            final float cy = h / 2f;
-            final float outerMargin = dp(52);
-            final float radius = Math.min(cx, cy) - outerMargin;
-            final double angleStep = 2.0 * Math.PI / n;
-            final double startAngle = -Math.PI / 2.0;
-
-            drawBackground(canvas, cx, cy, radius);
-            drawZones(canvas, cx, cy, radius, n, angleStep, startAngle);
-            drawGrid(canvas, cx, cy, radius, n, angleStep, startAngle);
-            drawAxes(canvas, cx, cy, radius, n, angleStep, startAngle);
-            drawMidRing(canvas, cx, cy, radius, n, angleStep, startAngle);
-            drawDataArea(canvas, cx, cy, radius, n, angleStep, startAngle);
-            drawDotsAndLabels(canvas, cx, cy, radius, n, angleStep, startAngle);
-        }
-
-        private void drawBackground(final Canvas canvas,
-                                     final float cx, final float cy,
-                                     final float radius) {
-            // Subtle dark radial glow
-            bgPaint.setShader(new RadialGradient(cx, cy, radius * 1.3f,
-                    Color.parseColor("#0AFFFFFF"), Color.TRANSPARENT,
-                    Shader.TileMode.CLAMP));
-            canvas.drawCircle(cx, cy, radius * 1.3f, bgPaint);
-        }
-
-        private void drawZones(final Canvas canvas,
-                                final float cx, final float cy,
-                                final float radius, final int n,
-                                final double angleStep,
-                                final double startAngle) {
-            final float midNorm = (float) ((RADAR_MID_SCORE - RADAR_MIN_SCORE)
-                    / (RADAR_MAX_SCORE - RADAR_MIN_SCORE));
-            final float midR = radius * midNorm;
-
-            // Bad zone: center to midpoint - red gradient
-            badZonePaint.setShader(new RadialGradient(cx, cy, midR,
-                    COLOR_BAD_ZONE_CENTER, COLOR_BAD_ZONE,
-                    Shader.TileMode.CLAMP));
-            zonePath.reset();
-            for (int i = 0; i < n; i++) {
-                final double angle = startAngle + i * angleStep;
-                final float x = cx + (float) (midR * Math.cos(angle));
-                final float y = cy + (float) (midR * Math.sin(angle));
-                if (i == 0) {
-                    zonePath.moveTo(x, y);
-                } else {
-                    zonePath.lineTo(x, y);
-                }
-            }
-            zonePath.close();
-            canvas.drawPath(zonePath, badZonePaint);
-
-            // Good zone: midpoint to outer edge - green tint
-            // Draw as full polygon minus inner polygon using clip
-            goodZonePaint.setShader(new RadialGradient(cx, cy, radius,
-                    COLOR_GOOD_ZONE_EDGE, COLOR_GOOD_ZONE,
-                    Shader.TileMode.CLAMP));
-            // Build outer polygon path
-            final Path outerPath = new Path();
-            for (int i = 0; i < n; i++) {
-                final double angle = startAngle + i * angleStep;
-                final float x = cx + (float) (radius * Math.cos(angle));
-                final float y = cy + (float) (radius * Math.sin(angle));
-                if (i == 0) {
-                    outerPath.moveTo(x, y);
-                } else {
-                    outerPath.lineTo(x, y);
-                }
-            }
-            outerPath.close();
-            canvas.save();
-            canvas.clipPath(outerPath);
-            // Draw a big rect with good zone paint, then restore
-            final Path innerClip = new Path();
-            for (int i = 0; i < n; i++) {
-                final double angle = startAngle + i * angleStep;
-                final float x = cx + (float) (midR * Math.cos(angle));
-                final float y = cy + (float) (midR * Math.sin(angle));
-                if (i == 0) {
-                    innerClip.moveTo(x, y);
-                } else {
-                    innerClip.lineTo(x, y);
-                }
-            }
-            innerClip.close();
-            // Draw the full outer, the inner clip will be subtracted
-            // by drawing good zone over entire outer polygon
-            canvas.drawPath(outerPath, goodZonePaint);
-            canvas.restore();
-        }
-
-        private void drawGrid(final Canvas canvas,
-                               final float cx, final float cy,
-                               final float radius, final int n,
-                               final double angleStep,
-                               final double startAngle) {
-            final int gridLevels = 5;
-            for (int level = 1; level <= gridLevels; level++) {
-                final float r = radius * level / gridLevels;
-                gridPath.reset();
-                for (int i = 0; i < n; i++) {
-                    final double angle = startAngle + i * angleStep;
-                    final float x = cx + (float) (r * Math.cos(angle));
-                    final float y = cy + (float) (r * Math.sin(angle));
-                    if (i == 0) {
-                        gridPath.moveTo(x, y);
-                    } else {
-                        gridPath.lineTo(x, y);
-                    }
-                }
-                gridPath.close();
-                canvas.drawPath(gridPath,
-                        level == gridLevels ? gridPaintOuter : gridPaint);
-            }
-        }
-
-        private void drawAxes(final Canvas canvas,
-                               final float cx, final float cy,
-                               final float radius, final int n,
-                               final double angleStep,
-                               final double startAngle) {
-            for (int i = 0; i < n; i++) {
-                final double angle = startAngle + i * angleStep;
-                final float x = cx + (float) (radius * Math.cos(angle));
-                final float y = cy + (float) (radius * Math.sin(angle));
-                canvas.drawLine(cx, cy, x, y, axisPaint);
-            }
-        }
-
-        private void drawMidRing(final Canvas canvas,
-                                  final float cx, final float cy,
-                                  final float radius, final int n,
-                                  final double angleStep,
-                                  final double startAngle) {
-            final float midNorm = (float) ((RADAR_MID_SCORE - RADAR_MIN_SCORE)
-                    / (RADAR_MAX_SCORE - RADAR_MIN_SCORE));
-            final float midR = radius * midNorm;
-
-            // Glow behind the ring
-            gridPath.reset();
-            for (int i = 0; i < n; i++) {
-                final double angle = startAngle + i * angleStep;
-                final float x = cx + (float) (midR * Math.cos(angle));
-                final float y = cy + (float) (midR * Math.sin(angle));
-                if (i == 0) {
-                    gridPath.moveTo(x, y);
-                } else {
-                    gridPath.lineTo(x, y);
-                }
-            }
-            gridPath.close();
-            canvas.drawPath(gridPath, midRingGlowPaint);
-            canvas.drawPath(gridPath, midRingPaint);
-
-            // Zone labels along one axis
-            final float badLabelR = midR * 0.5f;
-            zoneLabelPaint.setColor(Color.parseColor("#66EF5350"));
-            canvas.drawText("BAD", cx, cy + badLabelR
-                    + zoneLabelPaint.getTextSize() / 3f, zoneLabelPaint);
-
-            final float goodLabelR = midR + (radius - midR) * 0.5f;
-            zoneLabelPaint.setColor(Color.parseColor("#5566BB6A"));
-            canvas.drawText("GOOD", cx, cy + goodLabelR
-                    + zoneLabelPaint.getTextSize() / 3f, zoneLabelPaint);
-        }
-
-        private void drawDataArea(final Canvas canvas,
-                                   final float cx, final float cy,
-                                   final float radius, final int n,
-                                   final double angleStep,
-                                   final double startAngle) {
-            dataPath.reset();
-            for (int i = 0; i < n; i++) {
-                final double angle = startAngle + i * angleStep;
-                final double score = entries.get(i).score;
-                final double norm = Math.max(0, Math.min(1.0,
-                        (score - RADAR_MIN_SCORE)
-                                / (RADAR_MAX_SCORE - RADAR_MIN_SCORE)));
-                final float r = (float) (radius * norm);
-                final float x = cx + (float) (r * Math.cos(angle));
-                final float y = cy + (float) (r * Math.sin(angle));
-                if (i == 0) {
-                    dataPath.moveTo(x, y);
-                } else {
-                    dataPath.lineTo(x, y);
-                }
-            }
-            dataPath.close();
-
-            // Fill with gradient - gold tones
-            fillPaint.setShader(new RadialGradient(cx, cy, radius,
-                    Color.parseColor("#33FFCA1D"),
-                    Color.parseColor("#0DFFCA1D"),
-                    Shader.TileMode.CLAMP));
-            canvas.drawPath(dataPath, fillPaint);
-
-            // Glow then stroke
-            canvas.drawPath(dataPath, glowPaint);
-            canvas.drawPath(dataPath, strokePaint);
-        }
-
-        private void drawDotsAndLabels(final Canvas canvas,
-                                        final float cx, final float cy,
-                                        final float radius, final int n,
-                                        final double angleStep,
-                                        final double startAngle) {
-            final int halfIcon = iconSizePx / 2;
-            for (int i = 0; i < n; i++) {
-                final double angle = startAngle + i * angleStep;
-                final double score = entries.get(i).score;
-                final double norm = Math.max(0, Math.min(1.0,
-                        (score - RADAR_MIN_SCORE)
-                                / (RADAR_MAX_SCORE - RADAR_MIN_SCORE)));
-                final float r = (float) (radius * norm);
-                final float dx = cx + (float) (r * Math.cos(angle));
-                final float dy = cy + (float) (r * Math.sin(angle));
-
-                final boolean isBad = score < RADAR_MID_SCORE;
-
-                // Glow -> dot -> outline
-                canvas.drawCircle(dx, dy, dpF(7),
-                        isBad ? dotGlowBadPaint : dotGlowPaint);
-                canvas.drawCircle(dx, dy, dpF(3.5f),
-                        isBad ? dotBadPaint : dotPaint);
-                canvas.drawCircle(dx, dy, dpF(3.5f),
-                        isBad ? dotBadOutlinePaint : dotOutlinePaint);
-
-                // Icon
-                final float iconR = radius + dpF(20);
-                final float ix = cx + (float) (iconR * Math.cos(angle));
-                final float iy = cy + (float) (iconR * Math.sin(angle));
-
-                final android.graphics.drawable.Drawable icon =
-                        i < icons.size() ? icons.get(i) : null;
-                if (icon != null) {
-                    canvas.save();
-                    canvas.translate(ix - halfIcon, iy - halfIcon);
-                    icon.draw(canvas);
-                    canvas.restore();
-                }
-
-                // Score value
-                final float valR = radius + dpF(40);
-                final float vx = cx + (float) (valR * Math.cos(angle));
-                final float vy = cy + (float) (valR * Math.sin(angle));
-
-                canvas.drawText(
-                        String.format(Locale.US, "%.1f", score),
-                        vx, vy + valuePaint.getTextSize() / 3f,
-                        isBad ? valueBadPaint : valuePaint);
-            }
-        }
-    }
 
     private static class CriterionEntry {
         final String id;
