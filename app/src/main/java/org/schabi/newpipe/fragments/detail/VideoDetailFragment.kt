@@ -1102,6 +1102,7 @@ class VideoDetailFragment :
         } else {
             replaceQueueIfUserConfirms {
                 NavigationHelper.playOnBackgroundPlayer(activity, queue, true)
+                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED)
             }
         }
     }

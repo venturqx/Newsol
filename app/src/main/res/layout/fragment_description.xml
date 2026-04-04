@@ -161,6 +161,14 @@
                 android:layout_marginTop="8dp"
                 android:orientation="vertical" />
 
+            <!-- Lollipop chart (populated dynamically) -->
+            <FrameLayout
+                android:id="@+id/tournesol_lollipop_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:visibility="gone" />
+
             <!-- Radar chart (populated dynamically) -->
             <FrameLayout
                 android:id="@+id/tournesol_radar_container"
