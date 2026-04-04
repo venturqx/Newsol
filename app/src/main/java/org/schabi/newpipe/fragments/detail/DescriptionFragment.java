@@ -346,6 +346,11 @@ public class DescriptionFragment extends BaseDescriptionFragment {
                     createCriterionRow(entry.id, entry.label, entry.score,
                             maxLabelWidth, maxScoreWidth));
         }
+
+        // Add radar chart below the bars
+        if (!entries.isEmpty()) {
+            createRadarChart(entries);
+        }
     }
 
     private static final int BAR_HEIGHT_DP = 10;
@@ -442,6 +447,157 @@ public class DescriptionFragment extends BaseDescriptionFragment {
         }
 
         return row;
+    }
+
+    private void createRadarChart(final List<CriterionEntry> entries) {
+        final View radarView = new View(requireContext()) {
+            private final Paint gridPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            private final Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            private final Paint dotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            private final Paint labelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            private final Paint valuePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            private final Path dataPath = new Path();
+            private final Path gridPath = new Path();
+
+            {
+                gridPaint.setStyle(Paint.Style.STROKE);
+                gridPaint.setColor(Color.parseColor("#333333"));
+                gridPaint.setStrokeWidth(1f);
+
+                fillPaint.setStyle(Paint.Style.FILL);
+                fillPaint.setColor(Color.parseColor("#33FFCA1D"));
+
+                strokePaint.setStyle(Paint.Style.STROKE);
+                strokePaint.setColor(TOURNESOL_SCORE_COLOR);
+                strokePaint.setStrokeWidth(dpToPx(2));
+                strokePaint.setStrokeJoin(Paint.Join.ROUND);
+
+                dotPaint.setStyle(Paint.Style.FILL);
+                dotPaint.setColor(TOURNESOL_SCORE_COLOR);
+
+                labelPaint.setTextSize(TypedValue.applyDimension(
+                        TypedValue.COMPLEX_UNIT_SP, 11,
+                        getResources().getDisplayMetrics()));
+                labelPaint.setColor(Color.parseColor("#AAAAAA"));
+                labelPaint.setTextAlign(Paint.Align.CENTER);
+
+                valuePaint.setTextSize(TypedValue.applyDimension(
+                        TypedValue.COMPLEX_UNIT_SP, 9,
+                        getResources().getDisplayMetrics()));
+                valuePaint.setColor(TOURNESOL_SCORE_COLOR);
+                valuePaint.setTextAlign(Paint.Align.CENTER);
+                valuePaint.setTypeface(Typeface.DEFAULT_BOLD);
+            }
+
+            @Override
+            protected void onDraw(final Canvas canvas) {
+                super.onDraw(canvas);
+                final int n = entries.size();
+                if (n < 3) {
+                    return;
+                }
+
+                final float w = getWidth();
+                final float h = getHeight();
+                final float cx = w / 2f;
+                final float cy = h / 2f;
+                final float labelMargin = dpToPx(36);
+                final float radius = Math.min(cx, cy) - labelMargin;
+                final double angleStep = 2.0 * Math.PI / n;
+                // Start from top (-PI/2)
+                final double startAngle = -Math.PI / 2.0;
+
+                // Draw concentric grid polygons (5 levels)
+                final int gridLevels = 5;
+                for (int level = 1; level <= gridLevels; level++) {
+                    final float r = radius * level / gridLevels;
+                    gridPath.reset();
+                    for (int i = 0; i < n; i++) {
+                        final double angle = startAngle + i * angleStep;
+                        final float x = cx + (float) (r * Math.cos(angle));
+                        final float y = cy + (float) (r * Math.sin(angle));
+                        if (i == 0) {
+                            gridPath.moveTo(x, y);
+                        } else {
+                            gridPath.lineTo(x, y);
+                        }
+                    }
+                    gridPath.close();
+                    canvas.drawPath(gridPath, gridPaint);
+                }
+
+                // Draw axis lines from center to each vertex
+                for (int i = 0; i < n; i++) {
+                    final double angle = startAngle + i * angleStep;
+                    final float x = cx + (float) (radius * Math.cos(angle));
+                    final float y = cy + (float) (radius * Math.sin(angle));
+                    canvas.drawLine(cx, cy, x, y, gridPaint);
+                }
+
+                // Draw data polygon
+                dataPath.reset();
+                for (int i = 0; i < n; i++) {
+                    final double angle = startAngle + i * angleStep;
+                    final double score = entries.get(i).score;
+                    final double norm = Math.max(0, Math.min(1.0, score / BAR_MAX_SCORE));
+                    final float r = (float) (radius * norm);
+                    final float x = cx + (float) (r * Math.cos(angle));
+                    final float y = cy + (float) (r * Math.sin(angle));
+                    if (i == 0) {
+                        dataPath.moveTo(x, y);
+                    } else {
+                        dataPath.lineTo(x, y);
+                    }
+                }
+                dataPath.close();
+                canvas.drawPath(dataPath, fillPaint);
+                canvas.drawPath(dataPath, strokePaint);
+
+                // Draw dots on vertices and labels
+                for (int i = 0; i < n; i++) {
+                    final double angle = startAngle + i * angleStep;
+                    final double score = entries.get(i).score;
+                    final double norm = Math.max(0, Math.min(1.0, score / BAR_MAX_SCORE));
+                    final float r = (float) (radius * norm);
+                    final float dx = cx + (float) (r * Math.cos(angle));
+                    final float dy = cy + (float) (r * Math.sin(angle));
+                    canvas.drawCircle(dx, dy, dpToPx(3), dotPaint);
+
+                    // Labels at outer edge
+                    final float labelR = radius + dpToPx(14);
+                    final float lx = cx + (float) (labelR * Math.cos(angle));
+                    final float ly = cy + (float) (labelR * Math.sin(angle));
+
+                    // Adjust alignment based on position
+                    final float cosAngle = (float) Math.cos(angle);
+                    if (cosAngle < -0.1f) {
+                        labelPaint.setTextAlign(Paint.Align.RIGHT);
+                        valuePaint.setTextAlign(Paint.Align.RIGHT);
+                    } else if (cosAngle > 0.1f) {
+                        labelPaint.setTextAlign(Paint.Align.LEFT);
+                        valuePaint.setTextAlign(Paint.Align.LEFT);
+                    } else {
+                        labelPaint.setTextAlign(Paint.Align.CENTER);
+                        valuePaint.setTextAlign(Paint.Align.CENTER);
+                    }
+
+                    canvas.drawText(entries.get(i).label, lx, ly, labelPaint);
+                    // Score value below label
+                    canvas.drawText(
+                            String.format(Locale.US, "%.1f", score),
+                            lx, ly + dpToPx(12), valuePaint);
+                }
+            }
+        };
+
+        final int chartSize = dpToPx(280);
+        radarView.setLayoutParams(new android.widget.FrameLayout.LayoutParams(
+                chartSize, chartSize, Gravity.CENTER));
+
+        binding.tournesolRadarContainer.removeAllViews();
+        binding.tournesolRadarContainer.addView(radarView);
+        binding.tournesolRadarContainer.setVisibility(View.VISIBLE);
     }
 
     private void fetchTournesolDistribution() {

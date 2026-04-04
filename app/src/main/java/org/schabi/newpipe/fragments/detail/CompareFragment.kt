@@ -402,6 +402,7 @@ class CompareFragment : Fragment() {
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
                 { tokenResponse ->
+                    TournesolAuthManager.saveUsername(requireContext(), username)
                     TournesolAuthManager.saveAuthState(requireContext(), tokenResponse)
                     loginInProgress = false
                     showLoginDialog = false
