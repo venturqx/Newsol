@@ -185,7 +185,6 @@ class CompareFragment : Fragment() {
                             },
                             onRandomizeLeft = { randomizeLeft() },
                             onRandomizeRight = { randomizeRight() },
-                            onOpenComparisons = { openRecommendationsDialog() },
                             showGreeting = currentInfo == null
                         )
                     } else {

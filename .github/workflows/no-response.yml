@@ -2,12 +2,12 @@ name: No Response
 
 # Both `issue_comment` and `scheduled` event types are required for this Action
 # to work properly.
-on:
-  issue_comment:
-    types: [created]
-  schedule:
-    # Run daily at midnight.
-    - cron: '0 0 * * *'
+# on:
+#   issue_comment:
+#     types: [created]
+#   schedule:
+#     # Run daily at midnight.
+#     - cron: '0 0 * * *'
 
 permissions:
   issues: write

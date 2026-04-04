@@ -67,6 +67,7 @@ import org.schabi.newpipe.extractor.exceptions.ExtractionException;
 import org.schabi.newpipe.extractor.services.peertube.PeertubeInstance;
 import org.schabi.newpipe.fragments.BackPressable;
 import org.schabi.newpipe.fragments.MainFragment;
+import org.schabi.newpipe.fragments.detail.CompareHistoryActivity;
 import org.schabi.newpipe.fragments.detail.VideoDetailFragment;
 import org.schabi.newpipe.fragments.list.search.SearchFragment;
 import org.schabi.newpipe.local.feed.notifications.NotificationWorker;
@@ -395,6 +396,10 @@ public class MainActivity extends AppCompatActivity {
             ShareUtils.openUrlInBrowser(this, "https://tournesol.app/signup");
         });
 
+        drawerHeaderBinding.drawerHeaderSeeHistoryButton.setOnClickListener(view -> {
+            CompareHistoryActivity.start(this);
+        });
+
         drawerHeaderBinding.drawerHeaderLogoutButton.setOnClickListener(view -> {
             TournesolAuthManager.INSTANCE.clearAuthState(this);
             updateProfileHeader();
@@ -444,11 +449,13 @@ public class MainActivity extends AppCompatActivity {
             }
             drawerHeaderBinding.drawerHeaderProfileUsername.setText(ssb);
             drawerHeaderBinding.drawerHeaderProfileUsername.setVisibility(View.VISIBLE);
+            drawerHeaderBinding.drawerHeaderSeeHistoryButton.setVisibility(View.VISIBLE);
             drawerHeaderBinding.drawerHeaderLogoutButton.setVisibility(View.VISIBLE);
             drawerHeaderBinding.drawerHeaderLoginButton.setVisibility(View.GONE);
             drawerHeaderBinding.drawerHeaderRegisterButton.setVisibility(View.GONE);
         } else {
             drawerHeaderBinding.drawerHeaderProfileUsername.setVisibility(View.GONE);
+            drawerHeaderBinding.drawerHeaderSeeHistoryButton.setVisibility(View.GONE);
             drawerHeaderBinding.drawerHeaderLogoutButton.setVisibility(View.GONE);
             drawerHeaderBinding.drawerHeaderLoginButton.setVisibility(View.VISIBLE);
             drawerHeaderBinding.drawerHeaderRegisterButton.setVisibility(View.VISIBLE);

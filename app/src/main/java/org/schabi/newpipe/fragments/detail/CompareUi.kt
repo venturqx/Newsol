@@ -215,8 +215,7 @@ private fun UserGreetingBanner(
     weeklyComparisons: Int?,
     dailyComparisons: Int?,
     onLogin: () -> Unit,
-    onRegister: () -> Unit,
-    onOpenComparisons: () -> Unit = {}
+    onRegister: () -> Unit
 ) {
     if (username != null) {
         Row(
@@ -243,13 +242,6 @@ private fun UserGreetingBanner(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                IconButton(onClick = onOpenComparisons) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_history),
-                        contentDescription = stringResource(R.string.compare_see_history),
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-                }
                 if (dailyComparisons != null) {
                     GoalRing(
                         current = dailyComparisons,
@@ -599,7 +591,6 @@ internal fun CompareCompactScreen(
     onNavigateToVideo: ((Int, String, String) -> Unit)? = null,
     onRandomizeLeft: () -> Unit = {},
     onRandomizeRight: () -> Unit = {},
-    onOpenComparisons: () -> Unit = {},
     showGreeting: Boolean = true
 ) {
     val dimensions = remember { COMPACT_DIMENSIONS }
@@ -973,8 +964,7 @@ internal fun CompareCompactScreen(
                         weeklyComparisons = state.weeklyComparisons,
                         dailyComparisons = state.dailyComparisons,
                         onLogin = onShowLogin,
-                        onRegister = onRegister,
-                        onOpenComparisons = onOpenComparisons
+                        onRegister = onRegister
                     )
                 }
 
