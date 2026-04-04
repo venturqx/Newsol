@@ -841,7 +841,7 @@ public class DescriptionFragment extends BaseDescriptionFragment {
             circlePaint.setColor(Color.parseColor("#0F0F0F"));
 
             circleStrokePaint.setStyle(Paint.Style.STROKE);
-            circleStrokePaint.setStrokeWidth(dp(2f));
+            circleStrokePaint.setStrokeWidth(dp(2.5f));
 
             scorePaint.setTextSize(dp(10f));
             scorePaint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
@@ -869,7 +869,7 @@ public class DescriptionFragment extends BaseDescriptionFragment {
 
             final float w = getWidth();
             final float h = getHeight();
-            final float circleRadius = dp(16f);
+            final float circleRadius = dp(18f);
             final float scoreTextHeight = dp(14f);
             final float topPadding = scoreTextHeight + dp(2f);
             final float bottomPadding = scoreTextHeight + dp(2f);
@@ -907,10 +907,14 @@ public class DescriptionFragment extends BaseDescriptionFragment {
                 final float barEndY = zeroY - norm * halfRange;
 
                 // Draw bar (from zero to barEnd)
+                // Offset start by half barWidth so the round cap doesn't overflow Y=0
                 barPaint.setColor(color);
                 barPaint.setAlpha(180);
                 barPaint.setStrokeWidth(barWidth);
-                canvas.drawLine(cx, zeroY, cx, barEndY, barPaint);
+                final float halfBar = barWidth / 2f;
+                final float barStartY = norm >= 0
+                        ? zeroY - halfBar : zeroY + halfBar;
+                canvas.drawLine(cx, barStartY, cx, barEndY, barPaint);
 
                 // Draw circle at end of bar: border only, background fill
                 canvas.drawCircle(cx, barEndY, circleRadius, circlePaint);
