@@ -3,10 +3,13 @@ package org.schabi.newpipe.fragments.detail;
 import static org.schabi.newpipe.extractor.stream.StreamExtractor.NO_AGE_LIMIT;
 import static org.schabi.newpipe.util.Localization.getAppLocale;
 
+import android.graphics.BlurMaskFilter;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.RadialGradient;
+import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.text.TextPaint;
@@ -15,6 +18,7 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -449,150 +453,38 @@ public class DescriptionFragment extends BaseDescriptionFragment {
         return row;
     }
 
+    private static final double RADAR_MIN_SCORE = -100.0;
+    private static final double RADAR_MAX_SCORE = 100.0;
+    private static final double RADAR_MID_SCORE = 0.0;
+
+    private List<android.graphics.drawable.Drawable> loadRadarIcons(
+            final List<CriterionEntry> entries) {
+        final List<android.graphics.drawable.Drawable> icons = new ArrayList<>();
+        final int iconSizePx = dpToPx(32);
+        for (final CriterionEntry entry : entries) {
+            final Integer iconRes = CRITERIA_ICON_MAP.get(entry.id);
+            if (iconRes != null) {
+                final android.graphics.drawable.Drawable d =
+                        androidx.core.content.ContextCompat.getDrawable(
+                                requireContext(), iconRes);
+                if (d != null) {
+                    d.setBounds(0, 0, iconSizePx, iconSizePx);
+                }
+                icons.add(d);
+            } else {
+                icons.add(null);
+            }
+        }
+        return icons;
+    }
+
     private void createRadarChart(final List<CriterionEntry> entries) {
-        final View radarView = new View(requireContext()) {
-            private final Paint gridPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            private final Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            private final Paint dotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            private final Paint labelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            private final Paint valuePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            private final Path dataPath = new Path();
-            private final Path gridPath = new Path();
+        final List<android.graphics.drawable.Drawable> icons = loadRadarIcons(entries);
+        final View radarView = new RadarChartView(
+                requireContext(), entries, icons, dpToPx(32));
 
-            {
-                gridPaint.setStyle(Paint.Style.STROKE);
-                gridPaint.setColor(Color.parseColor("#333333"));
-                gridPaint.setStrokeWidth(1f);
-
-                fillPaint.setStyle(Paint.Style.FILL);
-                fillPaint.setColor(Color.parseColor("#33FFCA1D"));
-
-                strokePaint.setStyle(Paint.Style.STROKE);
-                strokePaint.setColor(TOURNESOL_SCORE_COLOR);
-                strokePaint.setStrokeWidth(dpToPx(2));
-                strokePaint.setStrokeJoin(Paint.Join.ROUND);
-
-                dotPaint.setStyle(Paint.Style.FILL);
-                dotPaint.setColor(TOURNESOL_SCORE_COLOR);
-
-                labelPaint.setTextSize(TypedValue.applyDimension(
-                        TypedValue.COMPLEX_UNIT_SP, 11,
-                        getResources().getDisplayMetrics()));
-                labelPaint.setColor(Color.parseColor("#AAAAAA"));
-                labelPaint.setTextAlign(Paint.Align.CENTER);
-
-                valuePaint.setTextSize(TypedValue.applyDimension(
-                        TypedValue.COMPLEX_UNIT_SP, 9,
-                        getResources().getDisplayMetrics()));
-                valuePaint.setColor(TOURNESOL_SCORE_COLOR);
-                valuePaint.setTextAlign(Paint.Align.CENTER);
-                valuePaint.setTypeface(Typeface.DEFAULT_BOLD);
-            }
-
-            @Override
-            protected void onDraw(final Canvas canvas) {
-                super.onDraw(canvas);
-                final int n = entries.size();
-                if (n < 3) {
-                    return;
-                }
-
-                final float w = getWidth();
-                final float h = getHeight();
-                final float cx = w / 2f;
-                final float cy = h / 2f;
-                final float labelMargin = dpToPx(36);
-                final float radius = Math.min(cx, cy) - labelMargin;
-                final double angleStep = 2.0 * Math.PI / n;
-                // Start from top (-PI/2)
-                final double startAngle = -Math.PI / 2.0;
-
-                // Draw concentric grid polygons (5 levels)
-                final int gridLevels = 5;
-                for (int level = 1; level <= gridLevels; level++) {
-                    final float r = radius * level / gridLevels;
-                    gridPath.reset();
-                    for (int i = 0; i < n; i++) {
-                        final double angle = startAngle + i * angleStep;
-                        final float x = cx + (float) (r * Math.cos(angle));
-                        final float y = cy + (float) (r * Math.sin(angle));
-                        if (i == 0) {
-                            gridPath.moveTo(x, y);
-                        } else {
-                            gridPath.lineTo(x, y);
-                        }
-                    }
-                    gridPath.close();
-                    canvas.drawPath(gridPath, gridPaint);
-                }
-
-                // Draw axis lines from center to each vertex
-                for (int i = 0; i < n; i++) {
-                    final double angle = startAngle + i * angleStep;
-                    final float x = cx + (float) (radius * Math.cos(angle));
-                    final float y = cy + (float) (radius * Math.sin(angle));
-                    canvas.drawLine(cx, cy, x, y, gridPaint);
-                }
-
-                // Draw data polygon
-                dataPath.reset();
-                for (int i = 0; i < n; i++) {
-                    final double angle = startAngle + i * angleStep;
-                    final double score = entries.get(i).score;
-                    final double norm = Math.max(0, Math.min(1.0, score / BAR_MAX_SCORE));
-                    final float r = (float) (radius * norm);
-                    final float x = cx + (float) (r * Math.cos(angle));
-                    final float y = cy + (float) (r * Math.sin(angle));
-                    if (i == 0) {
-                        dataPath.moveTo(x, y);
-                    } else {
-                        dataPath.lineTo(x, y);
-                    }
-                }
-                dataPath.close();
-                canvas.drawPath(dataPath, fillPaint);
-                canvas.drawPath(dataPath, strokePaint);
-
-                // Draw dots on vertices and labels
-                for (int i = 0; i < n; i++) {
-                    final double angle = startAngle + i * angleStep;
-                    final double score = entries.get(i).score;
-                    final double norm = Math.max(0, Math.min(1.0, score / BAR_MAX_SCORE));
-                    final float r = (float) (radius * norm);
-                    final float dx = cx + (float) (r * Math.cos(angle));
-                    final float dy = cy + (float) (r * Math.sin(angle));
-                    canvas.drawCircle(dx, dy, dpToPx(3), dotPaint);
-
-                    // Labels at outer edge
-                    final float labelR = radius + dpToPx(14);
-                    final float lx = cx + (float) (labelR * Math.cos(angle));
-                    final float ly = cy + (float) (labelR * Math.sin(angle));
-
-                    // Adjust alignment based on position
-                    final float cosAngle = (float) Math.cos(angle);
-                    if (cosAngle < -0.1f) {
-                        labelPaint.setTextAlign(Paint.Align.RIGHT);
-                        valuePaint.setTextAlign(Paint.Align.RIGHT);
-                    } else if (cosAngle > 0.1f) {
-                        labelPaint.setTextAlign(Paint.Align.LEFT);
-                        valuePaint.setTextAlign(Paint.Align.LEFT);
-                    } else {
-                        labelPaint.setTextAlign(Paint.Align.CENTER);
-                        valuePaint.setTextAlign(Paint.Align.CENTER);
-                    }
-
-                    canvas.drawText(entries.get(i).label, lx, ly, labelPaint);
-                    // Score value below label
-                    canvas.drawText(
-                            String.format(Locale.US, "%.1f", score),
-                            lx, ly + dpToPx(12), valuePaint);
-                }
-            }
-        };
-
-        final int chartSize = dpToPx(280);
-        radarView.setLayoutParams(new android.widget.FrameLayout.LayoutParams(
+        final int chartSize = dpToPx(340);
+        radarView.setLayoutParams(new FrameLayout.LayoutParams(
                 chartSize, chartSize, Gravity.CENTER));
 
         binding.tournesolRadarContainer.removeAllViews();
@@ -843,6 +735,12 @@ public class DescriptionFragment extends BaseDescriptionFragment {
                 requireContext().getResources().getDisplayMetrics());
     }
 
+    private int dpToPx(final float dp) {
+        return (int) TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, dp,
+                requireContext().getResources().getDisplayMetrics());
+    }
+
     private void addPrivacyMetadataItem(final LayoutInflater inflater, final LinearLayout layout) {
         if (streamInfo.getPrivacy() != null) {
             @StringRes final int contentRes;
@@ -868,6 +766,318 @@ public class DescriptionFragment extends BaseDescriptionFragment {
             if (contentRes != 0) {
                 addMetadataItem(inflater, layout, false, R.string.metadata_privacy,
                         getString(contentRes));
+            }
+        }
+    }
+
+    private static class RadarChartView extends View {
+        private final List<CriterionEntry> entries;
+        private final List<android.graphics.drawable.Drawable> icons;
+        private final int iconSizePx;
+
+        private final Paint gridPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint gridPaintOuter = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint axisPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint dotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint dotGlowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint valuePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint valueShadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint midRingPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint badZonePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint dotBadPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint dotGlowBadPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint valueBadPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint valueShadowBadPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Path dataPath = new Path();
+        private final Path gridPath = new Path();
+        private final Path badZonePath = new Path();
+
+        RadarChartView(final android.content.Context context,
+                       final List<CriterionEntry> entries,
+                       final List<android.graphics.drawable.Drawable> icons,
+                       final int iconSizePx) {
+            super(context);
+            this.entries = entries;
+            this.icons = icons;
+            this.iconSizePx = iconSizePx;
+            initPaints();
+        }
+
+        private int dp(final float dpVal) {
+            return (int) TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP, dpVal,
+                    getResources().getDisplayMetrics());
+        }
+
+        private void initPaints() {
+            gridPaint.setStyle(Paint.Style.STROKE);
+            gridPaint.setColor(Color.parseColor("#1AFFFFFF"));
+            gridPaint.setStrokeWidth(dp(1));
+
+            gridPaintOuter.setStyle(Paint.Style.STROKE);
+            gridPaintOuter.setColor(Color.parseColor("#33FFFFFF"));
+            gridPaintOuter.setStrokeWidth(dp(1.5f));
+
+            axisPaint.setStyle(Paint.Style.STROKE);
+            axisPaint.setColor(Color.parseColor("#12FFFFFF"));
+            axisPaint.setStrokeWidth(dp(0.5f));
+
+            fillPaint.setStyle(Paint.Style.FILL);
+
+            strokePaint.setStyle(Paint.Style.STROKE);
+            strokePaint.setColor(TOURNESOL_SCORE_COLOR);
+            strokePaint.setStrokeWidth(dp(2.5f));
+            strokePaint.setStrokeJoin(Paint.Join.ROUND);
+            strokePaint.setStrokeCap(Paint.Cap.ROUND);
+
+            glowPaint.setStyle(Paint.Style.STROKE);
+            glowPaint.setColor(Color.parseColor("#55FFCA1D"));
+            glowPaint.setStrokeWidth(dp(6));
+            glowPaint.setStrokeJoin(Paint.Join.ROUND);
+            glowPaint.setMaskFilter(new BlurMaskFilter(
+                    dp(8), BlurMaskFilter.Blur.NORMAL));
+
+            dotPaint.setStyle(Paint.Style.FILL);
+            dotPaint.setColor(Color.parseColor("#FFB300"));
+
+            dotGlowPaint.setStyle(Paint.Style.FILL);
+            dotGlowPaint.setColor(Color.parseColor("#88FFCA1D"));
+            dotGlowPaint.setMaskFilter(new BlurMaskFilter(
+                    dp(6), BlurMaskFilter.Blur.NORMAL));
+
+            valuePaint.setTextSize(TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_SP, 13,
+                    getResources().getDisplayMetrics()));
+            valuePaint.setColor(Color.WHITE);
+            valuePaint.setTextAlign(Paint.Align.CENTER);
+            valuePaint.setTypeface(Typeface.DEFAULT_BOLD);
+
+            valueShadowPaint.setTextSize(valuePaint.getTextSize());
+            valueShadowPaint.setColor(Color.parseColor("#88FFCA1D"));
+            valueShadowPaint.setTextAlign(Paint.Align.CENTER);
+            valueShadowPaint.setTypeface(Typeface.DEFAULT_BOLD);
+            valueShadowPaint.setMaskFilter(new BlurMaskFilter(
+                    dp(4), BlurMaskFilter.Blur.NORMAL));
+
+            midRingPaint.setStyle(Paint.Style.STROKE);
+            midRingPaint.setColor(Color.parseColor("#55FFFFFF"));
+            midRingPaint.setStrokeWidth(dp(1.5f));
+
+            bgPaint.setStyle(Paint.Style.FILL);
+
+            badZonePaint.setStyle(Paint.Style.FILL);
+            badZonePaint.setColor(Color.parseColor("#20FF4444"));
+
+            dotBadPaint.setStyle(Paint.Style.FILL);
+            dotBadPaint.setColor(Color.parseColor("#FF5555"));
+
+            dotGlowBadPaint.setStyle(Paint.Style.FILL);
+            dotGlowBadPaint.setColor(Color.parseColor("#88FF4444"));
+            dotGlowBadPaint.setMaskFilter(new BlurMaskFilter(
+                    dp(6), BlurMaskFilter.Blur.NORMAL));
+
+            valueBadPaint.setTextSize(valuePaint.getTextSize());
+            valueBadPaint.setColor(Color.parseColor("#FF5555"));
+            valueBadPaint.setTextAlign(Paint.Align.CENTER);
+            valueBadPaint.setTypeface(Typeface.DEFAULT_BOLD);
+
+            valueShadowBadPaint.setTextSize(valuePaint.getTextSize());
+            valueShadowBadPaint.setColor(Color.parseColor("#88FF4444"));
+            valueShadowBadPaint.setTextAlign(Paint.Align.CENTER);
+            valueShadowBadPaint.setTypeface(Typeface.DEFAULT_BOLD);
+            valueShadowBadPaint.setMaskFilter(new BlurMaskFilter(
+                    dp(4), BlurMaskFilter.Blur.NORMAL));
+        }
+
+        @Override
+        protected void onDraw(final Canvas canvas) {
+            super.onDraw(canvas);
+            final int n = entries.size();
+            if (n < 3) {
+                return;
+            }
+
+            final float w = getWidth();
+            final float h = getHeight();
+            final float cx = w / 2f;
+            final float cy = h / 2f;
+            final float outerMargin = dp(52);
+            final float radius = Math.min(cx, cy) - outerMargin;
+            final double angleStep = 2.0 * Math.PI / n;
+            final double startAngle = -Math.PI / 2.0;
+
+            drawBackground(canvas, cx, cy, radius);
+            drawGrid(canvas, cx, cy, radius, n, angleStep, startAngle);
+            drawAxes(canvas, cx, cy, radius, n, angleStep, startAngle);
+            drawDataArea(canvas, cx, cy, radius, n, angleStep, startAngle);
+            drawDotsAndLabels(canvas, cx, cy, radius, n, angleStep, startAngle);
+        }
+
+        private void drawBackground(final Canvas canvas,
+                                     final float cx, final float cy,
+                                     final float radius) {
+            bgPaint.setShader(new RadialGradient(cx, cy, radius * 1.2f,
+                    Color.parseColor("#15FFCA1D"), Color.TRANSPARENT,
+                    Shader.TileMode.CLAMP));
+            canvas.drawCircle(cx, cy, radius * 1.2f, bgPaint);
+        }
+
+        private void drawGrid(final Canvas canvas,
+                               final float cx, final float cy,
+                               final float radius, final int n,
+                               final double angleStep, final double startAngle) {
+            final int gridLevels = 5;
+            for (int level = 1; level <= gridLevels; level++) {
+                final float r = radius * level / gridLevels;
+                gridPath.reset();
+                for (int i = 0; i < n; i++) {
+                    final double angle = startAngle + i * angleStep;
+                    final float x = cx + (float) (r * Math.cos(angle));
+                    final float y = cy + (float) (r * Math.sin(angle));
+                    if (i == 0) {
+                        gridPath.moveTo(x, y);
+                    } else {
+                        gridPath.lineTo(x, y);
+                    }
+                }
+                gridPath.close();
+                canvas.drawPath(gridPath,
+                        level == gridLevels ? gridPaintOuter : gridPaint);
+            }
+
+            // Draw midrange ring at score = 0 (threshold between bad and good)
+            final float midNorm = (float) ((RADAR_MID_SCORE - RADAR_MIN_SCORE)
+                    / (RADAR_MAX_SCORE - RADAR_MIN_SCORE));
+            final float midR = radius * midNorm;
+
+            // Fill bad zone (center to midpoint) with red tint
+            badZonePath.reset();
+            for (int i = 0; i < n; i++) {
+                final double angle = startAngle + i * angleStep;
+                final float x = cx + (float) (midR * Math.cos(angle));
+                final float y = cy + (float) (midR * Math.sin(angle));
+                if (i == 0) {
+                    badZonePath.moveTo(x, y);
+                } else {
+                    badZonePath.lineTo(x, y);
+                }
+            }
+            badZonePath.close();
+            canvas.drawPath(badZonePath, badZonePaint);
+
+            // Draw midpoint ring outline
+            gridPath.reset();
+            for (int i = 0; i < n; i++) {
+                final double angle = startAngle + i * angleStep;
+                final float x = cx + (float) (midR * Math.cos(angle));
+                final float y = cy + (float) (midR * Math.sin(angle));
+                if (i == 0) {
+                    gridPath.moveTo(x, y);
+                } else {
+                    gridPath.lineTo(x, y);
+                }
+            }
+            gridPath.close();
+            canvas.drawPath(gridPath, midRingPaint);
+        }
+
+        private void drawAxes(final Canvas canvas,
+                               final float cx, final float cy,
+                               final float radius, final int n,
+                               final double angleStep, final double startAngle) {
+            for (int i = 0; i < n; i++) {
+                final double angle = startAngle + i * angleStep;
+                final float x = cx + (float) (radius * Math.cos(angle));
+                final float y = cy + (float) (radius * Math.sin(angle));
+                canvas.drawLine(cx, cy, x, y, axisPaint);
+            }
+        }
+
+        private void drawDataArea(final Canvas canvas,
+                                   final float cx, final float cy,
+                                   final float radius, final int n,
+                                   final double angleStep,
+                                   final double startAngle) {
+            dataPath.reset();
+            for (int i = 0; i < n; i++) {
+                final double angle = startAngle + i * angleStep;
+                final double score = entries.get(i).score;
+                final double norm = Math.max(0, Math.min(1.0,
+                        (score - RADAR_MIN_SCORE)
+                                / (RADAR_MAX_SCORE - RADAR_MIN_SCORE)));
+                final float r = (float) (radius * norm);
+                final float x = cx + (float) (r * Math.cos(angle));
+                final float y = cy + (float) (r * Math.sin(angle));
+                if (i == 0) {
+                    dataPath.moveTo(x, y);
+                } else {
+                    dataPath.lineTo(x, y);
+                }
+            }
+            dataPath.close();
+
+            fillPaint.setShader(new RadialGradient(cx, cy, radius,
+                    Color.parseColor("#44FFCA1D"),
+                    Color.parseColor("#11FFCA1D"),
+                    Shader.TileMode.CLAMP));
+            canvas.drawPath(dataPath, fillPaint);
+
+            setLayerType(LAYER_TYPE_SOFTWARE, null);
+            canvas.drawPath(dataPath, glowPaint);
+            canvas.drawPath(dataPath, strokePaint);
+        }
+
+        private void drawDotsAndLabels(final Canvas canvas,
+                                        final float cx, final float cy,
+                                        final float radius, final int n,
+                                        final double angleStep,
+                                        final double startAngle) {
+            final int halfIcon = iconSizePx / 2;
+            for (int i = 0; i < n; i++) {
+                final double angle = startAngle + i * angleStep;
+                final double score = entries.get(i).score;
+                final double norm = Math.max(0, Math.min(1.0,
+                        (score - RADAR_MIN_SCORE)
+                                / (RADAR_MAX_SCORE - RADAR_MIN_SCORE)));
+                final float r = (float) (radius * norm);
+                final float dx = cx + (float) (r * Math.cos(angle));
+                final float dy = cy + (float) (r * Math.sin(angle));
+
+                final boolean isBad = score < RADAR_MID_SCORE;
+                canvas.drawCircle(dx, dy, dp(6),
+                        isBad ? dotGlowBadPaint : dotGlowPaint);
+                canvas.drawCircle(dx, dy, dp(3.5f),
+                        isBad ? dotBadPaint : dotPaint);
+
+                final float iconR = radius + dp(18);
+                final float ix = cx + (float) (iconR * Math.cos(angle));
+                final float iy = cy + (float) (iconR * Math.sin(angle));
+
+                final android.graphics.drawable.Drawable icon =
+                        i < icons.size() ? icons.get(i) : null;
+                if (icon != null) {
+                    canvas.save();
+                    canvas.translate(ix - halfIcon, iy - halfIcon);
+                    icon.draw(canvas);
+                    canvas.restore();
+                }
+
+                final float valR = radius + dp(40);
+                final float vx = cx + (float) (valR * Math.cos(angle));
+                final float vy = cy + (float) (valR * Math.sin(angle));
+
+                canvas.drawText(
+                        String.format(Locale.US, "%.1f", score),
+                        vx, vy + valuePaint.getTextSize() / 3f,
+                        isBad ? valueShadowBadPaint : valueShadowPaint);
+                canvas.drawText(
+                        String.format(Locale.US, "%.1f", score),
+                        vx, vy + valuePaint.getTextSize() / 3f,
+                        isBad ? valueBadPaint : valuePaint);
             }
         }
     }
