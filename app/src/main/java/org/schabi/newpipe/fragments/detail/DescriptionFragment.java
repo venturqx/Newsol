@@ -17,6 +17,7 @@ import android.text.TextPaint;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.FrameLayout;
@@ -91,6 +92,21 @@ public class DescriptionFragment extends BaseDescriptionFragment {
         m.put("better_habits", R.drawable.better_habits);
         m.put("backfire_risk", R.drawable.backfire_risk);
         CRITERIA_ICON_MAP = Collections.unmodifiableMap(m);
+    }
+
+    private static final Map<String, Integer> CRITERIA_DESCRIPTION_MAP;
+    static {
+        final Map<String, Integer> m = new LinkedHashMap<>();
+        m.put("reliability", R.string.compare_criteria_desc_reliability);
+        m.put("pedagogy", R.string.compare_criteria_desc_pedagogy);
+        m.put("importance", R.string.compare_criteria_desc_importance);
+        m.put("layman_friendly", R.string.compare_criteria_desc_layman_friendly);
+        m.put("entertaining_relaxing", R.string.compare_criteria_desc_entertaining_relaxing);
+        m.put("engaging", R.string.compare_criteria_desc_engaging);
+        m.put("diversity_inclusion", R.string.compare_criteria_desc_diversity_inclusion);
+        m.put("better_habits", R.string.compare_criteria_desc_better_habits);
+        m.put("backfire_risk", R.string.compare_criteria_desc_backfire_risk);
+        CRITERIA_DESCRIPTION_MAP = Collections.unmodifiableMap(m);
     }
 
     private final CompositeDisposable tournesolDisposables = new CompositeDisposable();
@@ -520,16 +536,60 @@ public class DescriptionFragment extends BaseDescriptionFragment {
             final Integer c = CRITERIA_COLOR_MAP.get(entries.get(i).id);
             colors[i] = c != null ? c : Color.WHITE;
         }
-        final View lollipopView = new LollipopChartView(
+
+        // Replace FrameLayout with a vertical LinearLayout to hold chart + description
+        final LinearLayout wrapper = new LinearLayout(requireContext());
+        wrapper.setOrientation(LinearLayout.VERTICAL);
+        wrapper.setGravity(Gravity.CENTER_HORIZONTAL);
+
+        final LollipopChartView lollipopView = new LollipopChartView(
                 requireContext(), entries, icons, colors, dpToPx(24));
 
         final int chartWidth = dpToPx(340);
         final int chartHeight = dpToPx(260);
-        lollipopView.setLayoutParams(new FrameLayout.LayoutParams(
-                chartWidth, chartHeight, Gravity.CENTER));
+        lollipopView.setLayoutParams(new LinearLayout.LayoutParams(
+                chartWidth, chartHeight));
+
+        // Description row: icon + text
+        final LinearLayout descRow = new LinearLayout(requireContext());
+        descRow.setOrientation(LinearLayout.HORIZONTAL);
+        descRow.setGravity(Gravity.CENTER_VERTICAL);
+        descRow.setPadding(dpToPx(12), dpToPx(8), dpToPx(12), 0);
+        descRow.setVisibility(View.GONE);
+
+        final ImageView descIcon = new ImageView(requireContext());
+        final int iconSize = dpToPx(28);
+        descIcon.setLayoutParams(new LinearLayout.LayoutParams(iconSize, iconSize));
+
+        final TextView descText = new TextView(requireContext());
+        final LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        textParams.setMarginStart(dpToPx(10));
+        descText.setLayoutParams(textParams);
+        descText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        descText.setTextColor(Color.parseColor("#B8FFFFFF"));
+        descText.setMaxLines(3);
+
+        descRow.addView(descIcon);
+        descRow.addView(descText);
+
+        wrapper.addView(lollipopView);
+        wrapper.addView(descRow);
+
+        // Handle dimension clicks
+        lollipopView.setOnDimensionClickListener(index -> {
+            final CriterionEntry entry = entries.get(index);
+            final Integer iconRes = CRITERIA_ICON_MAP.get(entry.id);
+            final Integer descRes = CRITERIA_DESCRIPTION_MAP.get(entry.id);
+            if (iconRes != null && descRes != null) {
+                descIcon.setImageResource(iconRes);
+                descText.setText(getString(descRes));
+                descRow.setVisibility(View.VISIBLE);
+            }
+        });
 
         binding.tournesolLollipopContainer.removeAllViews();
-        binding.tournesolLollipopContainer.addView(lollipopView);
+        binding.tournesolLollipopContainer.addView(wrapper);
         binding.tournesolLollipopContainer.setVisibility(View.VISIBLE);
     }
 
@@ -811,17 +871,29 @@ public class DescriptionFragment extends BaseDescriptionFragment {
         }
     }
 
+    interface OnDimensionClickListener {
+        void onDimensionClick(int index);
+    }
+
     private static class LollipopChartView extends View {
         private final List<CriterionEntry> entries;
         private final List<android.graphics.drawable.Drawable> icons;
         private final int[] colors;
         private final int iconSizePx;
+        private OnDimensionClickListener dimensionClickListener;
+        private int selectedIndex = -1;
 
         private final Paint barPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint circlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint circleStrokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint scorePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint zeroLinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint selectedGlowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        // Cached hit targets for touch detection
+        private final float[] circleCxArray;
+        private final float[] circleCyArray;
+        private float circleRadiusCached;
 
         LollipopChartView(final android.content.Context context,
                           final List<CriterionEntry> entries,
@@ -833,6 +905,8 @@ public class DescriptionFragment extends BaseDescriptionFragment {
             this.icons = icons;
             this.colors = colors;
             this.iconSizePx = iconSizePx;
+            this.circleCxArray = new float[entries.size()];
+            this.circleCyArray = new float[entries.size()];
 
             barPaint.setStyle(Paint.Style.FILL);
             barPaint.setStrokeCap(Paint.Cap.ROUND);
@@ -851,12 +925,43 @@ public class DescriptionFragment extends BaseDescriptionFragment {
             zeroLinePaint.setStyle(Paint.Style.STROKE);
             zeroLinePaint.setColor(Color.parseColor("#40FFFFFF"));
             zeroLinePaint.setStrokeWidth(dp(1f));
+
+            selectedGlowPaint.setStyle(Paint.Style.STROKE);
+            selectedGlowPaint.setStrokeWidth(dp(4f));
+
+            setClickable(true);
+        }
+
+        void setOnDimensionClickListener(final OnDimensionClickListener listener) {
+            this.dimensionClickListener = listener;
         }
 
         private int dp(final float dpVal) {
             return (int) TypedValue.applyDimension(
                     TypedValue.COMPLEX_UNIT_DIP, dpVal,
                     getResources().getDisplayMetrics());
+        }
+
+        @Override
+        public boolean onTouchEvent(final MotionEvent event) {
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                final float tx = event.getX();
+                final float ty = event.getY();
+                final float touchRadius = circleRadiusCached + dp(8f);
+                for (int i = 0; i < entries.size(); i++) {
+                    final float dx = tx - circleCxArray[i];
+                    final float dy = ty - circleCyArray[i];
+                    if (dx * dx + dy * dy <= touchRadius * touchRadius) {
+                        selectedIndex = (selectedIndex == i) ? -1 : i;
+                        invalidate();
+                        if (dimensionClickListener != null && selectedIndex >= 0) {
+                            dimensionClickListener.onDimensionClick(selectedIndex);
+                        }
+                        return true;
+                    }
+                }
+            }
+            return super.onTouchEvent(event);
         }
 
         @Override
@@ -870,6 +975,7 @@ public class DescriptionFragment extends BaseDescriptionFragment {
             final float w = getWidth();
             final float h = getHeight();
             final float circleRadius = dp(18f);
+            circleRadiusCached = circleRadius;
             final float scoreTextHeight = dp(14f);
             final float topPadding = scoreTextHeight + dp(2f);
             final float bottomPadding = scoreTextHeight + dp(2f);
@@ -906,6 +1012,10 @@ public class DescriptionFragment extends BaseDescriptionFragment {
                 final float halfRange = (drawBottom - drawTop) / 2f;
                 final float barEndY = zeroY - norm * halfRange;
 
+                // Cache positions for touch detection
+                circleCxArray[i] = cx;
+                circleCyArray[i] = barEndY;
+
                 // Draw bar (from zero to barEnd)
                 // Offset start by half barWidth so the round cap doesn't overflow Y=0
                 barPaint.setColor(color);
@@ -915,6 +1025,14 @@ public class DescriptionFragment extends BaseDescriptionFragment {
                 final float barStartY = norm >= 0
                         ? zeroY - halfBar : zeroY + halfBar;
                 canvas.drawLine(cx, barStartY, cx, barEndY, barPaint);
+
+                // Draw selected glow ring
+                if (i == selectedIndex) {
+                    selectedGlowPaint.setColor(color);
+                    selectedGlowPaint.setAlpha(160);
+                    canvas.drawCircle(cx, barEndY, circleRadius + dp(3f),
+                            selectedGlowPaint);
+                }
 
                 // Draw circle at end of bar: border only, background fill
                 canvas.drawCircle(cx, barEndY, circleRadius, circlePaint);
