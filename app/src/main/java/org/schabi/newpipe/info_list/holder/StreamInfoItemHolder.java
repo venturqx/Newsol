@@ -48,10 +48,6 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
     public final TextView itemAdditionalDetails;
     private final LinearLayout itemTournesolDetails;
     private final TextView itemTournesolSocialProof;
-    private final TextView itemTournesolBestArrow;
-    private final ImageView itemTournesolBestIcon;
-    private final TextView itemTournesolWorstArrow;
-    private final ImageView itemTournesolWorstIcon;
     private final TextView itemInlineBestArrow;
     private final ImageView itemInlineBestIcon;
     private final TextView itemInlineWorstArrow;
@@ -67,10 +63,6 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
         itemAdditionalDetails = itemView.findViewById(R.id.itemAdditionalDetails);
         itemTournesolDetails = itemView.findViewById(R.id.itemTournesolDetails);
         itemTournesolSocialProof = itemView.findViewById(R.id.itemTournesolSocialProof);
-        itemTournesolBestArrow = itemView.findViewById(R.id.itemTournesolBestArrow);
-        itemTournesolBestIcon = itemView.findViewById(R.id.itemTournesolBestIcon);
-        itemTournesolWorstArrow = itemView.findViewById(R.id.itemTournesolWorstArrow);
-        itemTournesolWorstIcon = itemView.findViewById(R.id.itemTournesolWorstIcon);
         itemInlineBestArrow = itemView.findViewById(R.id.itemInlineBestArrow);
         itemInlineBestIcon = itemView.findViewById(R.id.itemInlineBestIcon);
         itemInlineWorstArrow = itemView.findViewById(R.id.itemInlineWorstArrow);
@@ -165,29 +157,6 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
         itemTournesolSocialProof.setText(sb.toString());
         itemTournesolSocialProof.setVisibility(
                 sb.length() > 0 ? View.VISIBLE : View.GONE);
-
-        // Best criteria (4th line)
-        if (bestIconRes != null) {
-            itemTournesolBestArrow.setText(
-                    (sb.length() > 0 ? " \u00B7 " : "") + "\u25B2");
-            itemTournesolBestArrow.setVisibility(View.VISIBLE);
-            itemTournesolBestIcon.setImageResource(bestIconRes);
-            itemTournesolBestIcon.setVisibility(View.VISIBLE);
-        } else {
-            itemTournesolBestArrow.setVisibility(View.GONE);
-            itemTournesolBestIcon.setVisibility(View.GONE);
-        }
-
-        // Worst criteria (4th line)
-        if (worstIconRes != null) {
-            itemTournesolWorstArrow.setText(" \u25BC");
-            itemTournesolWorstArrow.setVisibility(View.VISIBLE);
-            itemTournesolWorstIcon.setImageResource(worstIconRes);
-            itemTournesolWorstIcon.setVisibility(View.VISIBLE);
-        } else {
-            itemTournesolWorstArrow.setVisibility(View.GONE);
-            itemTournesolWorstIcon.setVisibility(View.GONE);
-        }
 
         // Inline best criteria (right of uploader line)
         if (itemInlineBestArrow != null && itemInlineBestIcon != null) {
