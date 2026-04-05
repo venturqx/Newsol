@@ -120,20 +120,20 @@ fun StreamListItem(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.alpha(0.6f)
                     ) {
-                        if (hasContributors) {
-                            Text(text = "👥", fontSize = 12.sp)
-                            Text(
-                                text = stream.tournesolNContributors.toString(),
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                        if (hasComparisons) {
-                            if (hasContributors) {
-                                Text(text = "·", style = MaterialTheme.typography.bodySmall)
+                        if (hasComparisons || hasContributors) {
+                            val parts = buildString {
+                                if (hasContributors) {
+                                    append(stream.tournesolNContributors)
+                                    append(" voters")
+                                }
+                                if (hasComparisons) {
+                                    if (hasContributors) append(" · ")
+                                    append(stream.tournesolNComparisons)
+                                    append(" votes")
+                                }
                             }
-                            Text(text = "⚖️", fontSize = 12.sp)
                             Text(
-                                text = stream.tournesolNComparisons.toString(),
+                                text = parts,
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }

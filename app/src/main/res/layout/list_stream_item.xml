@@ -174,7 +174,7 @@
             android:layout_height="wrap_content"
             android:textAppearance="?android:attr/textAppearanceSmall"
             android:textSize="@dimen/video_item_search_upload_date_text_size"
-            tools:text="👥 12 · ⚖️ 45" />
+            tools:text="12 voters · 45 votes" />
 
     </LinearLayout>
 

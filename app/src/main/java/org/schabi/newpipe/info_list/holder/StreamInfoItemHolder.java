@@ -146,13 +146,13 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
         // Build social proof text
         final StringBuilder sb = new StringBuilder();
         if (hasContributors) {
-            sb.append("\uD83D\uDC65 ").append(nContributors);
+            sb.append(nContributors).append(" voters");
         }
         if (hasComparisons) {
             if (sb.length() > 0) {
                 sb.append(" \u00B7 ");
             }
-            sb.append("\u2696\uFE0F ").append(nComparisons);
+            sb.append(nComparisons).append(" votes");
         }
         itemTournesolSocialProof.setText(sb.toString());
         itemTournesolSocialProof.setVisibility(
