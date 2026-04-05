@@ -1,6 +1,7 @@
 package org.schabi.newpipe.ui.components.items.stream
 
 import android.content.res.Configuration
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
@@ -108,11 +109,82 @@ fun StreamListItem(
                     text = getStreamInfoDetail(stream),
                     style = MaterialTheme.typography.bodySmall
                 )
+
+                val hasContributors = stream.tournesolNContributors >= 0
+                val hasComparisons = stream.tournesolNComparisons >= 0
+                val bestIcon = criteriaIcon(stream.tournesolBestCriteria)
+                val worstIcon = criteriaIcon(stream.tournesolWorstCriteria)
+                if (hasContributors || hasComparisons || bestIcon != null || worstIcon != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.alpha(0.6f)
+                    ) {
+                        if (hasContributors) {
+                            Text(text = "👥", fontSize = 12.sp)
+                            Text(
+                                text = stream.tournesolNContributors.toString(),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        if (hasComparisons) {
+                            if (hasContributors) {
+                                Text(text = "·", style = MaterialTheme.typography.bodySmall)
+                            }
+                            Text(text = "⚖️", fontSize = 12.sp)
+                            Text(
+                                text = stream.tournesolNComparisons.toString(),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        if (bestIcon != null) {
+                            if (hasContributors || hasComparisons) {
+                                Text(text = "·", style = MaterialTheme.typography.bodySmall)
+                            }
+                            Text(
+                                text = "▲",
+                                fontSize = 10.sp,
+                                color = Color(0xFF6B9E6F)
+                            )
+                            Image(
+                                painter = painterResource(bestIcon),
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                        if (worstIcon != null) {
+                            Text(
+                                text = "▼",
+                                fontSize = 10.sp,
+                                color = Color(0xFFC07070)
+                            )
+                            Image(
+                                painter = painterResource(worstIcon),
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
 
         StreamMenu(stream, isSelected, onDismissPopup)
     }
+}
+
+@DrawableRes
+private fun criteriaIcon(criteria: String?): Int? = when (criteria) {
+    "reliability" -> R.drawable.reliability
+    "pedagogy" -> R.drawable.pedagogy
+    "importance" -> R.drawable.importance
+    "layman_friendly" -> R.drawable.layman_friendly
+    "entertaining_relaxing" -> R.drawable.entertaining_relaxing
+    "engaging" -> R.drawable.engaging
+    "diversity_inclusion" -> R.drawable.diversity_inclusion
+    "better_habits" -> R.drawable.better_habits
+    "backfire_risk" -> R.drawable.backfire_risk
+    else -> null
 }
 
 @Preview(name = "Light mode", uiMode = Configuration.UI_MODE_NIGHT_NO)

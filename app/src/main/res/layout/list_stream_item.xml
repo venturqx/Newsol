@@ -106,6 +106,68 @@
         app:layout_constraintTop_toBottomOf="@+id/itemUploaderView"
         tools:text="2 years ago • 10M views" />
 
+    <LinearLayout
+        android:id="@+id/itemTournesolDetails"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_micro"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:alpha="0.6"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="@+id/itemVideoTitleView"
+        app:layout_constraintStart_toStartOf="@+id/itemVideoTitleView"
+        app:layout_constraintTop_toBottomOf="@+id/itemAdditionalDetails"
+        tools:visibility="visible">
+
+        <org.schabi.newpipe.views.NewPipeTextView
+            android:id="@+id/itemTournesolSocialProof"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:textSize="@dimen/video_item_search_upload_date_text_size"
+            tools:text="👥 12 · ⚖️ 45" />
+
+        <org.schabi.newpipe.views.NewPipeTextView
+            android:id="@+id/itemTournesolBestArrow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:textColor="#6B9E6F"
+            android:textSize="10sp"
+            android:visibility="gone"
+            tools:text=" ▲"
+            tools:visibility="visible" />
+
+        <ImageView
+            android:id="@+id/itemTournesolBestIcon"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_marginStart="2dp"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <org.schabi.newpipe.views.NewPipeTextView
+            android:id="@+id/itemTournesolWorstArrow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:textColor="#C07070"
+            android:textSize="10sp"
+            android:visibility="gone"
+            tools:text=" ▼"
+            tools:visibility="visible" />
+
+        <ImageView
+            android:id="@+id/itemTournesolWorstIcon"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_marginStart="2dp"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+    </LinearLayout>
+
     <org.schabi.newpipe.views.AnimatedProgressBar
         android:id="@+id/itemProgressView"
         style="@style/Widget.AppCompat.ProgressBar.Horizontal"
