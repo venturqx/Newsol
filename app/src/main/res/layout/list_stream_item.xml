@@ -9,7 +9,7 @@
     android:clickable="true"
     android:focusable="true"
     android:paddingHorizontal="@dimen/video_item_search_padding"
-    android:paddingVertical="@dimen/margin_small">
+    android:paddingVertical="12dp">
 
     <ImageView
         android:id="@+id/itemThumbnailView"
@@ -51,6 +51,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/itemThumbnailView"
         app:layout_constraintTop_toTopOf="@+id/itemThumbnailView"
+        app:layout_constraintVertical_bias="0.5"
         app:layout_constraintVertical_chainStyle="packed"
         tools:text="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc tristique vitae sem vitae blanditLorem ipsumLorem ipsumLorem ipsumLorem ipsumLorem ipsumLorem ipsumLorem ipsum" />
 
@@ -122,12 +123,12 @@
         android:lines="1"
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:textSize="@dimen/video_item_search_upload_date_text_size"
-        app:layout_constraintBottom_toTopOf="@+id/itemTournesolDetails"
+        app:layout_constraintBottom_toBottomOf="@+id/itemThumbnailView"
         app:layout_constraintEnd_toStartOf="@+id/itemInlineWorstArrow"
         app:layout_goneMarginStart="0dp"
         app:layout_constraintStart_toEndOf="@+id/itemTournesolScore"
         app:layout_constraintTop_toBottomOf="@+id/itemUploaderView"
-        tools:text="2 years ago • 10M views" />
+        tools:text="2 years ago • 10M views • 12 voters · 45 votes" />
 
     <org.schabi.newpipe.views.NewPipeTextView
         android:id="@+id/itemInlineWorstArrow"
@@ -153,30 +154,6 @@
         app:layout_constraintTop_toTopOf="@+id/itemAdditionalDetails"
         tools:visibility="visible" />
 
-    <LinearLayout
-        android:id="@+id/itemTournesolDetails"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/spacing_micro"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:alpha="0.6"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="@+id/itemThumbnailView"
-        app:layout_constraintEnd_toEndOf="@+id/itemVideoTitleView"
-        app:layout_constraintStart_toStartOf="@+id/itemVideoTitleView"
-        app:layout_constraintTop_toBottomOf="@+id/itemAdditionalDetails"
-        tools:visibility="visible">
-
-        <org.schabi.newpipe.views.NewPipeTextView
-            android:id="@+id/itemTournesolSocialProof"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceSmall"
-            android:textSize="@dimen/video_item_search_upload_date_text_size"
-            tools:text="12 voters · 45 votes" />
-
-    </LinearLayout>
 
     <org.schabi.newpipe.views.AnimatedProgressBar
         android:id="@+id/itemProgressView"

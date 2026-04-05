@@ -4,13 +4,10 @@ import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.DrawableRes;
 import androidx.annotation.Nullable;
-
-import android.util.Log;
 
 import org.schabi.newpipe.R;
 import org.schabi.newpipe.extractor.InfoItem;
@@ -46,8 +43,6 @@ import org.schabi.newpipe.util.Localization;
 
 public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
     public final TextView itemAdditionalDetails;
-    private final LinearLayout itemTournesolDetails;
-    private final TextView itemTournesolSocialProof;
     private final TextView itemInlineBestArrow;
     private final ImageView itemInlineBestIcon;
     private final TextView itemInlineWorstArrow;
@@ -61,8 +56,6 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
                                 final ViewGroup parent) {
         super(infoItemBuilder, layoutId, parent);
         itemAdditionalDetails = itemView.findViewById(R.id.itemAdditionalDetails);
-        itemTournesolDetails = itemView.findViewById(R.id.itemTournesolDetails);
-        itemTournesolSocialProof = itemView.findViewById(R.id.itemTournesolSocialProof);
         itemInlineBestArrow = itemView.findViewById(R.id.itemInlineBestArrow);
         itemInlineBestIcon = itemView.findViewById(R.id.itemInlineBestIcon);
         itemInlineWorstArrow = itemView.findViewById(R.id.itemInlineWorstArrow);
@@ -83,11 +76,21 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
         if (item.getTournesolScore() != null && !TextUtils.isEmpty(details)) {
             details = "\u2022 " + details;
         }
+
+        final String socialProof = buildSocialProofText(item);
+        if (!TextUtils.isEmpty(socialProof)) {
+            if (!TextUtils.isEmpty(details)) {
+                details = details + " \u2022 " + socialProof;
+            } else {
+                details = socialProof;
+            }
+        }
+
         itemAdditionalDetails.setText(details);
         itemAdditionalDetails.setVisibility(
                 TextUtils.isEmpty(details) ? View.GONE : View.VISIBLE);
 
-        bindTournesolDetails(item);
+        bindInlineCriteria(item);
     }
 
     private String getStreamInfoDetailLine(final StreamInfoItem infoItem) {
@@ -119,44 +122,19 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
         return viewsAndDate;
     }
 
-    private void bindTournesolDetails(final StreamInfoItem item) {
-        if (itemTournesolDetails == null) {
-            return;
-        }
-
-        final int nContributors = item.getTournesolNContributors();
+    private String buildSocialProofText(final StreamInfoItem item) {
         final int nComparisons = item.getTournesolNComparisons();
+        if (nComparisons >= 0) {
+            return nComparisons + " votes";
+        }
+        return "";
+    }
+
+    private void bindInlineCriteria(final StreamInfoItem item) {
         final String bestCriteria = item.getTournesolBestCriteria();
         final String worstCriteria = item.getTournesolWorstCriteria();
-        Log.d("TournesolDetails", "name=" + item.getName()
-                + " nContrib=" + nContributors + " nComp=" + nComparisons
-                + " best=" + bestCriteria + " worst=" + worstCriteria);
-
-        final boolean hasContributors = nContributors >= 0;
-        final boolean hasComparisons = nComparisons >= 0;
         final Integer bestIconRes = getCriteriaIcon(bestCriteria);
         final Integer worstIconRes = getCriteriaIcon(worstCriteria);
-
-        if (!hasContributors && !hasComparisons && bestIconRes == null && worstIconRes == null) {
-            itemTournesolDetails.setVisibility(View.GONE);
-            hideInlineCriteria();
-            return;
-        }
-
-        // Build social proof text
-        final StringBuilder sb = new StringBuilder();
-        if (hasContributors) {
-            sb.append(nContributors).append(" voters");
-        }
-        if (hasComparisons) {
-            if (sb.length() > 0) {
-                sb.append(" \u00B7 ");
-            }
-            sb.append(nComparisons).append(" votes");
-        }
-        itemTournesolSocialProof.setText(sb.toString());
-        itemTournesolSocialProof.setVisibility(
-                sb.length() > 0 ? View.VISIBLE : View.GONE);
 
         // Inline best criteria (right of uploader line)
         if (itemInlineBestArrow != null && itemInlineBestIcon != null) {
@@ -180,23 +158,6 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
                 itemInlineWorstArrow.setVisibility(View.GONE);
                 itemInlineWorstIcon.setVisibility(View.GONE);
             }
-        }
-
-        itemTournesolDetails.setVisibility(View.VISIBLE);
-    }
-
-    private void hideInlineCriteria() {
-        if (itemInlineBestArrow != null) {
-            itemInlineBestArrow.setVisibility(View.GONE);
-        }
-        if (itemInlineBestIcon != null) {
-            itemInlineBestIcon.setVisibility(View.GONE);
-        }
-        if (itemInlineWorstArrow != null) {
-            itemInlineWorstArrow.setVisibility(View.GONE);
-        }
-        if (itemInlineWorstIcon != null) {
-            itemInlineWorstIcon.setVisibility(View.GONE);
         }
     }
 

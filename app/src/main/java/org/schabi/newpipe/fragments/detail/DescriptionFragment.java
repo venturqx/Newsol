@@ -421,10 +421,9 @@ public class DescriptionFragment extends BaseDescriptionFragment {
                 requireContext(), entries, icons, colors, dpToPx(18));
 
         final int glowPadding = dpToPx(8);
-        final int chartWidth = dpToPx(340);
 
         final LinearLayout.LayoutParams chartParams = new LinearLayout.LayoutParams(
-                chartWidth + glowPadding * 2,
+                LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT);
         lollipopView.setLayoutParams(chartParams);
         lollipopView.setPadding(glowPadding, glowPadding, glowPadding, glowPadding);
@@ -824,7 +823,14 @@ public class DescriptionFragment extends BaseDescriptionFragment {
 
         @Override
         protected void onMeasure(final int widthMeasureSpec, final int heightMeasureSpec) {
-            super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+            // Cap width so the chart doesn't over-stretch on tablets
+            final int maxWidth = dp(400) + getPaddingLeft() + getPaddingRight();
+            int clampedWidthSpec = widthMeasureSpec;
+            if (MeasureSpec.getSize(widthMeasureSpec) > maxWidth) {
+                clampedWidthSpec = MeasureSpec.makeMeasureSpec(
+                        maxWidth, MeasureSpec.getMode(widthMeasureSpec));
+            }
+            super.onMeasure(clampedWidthSpec, heightMeasureSpec);
 
             // Compute score range (always includes zero)
             double minS = 0;
