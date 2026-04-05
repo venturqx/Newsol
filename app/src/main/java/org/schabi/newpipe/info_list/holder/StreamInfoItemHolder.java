@@ -52,6 +52,10 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
     private final ImageView itemTournesolBestIcon;
     private final TextView itemTournesolWorstArrow;
     private final ImageView itemTournesolWorstIcon;
+    private final TextView itemInlineBestArrow;
+    private final ImageView itemInlineBestIcon;
+    private final TextView itemInlineWorstArrow;
+    private final ImageView itemInlineWorstIcon;
 
     public StreamInfoItemHolder(final InfoItemBuilder infoItemBuilder, final ViewGroup parent) {
         this(infoItemBuilder, R.layout.list_stream_item, parent);
@@ -67,6 +71,10 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
         itemTournesolBestIcon = itemView.findViewById(R.id.itemTournesolBestIcon);
         itemTournesolWorstArrow = itemView.findViewById(R.id.itemTournesolWorstArrow);
         itemTournesolWorstIcon = itemView.findViewById(R.id.itemTournesolWorstIcon);
+        itemInlineBestArrow = itemView.findViewById(R.id.itemInlineBestArrow);
+        itemInlineBestIcon = itemView.findViewById(R.id.itemInlineBestIcon);
+        itemInlineWorstArrow = itemView.findViewById(R.id.itemInlineWorstArrow);
+        itemInlineWorstIcon = itemView.findViewById(R.id.itemInlineWorstIcon);
     }
 
     @Override
@@ -139,6 +147,7 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
 
         if (!hasContributors && !hasComparisons && bestIconRes == null && worstIconRes == null) {
             itemTournesolDetails.setVisibility(View.GONE);
+            hideInlineCriteria();
             return;
         }
 
@@ -157,7 +166,7 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
         itemTournesolSocialProof.setVisibility(
                 sb.length() > 0 ? View.VISIBLE : View.GONE);
 
-        // Best criteria
+        // Best criteria (4th line)
         if (bestIconRes != null) {
             itemTournesolBestArrow.setText(
                     (sb.length() > 0 ? " \u00B7 " : "") + "\u25B2");
@@ -169,7 +178,7 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
             itemTournesolBestIcon.setVisibility(View.GONE);
         }
 
-        // Worst criteria
+        // Worst criteria (4th line)
         if (worstIconRes != null) {
             itemTournesolWorstArrow.setText(" \u25BC");
             itemTournesolWorstArrow.setVisibility(View.VISIBLE);
@@ -180,7 +189,46 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
             itemTournesolWorstIcon.setVisibility(View.GONE);
         }
 
+        // Inline best criteria (right of uploader line)
+        if (itemInlineBestArrow != null && itemInlineBestIcon != null) {
+            if (bestIconRes != null) {
+                itemInlineBestArrow.setVisibility(View.VISIBLE);
+                itemInlineBestIcon.setImageResource(bestIconRes);
+                itemInlineBestIcon.setVisibility(View.VISIBLE);
+            } else {
+                itemInlineBestArrow.setVisibility(View.GONE);
+                itemInlineBestIcon.setVisibility(View.GONE);
+            }
+        }
+
+        // Inline worst criteria (right of additional details line)
+        if (itemInlineWorstArrow != null && itemInlineWorstIcon != null) {
+            if (worstIconRes != null) {
+                itemInlineWorstArrow.setVisibility(View.VISIBLE);
+                itemInlineWorstIcon.setImageResource(worstIconRes);
+                itemInlineWorstIcon.setVisibility(View.VISIBLE);
+            } else {
+                itemInlineWorstArrow.setVisibility(View.GONE);
+                itemInlineWorstIcon.setVisibility(View.GONE);
+            }
+        }
+
         itemTournesolDetails.setVisibility(View.VISIBLE);
+    }
+
+    private void hideInlineCriteria() {
+        if (itemInlineBestArrow != null) {
+            itemInlineBestArrow.setVisibility(View.GONE);
+        }
+        if (itemInlineBestIcon != null) {
+            itemInlineBestIcon.setVisibility(View.GONE);
+        }
+        if (itemInlineWorstArrow != null) {
+            itemInlineWorstArrow.setVisibility(View.GONE);
+        }
+        if (itemInlineWorstIcon != null) {
+            itemInlineWorstIcon.setVisibility(View.GONE);
+        }
     }
 
     @Nullable
