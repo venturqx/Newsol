@@ -395,7 +395,7 @@ public class DescriptionFragment extends BaseDescriptionFragment {
         wrapper.setClipToPadding(false);
 
         final LollipopChartView lollipopView = new LollipopChartView(
-                requireContext(), entries, icons, colors, dpToPx(24));
+                requireContext(), entries, icons, colors, dpToPx(18));
 
         final int glowPadding = dpToPx(8);
         final int chartWidth = dpToPx(340);
@@ -770,13 +770,13 @@ public class DescriptionFragment extends BaseDescriptionFragment {
             this.circleCyArray = new float[entries.size()];
 
             barPaint.setStyle(Paint.Style.FILL);
-            barPaint.setStrokeCap(Paint.Cap.ROUND);
+            barPaint.setStrokeCap(Paint.Cap.BUTT);
 
             circlePaint.setStyle(Paint.Style.FILL);
             circlePaint.setColor(Color.parseColor("#0F0F0F"));
 
             circleStrokePaint.setStyle(Paint.Style.STROKE);
-            circleStrokePaint.setStrokeWidth(dp(2.5f));
+            circleStrokePaint.setStrokeWidth(dp(3.5f));
 
             scorePaint.setTextSize(dp(10f));
             scorePaint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
@@ -835,57 +835,61 @@ public class DescriptionFragment extends BaseDescriptionFragment {
 
             final float w = getWidth();
             final float h = getHeight();
-            final float circleRadius = dp(18f);
+            final float circleRadius = dp(14f);
             circleRadiusCached = circleRadius;
             final float scoreTextHeight = dp(14f);
             final float topPadding = scoreTextHeight + dp(2f);
             final float bottomPadding = scoreTextHeight + dp(2f);
-            final float barWidth = dp(8f);
+            final float barWidth = dp(12f);
 
             // The vertical area for bars: from topPadding+circleRadius to
             // h-bottomPadding-circleRadius
             final float drawTop = topPadding + circleRadius;
             final float drawBottom = h - bottomPadding - circleRadius;
-            final float zeroY = (drawTop + drawBottom) / 2f;
+
+            // Find min/max scores; range always includes zero
+            double minScore = 0;
+            double maxScore = 0;
+            for (final CriterionEntry entry : entries) {
+                if (entry.score < minScore) {
+                    minScore = entry.score;
+                }
+                if (entry.score > maxScore) {
+                    maxScore = entry.score;
+                }
+            }
+            double totalRange = maxScore - minScore;
+            if (totalRange < 1) {
+                totalRange = 1;
+            }
+
+            // Position zero line proportionally within the draw area
+            final float zeroY = (float) (drawTop
+                    + (maxScore / totalRange) * (drawBottom - drawTop));
 
             // Draw zero line
             final float slotWidth = w / n;
             canvas.drawLine(slotWidth * 0.3f, zeroY,
                     w - slotWidth * 0.3f, zeroY, zeroLinePaint);
 
-            // Find max absolute score for scaling
-            double maxAbs = 1;
-            for (final CriterionEntry entry : entries) {
-                final double abs = Math.abs(entry.score);
-                if (abs > maxAbs) {
-                    maxAbs = abs;
-                }
-            }
-
             for (int i = 0; i < n; i++) {
                 final CriterionEntry entry = entries.get(i);
                 final int color = colors[i];
                 final float cx = slotWidth * (i + 0.5f);
 
-                // Normalized score: how far from zero line
-                final float norm = (float) (entry.score / maxAbs);
-                // barEnd: negative score goes down, positive goes up
-                final float halfRange = (drawBottom - drawTop) / 2f;
-                final float barEndY = zeroY - norm * halfRange;
+                // Map score to vertical position within drawTop..drawBottom
+                final float barEndY = (float) (drawTop
+                        + ((maxScore - entry.score) / totalRange)
+                        * (drawBottom - drawTop));
 
                 // Cache positions for touch detection
                 circleCxArray[i] = cx;
                 circleCyArray[i] = barEndY;
 
                 // Draw bar (from zero to barEnd)
-                // Offset start by half barWidth so the round cap doesn't overflow Y=0
                 barPaint.setColor(color);
-                barPaint.setAlpha(180);
                 barPaint.setStrokeWidth(barWidth);
-                final float halfBar = barWidth / 2f;
-                final float barStartY = norm >= 0
-                        ? zeroY - halfBar : zeroY + halfBar;
-                canvas.drawLine(cx, barStartY, cx, barEndY, barPaint);
+                canvas.drawLine(cx, zeroY, cx, barEndY, barPaint);
 
                 // Draw selected glow ring
                 if (i == selectedIndex) {
@@ -904,8 +908,9 @@ public class DescriptionFragment extends BaseDescriptionFragment {
                 final android.graphics.drawable.Drawable icon =
                         i < icons.size() ? icons.get(i) : null;
                 if (icon != null) {
-                    int halfIconW = iconSizePx / 2;
-                    int halfIconH = iconSizePx / 2;
+                    final int strokeInset = dp(3.5f) / 2;
+                    int halfIconW = iconSizePx / 2 - strokeInset;
+                    int halfIconH = iconSizePx / 2 - strokeInset;
                     float iconOffsetY = 0;
                     final String entryId = entry.id;
                     // layman_friendly icon is slightly too large / stretched vertically
@@ -932,11 +937,11 @@ public class DescriptionFragment extends BaseDescriptionFragment {
                 if (entry.score >= 0) {
                     // Score above the circle
                     canvas.drawText(scoreText, cx,
-                            barEndY - circleRadius - dp(3f), scorePaint);
+                            barEndY - circleRadius - dp(6f), scorePaint);
                 } else {
                     // Score below the circle
                     canvas.drawText(scoreText, cx,
-                            barEndY + circleRadius + scoreTextHeight - dp(2f),
+                            barEndY + circleRadius + scoreTextHeight + dp(1f),
                             scorePaint);
                 }
             }
