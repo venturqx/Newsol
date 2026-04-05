@@ -117,6 +117,7 @@ import org.schabi.newpipe.util.PermissionHelper.checkStoragePermissions
 import org.schabi.newpipe.util.PlayButtonHelper
 import org.schabi.newpipe.util.StreamTypeUtil
 import org.schabi.newpipe.util.ThemeHelper
+import org.schabi.newpipe.util.TournesolHelper
 import org.schabi.newpipe.util.TournesolScoreCache
 import org.schabi.newpipe.util.external_communication.KoreUtils
 import org.schabi.newpipe.util.external_communication.ShareUtils
@@ -1508,12 +1509,13 @@ class VideoDetailFragment :
             binding.detailThumbsDisabledView.visibility = View.GONE
         }
 
-        val cachedScore = TournesolScoreCache.get(info.originalUrl)
-            ?: TournesolScoreCache.get(info.url)
-        if (cachedScore != null) {
-            binding.detailTournesolScoreView?.text = cachedScore.toString()
-            binding.detailTournesolScoreView?.visibility = View.VISIBLE
-            binding.detailTournesolImgView?.visibility = View.VISIBLE
+        val cachedEntry = TournesolScoreCache.getEntry(info.originalUrl)
+            ?: TournesolScoreCache.getEntry(info.url)
+        if (cachedEntry != null) {
+            updateTournesolDetailIcon(
+                TournesolHelper.hasInsufficientReason(cachedEntry.unsafeReasons),
+                cachedEntry.score
+            )
         } else {
             binding.detailTournesolScoreView?.visibility = View.GONE
             binding.detailTournesolImgView?.visibility = View.GONE
@@ -1577,6 +1579,17 @@ class VideoDetailFragment :
         binding.detailThumbnailPlayButton.setImageResource(
             if (hasVideoStreams) R.drawable.ic_play_arrow_shadow else R.drawable.ic_headset_shadow
         )
+    }
+
+    fun updateTournesolDetailIcon(hasInsufficientReason: Boolean, score: Long) {
+        if (hasInsufficientReason) {
+            binding.detailTournesolScoreView?.text = "\uD83C\uDF31 $score"
+            binding.detailTournesolImgView?.visibility = View.GONE
+        } else {
+            binding.detailTournesolScoreView?.text = score.toString()
+            binding.detailTournesolImgView?.visibility = View.VISIBLE
+        }
+        binding.detailTournesolScoreView?.visibility = View.VISIBLE
     }
 
     private fun displayUploaderAsSubChannel(info: StreamInfo) {
@@ -2271,11 +2284,17 @@ class VideoDetailFragment :
                         manageSpaceAtTheBottom(false)
 
                         bottomSheetBehavior.peekHeight = peekHeight
-
-                        // Re-enable clicks
-                        setOverlayElementsClickable(true)
                         player?.UIs()?.get(MainPlayerUi::class)?.closeItemsList()
-                        setOverlayLook(binding.appBarLayout, behavior, 0f)
+
+                        // Defer overlay visibility until after the layout pass
+                        // triggered by the peekHeight change completes. This avoids
+                        // a frame where the overlay is visible but the sheet hasn't
+                        // been repositioned yet (HIDDEN→COLLAPSED with peekHeight
+                        // changing from 0 to 60dp).
+                        bottomSheet.post {
+                            setOverlayElementsClickable(true)
+                            setOverlayLook(binding.appBarLayout, behavior, 0f)
+                        }
                     }
 
                     BottomSheetBehavior.STATE_DRAGGING, BottomSheetBehavior.STATE_SETTLING -> {

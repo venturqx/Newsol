@@ -6,12 +6,14 @@ import java.util.LinkedHashSet
 import java.util.Locale
 import java.util.TimeZone
 
-object TournesolScoreCache {
-    private val cache = LinkedHashMap<String, Long>(32, 0.75f, true)
+data class TournesolCacheEntry(val score: Long, val unsafeReasons: List<String>)
 
-    fun put(url: String, score: Long) {
+object TournesolScoreCache {
+    private val cache = LinkedHashMap<String, TournesolCacheEntry>(32, 0.75f, true)
+
+    fun put(url: String, score: Long, unsafeReasons: List<String> = emptyList()) {
         synchronized(cache) {
-            cache[url] = score
+            cache[url] = TournesolCacheEntry(score, unsafeReasons)
             // Keep cache bounded
             if (cache.size > 200) {
                 cache.remove(cache.keys.first())
@@ -20,6 +22,12 @@ object TournesolScoreCache {
     }
 
     fun get(url: String): Long? {
+        synchronized(cache) {
+            return cache[url]?.score
+        }
+    }
+
+    fun getEntry(url: String): TournesolCacheEntry? {
         synchronized(cache) {
             return cache[url]
         }

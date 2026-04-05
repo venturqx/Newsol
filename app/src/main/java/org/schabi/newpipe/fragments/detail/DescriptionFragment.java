@@ -34,6 +34,7 @@ import org.schabi.newpipe.extractor.StreamingService;
 import org.schabi.newpipe.extractor.stream.Description;
 import org.schabi.newpipe.extractor.stream.StreamInfo;
 import org.schabi.newpipe.util.Localization;
+import org.schabi.newpipe.util.TournesolHelper;
 import org.schabi.newpipe.util.TournesolScoreCache;
 
 import java.net.URLEncoder;
@@ -264,9 +265,24 @@ public class DescriptionFragment extends BaseDescriptionFragment {
             return;
         }
 
+        // Extract unsafe reasons from the API response
+        final JSONObject unsafe = collectiveRating.optJSONObject("unsafe");
+        final java.util.List<String> unsafeReasons = new ArrayList<>();
+        if (unsafe != null && unsafe.optBoolean("status", false)) {
+            final JSONArray reasonsArray = unsafe.optJSONArray("reasons");
+            if (reasonsArray != null) {
+                for (int i = 0; i < reasonsArray.length(); i++) {
+                    final String reason = reasonsArray.optString(i, "");
+                    if (!reason.isEmpty()) {
+                        unsafeReasons.add(reason);
+                    }
+                }
+            }
+        }
+
         // Cache the score so the video detail header can use it without re-fetching
         TournesolScoreCache.INSTANCE.put(streamInfo.getOriginalUrl(),
-                Math.round(tournesolScore));
+                Math.round(tournesolScore), unsafeReasons);
 
         final int nComparisons = collectiveRating.optInt("n_comparisons", 0);
         final int nContributors = collectiveRating.optInt("n_contributors", 0);
@@ -282,10 +298,17 @@ public class DescriptionFragment extends BaseDescriptionFragment {
                 getString(R.string.tournesol_detail_comparisons, nComparisons));
 
         // Check unsafe status – show plant emoji instead of tournesol logo
-        final JSONObject unsafe = collectiveRating.optJSONObject("unsafe");
-        if (unsafe != null && unsafe.optBoolean("status", false)) {
+        final boolean isInsufficient = TournesolHelper.hasInsufficientReason(unsafeReasons);
+        if (isInsufficient) {
             binding.tournesolLogo.setVisibility(View.GONE);
             binding.tournesolUnsafeEmoji.setVisibility(View.VISIBLE);
+        }
+
+        // Also update the icon in the video detail bar (location 3)
+        final androidx.fragment.app.Fragment parent = getParentFragment();
+        if (parent instanceof VideoDetailFragment) {
+            ((VideoDetailFragment) parent).updateTournesolDetailIcon(
+                    isInsufficient, Math.round(tournesolScore));
         }
 
         // Criteria scores
@@ -399,9 +422,10 @@ public class DescriptionFragment extends BaseDescriptionFragment {
 
         final int glowPadding = dpToPx(8);
         final int chartWidth = dpToPx(340);
-        final int chartHeight = dpToPx(260);
+
         final LinearLayout.LayoutParams chartParams = new LinearLayout.LayoutParams(
-                chartWidth + glowPadding * 2, chartHeight + glowPadding * 2);
+                chartWidth + glowPadding * 2,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
         lollipopView.setLayoutParams(chartParams);
         lollipopView.setPadding(glowPadding, glowPadding, glowPadding, glowPadding);
 
@@ -452,6 +476,7 @@ public class DescriptionFragment extends BaseDescriptionFragment {
         binding.tournesolLollipopContainer.removeAllViews();
         binding.tournesolLollipopContainer.addView(wrapper);
         binding.tournesolLollipopContainer.setVisibility(View.VISIBLE);
+        binding.tournesolCriteriaSection.setVisibility(View.VISIBLE);
     }
 
     private void fetchTournesolDistribution() {
@@ -797,6 +822,47 @@ public class DescriptionFragment extends BaseDescriptionFragment {
             this.dimensionClickListener = listener;
         }
 
+        @Override
+        protected void onMeasure(final int widthMeasureSpec, final int heightMeasureSpec) {
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+
+            // Compute score range (always includes zero)
+            double minS = 0;
+            double maxS = 0;
+            for (final CriterionEntry e : entries) {
+                if (e.score < minS) {
+                    minS = e.score;
+                }
+                if (e.score > maxS) {
+                    maxS = e.score;
+                }
+            }
+            final double range = maxS - minS;
+
+            // Fixed visual scale: 2 dp per score unit
+            final float dpPerUnit = dp(2f);
+
+            // Add margin only on sides where bars extend; use 2-unit gap on the empty side
+            final double topMargin = maxS > 0 ? Math.max(3, range * 0.1) : 2;
+            final double bottomMargin = minS < 0 ? Math.max(5, range * 0.2) : 2;
+            final float barArea = (float) ((range + topMargin + bottomMargin) * dpPerUnit);
+
+            // Overhead: circle radius on each end, score text only where bars actually extend
+            final float circleRadius = dp(14f);
+            final float scoreTextHeight = dp(14f);
+            final float textGap = dp(3f);
+            final float topOverhead = circleRadius + (maxS > 0 ? scoreTextHeight + textGap : 0);
+            final float bottomOverhead = circleRadius + (minS < 0 ? scoreTextHeight + textGap : 0);
+            final float overhead = topOverhead + bottomOverhead;
+
+            final int desiredHeight = (int) (overhead + barArea)
+                    + getPaddingTop() + getPaddingBottom();
+            final int maxHeight = dp(260f) + getPaddingTop() + getPaddingBottom();
+            final int height = Math.min(desiredHeight, maxHeight);
+
+            setMeasuredDimension(getMeasuredWidth(), height);
+        }
+
         private int dp(final float dpVal) {
             return (int) TypedValue.applyDimension(
                     TypedValue.COMPLEX_UNIT_DIP, dpVal,
@@ -837,15 +903,10 @@ public class DescriptionFragment extends BaseDescriptionFragment {
             final float h = getHeight();
             final float circleRadius = dp(14f);
             circleRadiusCached = circleRadius;
-            final float scoreTextHeight = dp(14f);
-            final float topPadding = scoreTextHeight + dp(2f);
-            final float bottomPadding = scoreTextHeight + dp(2f);
             final float barWidth = dp(12f);
 
-            // The vertical area for bars: from topPadding+circleRadius to
-            // h-bottomPadding-circleRadius
-            final float drawTop = topPadding + circleRadius;
-            final float drawBottom = h - bottomPadding - circleRadius;
+            final float scoreTextHeight = dp(14f);
+            final float textGap = dp(3f);
 
             // Find min/max scores; range always includes zero
             double minScore = 0;
@@ -858,10 +919,21 @@ public class DescriptionFragment extends BaseDescriptionFragment {
                     maxScore = entry.score;
                 }
             }
-            double totalRange = maxScore - minScore;
-            if (totalRange < 1) {
-                totalRange = 1;
-            }
+
+            // Reserve score-text space only on the side where bars actually extend
+            final float topPadding = maxScore > 0 ? scoreTextHeight + textGap : 0;
+            final float bottomPadding = minScore < 0 ? scoreTextHeight + textGap : 0;
+
+            // The vertical area for bars: from topPadding+circleRadius to
+            // h-bottomPadding-circleRadius
+            final float drawTop = topPadding + circleRadius;
+            final float drawBottom = h - bottomPadding - circleRadius;
+
+            // Add margin only on sides where bars extend; use 2-unit gap on the empty side
+            final double range = maxScore - minScore;
+            maxScore += maxScore > 0 ? Math.max(3, range * 0.1) : 2;
+            minScore -= minScore < 0 ? Math.max(5, range * 0.2) : 2;
+            final double totalRange = maxScore - minScore;
 
             // Position zero line proportionally within the draw area
             final float zeroY = (float) (drawTop
