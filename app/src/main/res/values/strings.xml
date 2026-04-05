@@ -436,6 +436,22 @@
     <string name="date_short_3_months">3M</string>
     <string name="date_short_year">1Y</string>
     <string name="filter_advanced">Advanced</string>
+    <string name="filter_duration">Duration</string>
+    <string name="filter_duration_min">Min: %1$s</string>
+    <string name="filter_duration_max">Max: %1$s</string>
+    <string name="filter_duration_no_limit">No limit</string>
+    <string name="filter_duration_minutes">%1$d min</string>
+    <string name="filter_criteria">Sorting criteria</string>
+    <string name="filter_criteria_largely_recommended">Should be largely recommended</string>
+    <string name="filter_criteria_reliability">Reliable &amp; not misleading</string>
+    <string name="filter_criteria_importance">Important &amp; actionable</string>
+    <string name="filter_criteria_pedagogy">Clear &amp; pedagogical</string>
+    <string name="filter_criteria_layman_friendly">Layman-friendly</string>
+    <string name="filter_criteria_entertaining_relaxing">Entertaining &amp; relaxing</string>
+    <string name="filter_criteria_engaging">Engaging &amp; thought-provoking</string>
+    <string name="filter_criteria_diversity_inclusion">Diversity &amp; inclusion</string>
+    <string name="filter_criteria_better_habits">Better habits</string>
+    <string name="filter_criteria_backfire_risk">Resilience to backfiring</string>
     <string name="filter_unsafe_short">More</string>
     <string name="apply">Apply</string>
 

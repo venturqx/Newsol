@@ -244,6 +244,50 @@ public final class ExtractorHelper {
                         invokeSetUploader(extractor, value);
                     } else if ("unsafe".equals(parts[0])) {
                         invokeSetIncludeUnsafe(extractor, "true".equalsIgnoreCase(value));
+                    } else if ("duration_gte".equals(parts[0])) {
+                        invokeSetInt(extractor, "setDurationGte", parseIntOrDefault(value, -1));
+                    } else if ("duration_lte".equals(parts[0])) {
+                        invokeSetInt(extractor, "setDurationLte", parseIntOrDefault(value, -1));
+                    } else if ("weight_largely_recommended".equals(parts[0])) {
+                        invokeSetInt(extractor,
+                                "setWeightLargelyRecommended",
+                                parseIntOrDefault(value, -1));
+                    } else if ("weight_reliability".equals(parts[0])) {
+                        invokeSetInt(extractor,
+                                "setWeightReliability",
+                                parseIntOrDefault(value, -1));
+                    } else if ("weight_importance".equals(parts[0])) {
+                        invokeSetInt(extractor,
+                                "setWeightImportance",
+                                parseIntOrDefault(value, -1));
+                    } else if ("weight_pedagogy".equals(parts[0])) {
+                        invokeSetInt(extractor,
+                                "setWeightPedagogy",
+                                parseIntOrDefault(value, -1));
+                    } else if ("weight_layman_friendly".equals(parts[0])) {
+                        invokeSetInt(extractor,
+                                "setWeightLaymanFriendly",
+                                parseIntOrDefault(value, -1));
+                    } else if ("weight_entertaining_relaxing".equals(parts[0])) {
+                        invokeSetInt(extractor,
+                                "setWeightEntertainingRelaxing",
+                                parseIntOrDefault(value, -1));
+                    } else if ("weight_engaging".equals(parts[0])) {
+                        invokeSetInt(extractor,
+                                "setWeightEngaging",
+                                parseIntOrDefault(value, -1));
+                    } else if ("weight_diversity_inclusion".equals(parts[0])) {
+                        invokeSetInt(extractor,
+                                "setWeightDiversityInclusion",
+                                parseIntOrDefault(value, -1));
+                    } else if ("weight_better_habits".equals(parts[0])) {
+                        invokeSetInt(extractor,
+                                "setWeightBetterHabits",
+                                parseIntOrDefault(value, -1));
+                    } else if ("weight_backfire_risk".equals(parts[0])) {
+                        invokeSetInt(extractor,
+                                "setWeightBackfireRisk",
+                                parseIntOrDefault(value, -1));
                     }
                 }
             }
@@ -315,6 +359,28 @@ public final class ExtractorHelper {
                     .invoke(extractor, includeUnsafe);
         } catch (final ReflectiveOperationException ignored) {
             // Method not available in this extractor version.
+        }
+    }
+
+    private static void invokeSetInt(final KioskExtractor extractor,
+                                     final String methodName, final int value) {
+        try {
+            extractor.getClass()
+                    .getMethod(methodName, int.class)
+                    .invoke(extractor, value);
+        } catch (final ReflectiveOperationException ignored) {
+            // Method not available in this extractor version.
+        }
+    }
+
+    private static int parseIntOrDefault(final String value, final int defaultValue) {
+        if (value == null || value.isEmpty()) {
+            return defaultValue;
+        }
+        try {
+            return Integer.parseInt(value);
+        } catch (final NumberFormatException e) {
+            return defaultValue;
         }
     }
 

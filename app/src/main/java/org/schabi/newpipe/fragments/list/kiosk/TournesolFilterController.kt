@@ -19,7 +19,19 @@ class TournesolFilterController(
         fun onFiltersChanged(
             languages: List<String>,
             dateKey: String,
-            includeLowScoreVideos: Boolean
+            includeLowScoreVideos: Boolean,
+            durationMinSeconds: Int,
+            durationMaxSeconds: Int,
+            weightLargelyRecommended: Int,
+            weightReliability: Int,
+            weightImportance: Int,
+            weightPedagogy: Int,
+            weightLaymanFriendly: Int,
+            weightEntertainingRelaxing: Int,
+            weightEngaging: Int,
+            weightDiversityInclusion: Int,
+            weightBetterHabits: Int,
+            weightBackfireRisk: Int
         )
     }
 
@@ -27,6 +39,18 @@ class TournesolFilterController(
     private var currentDateKey: String = TournesolHelper.DEFAULT_TOURNESOL_FILTER_DATE_KEY
     private var currentIncludeLowScoreVideos: Boolean =
         TournesolHelper.DEFAULT_TOURNESOL_FILTER_INCLUDE_LOW_SCORE
+    private var currentDurationMinSeconds: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_DURATION_MIN
+    private var currentDurationMaxSeconds: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_DURATION_MAX
+    private var currentWeightLargelyRecommended: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+    private var currentWeightReliability: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+    private var currentWeightImportance: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+    private var currentWeightPedagogy: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+    private var currentWeightLaymanFriendly: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+    private var currentWeightEntertainingRelaxing: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+    private var currentWeightEngaging: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+    private var currentWeightDiversityInclusion: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+    private var currentWeightBetterHabits: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+    private var currentWeightBackfireRisk: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
     private var tournesolHeaderView: View? = null
 
     private val quickDateChips = linkedMapOf(
@@ -46,17 +70,37 @@ class TournesolFilterController(
         val previousLanguages = ArrayList(currentLanguages)
         val previousDateKey = currentDateKey
         val previousIncludeLowScoreVideos = currentIncludeLowScoreVideos
+        val previousDurationMin = currentDurationMinSeconds
+        val previousDurationMax = currentDurationMaxSeconds
+        val previousWeightLR = currentWeightLargelyRecommended
+        val previousWeightRel = currentWeightReliability
+        val previousWeightImp = currentWeightImportance
+        val previousWeightPed = currentWeightPedagogy
+        val previousWeightLay = currentWeightLaymanFriendly
+        val previousWeightEnt = currentWeightEntertainingRelaxing
+        val previousWeightEng = currentWeightEngaging
+        val previousWeightDiv = currentWeightDiversityInclusion
+        val previousWeightBet = currentWeightBetterHabits
+        val previousWeightBack = currentWeightBackfireRisk
         loadFilters()
         if (previousLanguages != currentLanguages ||
             previousDateKey != currentDateKey ||
-            previousIncludeLowScoreVideos != currentIncludeLowScoreVideos
+            previousIncludeLowScoreVideos != currentIncludeLowScoreVideos ||
+            previousDurationMin != currentDurationMinSeconds ||
+            previousDurationMax != currentDurationMaxSeconds ||
+            previousWeightLR != currentWeightLargelyRecommended ||
+            previousWeightRel != currentWeightReliability ||
+            previousWeightImp != currentWeightImportance ||
+            previousWeightPed != currentWeightPedagogy ||
+            previousWeightLay != currentWeightLaymanFriendly ||
+            previousWeightEnt != currentWeightEntertainingRelaxing ||
+            previousWeightEng != currentWeightEngaging ||
+            previousWeightDiv != currentWeightDiversityInclusion ||
+            previousWeightBet != currentWeightBetterHabits ||
+            previousWeightBack != currentWeightBackfireRisk
         ) {
             updateQuickChipSelection()
-            listener.onFiltersChanged(
-                ArrayList(currentLanguages),
-                currentDateKey,
-                currentIncludeLowScoreVideos
-            )
+            notifyFiltersChanged()
         }
     }
 
@@ -75,6 +119,19 @@ class TournesolFilterController(
     fun getCurrentIncludeLowScoreVideos(): Boolean {
         return currentIncludeLowScoreVideos
     }
+
+    fun getCurrentDurationMinSeconds(): Int = currentDurationMinSeconds
+    fun getCurrentDurationMaxSeconds(): Int = currentDurationMaxSeconds
+    fun getCurrentWeightLargelyRecommended(): Int = currentWeightLargelyRecommended
+    fun getCurrentWeightReliability(): Int = currentWeightReliability
+    fun getCurrentWeightImportance(): Int = currentWeightImportance
+    fun getCurrentWeightPedagogy(): Int = currentWeightPedagogy
+    fun getCurrentWeightLaymanFriendly(): Int = currentWeightLaymanFriendly
+    fun getCurrentWeightEntertainingRelaxing(): Int = currentWeightEntertainingRelaxing
+    fun getCurrentWeightEngaging(): Int = currentWeightEngaging
+    fun getCurrentWeightDiversityInclusion(): Int = currentWeightDiversityInclusion
+    fun getCurrentWeightBetterHabits(): Int = currentWeightBetterHabits
+    fun getCurrentWeightBackfireRisk(): Int = currentWeightBackfireRisk
 
     private fun setupTournesolHeader(rootView: View) {
         val headerContainer = rootView.findViewById<ViewGroup>(R.id.kiosk_header_container)
@@ -115,15 +172,31 @@ class TournesolFilterController(
         headerContainer.visibility = View.VISIBLE
     }
 
+    private fun notifyFiltersChanged() {
+        listener.onFiltersChanged(
+            ArrayList(currentLanguages),
+            currentDateKey,
+            currentIncludeLowScoreVideos,
+            currentDurationMinSeconds,
+            currentDurationMaxSeconds,
+            currentWeightLargelyRecommended,
+            currentWeightReliability,
+            currentWeightImportance,
+            currentWeightPedagogy,
+            currentWeightLaymanFriendly,
+            currentWeightEntertainingRelaxing,
+            currentWeightEngaging,
+            currentWeightDiversityInclusion,
+            currentWeightBetterHabits,
+            currentWeightBackfireRisk
+        )
+    }
+
     private fun onUnsafeToggled() {
         currentIncludeLowScoreVideos = !currentIncludeLowScoreVideos
         saveFilters()
         updateQuickChipSelection()
-        listener.onFiltersChanged(
-            ArrayList(currentLanguages),
-            currentDateKey,
-            currentIncludeLowScoreVideos
-        )
+        notifyFiltersChanged()
     }
 
     private fun onQuickDateSelected(dateKey: String) {
@@ -131,11 +204,7 @@ class TournesolFilterController(
         currentDateKey = dateKey
         saveFilters()
         updateQuickChipSelection()
-        listener.onFiltersChanged(
-            ArrayList(currentLanguages),
-            currentDateKey,
-            currentIncludeLowScoreVideos
-        )
+        notifyFiltersChanged()
     }
 
     private fun updateQuickChipSelection() {
@@ -150,9 +219,16 @@ class TournesolFilterController(
         // Sync Unsafe chip
         headerView.findViewById<Chip>(R.id.chip_unsafe)?.isChecked = currentIncludeLowScoreVideos
 
-        // Highlight Advanced chip if a non-quick filter is active (e.g. "forever")
+        // Highlight Advanced chip if a non-quick filter is active
+        val hasAdvancedFilters = !isQuickFilter ||
+            currentDurationMinSeconds >= 0 || currentDurationMaxSeconds >= 0 ||
+            currentWeightLargelyRecommended >= 0 || currentWeightReliability >= 0 ||
+            currentWeightImportance >= 0 || currentWeightPedagogy >= 0 ||
+            currentWeightLaymanFriendly >= 0 || currentWeightEntertainingRelaxing >= 0 ||
+            currentWeightEngaging >= 0 || currentWeightDiversityInclusion >= 0 ||
+            currentWeightBetterHabits >= 0 || currentWeightBackfireRisk >= 0
         val advancedChip = headerView.findViewById<Chip>(R.id.chip_advanced) ?: return
-        if (!isQuickFilter) {
+        if (hasAdvancedFilters) {
             advancedChip.isCheckable = true
             advancedChip.isChecked = true
         } else {
@@ -166,25 +242,57 @@ class TournesolFilterController(
         filterFragment.setInitialData(
             currentLanguages,
             currentDateKey,
-            currentIncludeLowScoreVideos
+            currentIncludeLowScoreVideos,
+            currentDurationMinSeconds,
+            currentDurationMaxSeconds,
+            currentWeightLargelyRecommended,
+            currentWeightReliability,
+            currentWeightImportance,
+            currentWeightPedagogy,
+            currentWeightLaymanFriendly,
+            currentWeightEntertainingRelaxing,
+            currentWeightEngaging,
+            currentWeightDiversityInclusion,
+            currentWeightBetterHabits,
+            currentWeightBackfireRisk
         )
         filterFragment.setListener(object : TournesolFilterFragment.FilterListener {
             override fun onApply(
                 languages: List<String>,
                 dateKey: String,
-                includeLowScoreVideos: Boolean
+                includeLowScoreVideos: Boolean,
+                durationMinSeconds: Int,
+                durationMaxSeconds: Int,
+                weightLargelyRecommended: Int,
+                weightReliability: Int,
+                weightImportance: Int,
+                weightPedagogy: Int,
+                weightLaymanFriendly: Int,
+                weightEntertainingRelaxing: Int,
+                weightEngaging: Int,
+                weightDiversityInclusion: Int,
+                weightBetterHabits: Int,
+                weightBackfireRisk: Int
             ) {
                 currentLanguages = ArrayList(languages)
                 currentDateKey = dateKey
                 currentIncludeLowScoreVideos = includeLowScoreVideos
+                currentDurationMinSeconds = durationMinSeconds
+                currentDurationMaxSeconds = durationMaxSeconds
+                currentWeightLargelyRecommended = weightLargelyRecommended
+                currentWeightReliability = weightReliability
+                currentWeightImportance = weightImportance
+                currentWeightPedagogy = weightPedagogy
+                currentWeightLaymanFriendly = weightLaymanFriendly
+                currentWeightEntertainingRelaxing = weightEntertainingRelaxing
+                currentWeightEngaging = weightEngaging
+                currentWeightDiversityInclusion = weightDiversityInclusion
+                currentWeightBetterHabits = weightBetterHabits
+                currentWeightBackfireRisk = weightBackfireRisk
 
                 saveFilters()
                 updateQuickChipSelection()
-                listener.onFiltersChanged(
-                    ArrayList(currentLanguages),
-                    currentDateKey,
-                    currentIncludeLowScoreVideos
-                )
+                notifyFiltersChanged()
             }
         })
         filterFragment.show(fragment.parentFragmentManager, "TournesolFilters")
@@ -210,6 +318,54 @@ class TournesolFilterController(
             TournesolHelper.PREF_TOURNESOL_FILTER_INCLUDE_LOW_SCORE,
             TournesolHelper.DEFAULT_TOURNESOL_FILTER_INCLUDE_LOW_SCORE
         )
+        currentDurationMinSeconds = prefs.getInt(
+            TournesolHelper.PREF_TOURNESOL_FILTER_DURATION_MIN,
+            TournesolHelper.DEFAULT_TOURNESOL_FILTER_DURATION_MIN
+        )
+        currentDurationMaxSeconds = prefs.getInt(
+            TournesolHelper.PREF_TOURNESOL_FILTER_DURATION_MAX,
+            TournesolHelper.DEFAULT_TOURNESOL_FILTER_DURATION_MAX
+        )
+        currentWeightLargelyRecommended = prefs.getInt(
+            TournesolHelper.PREF_TOURNESOL_FILTER_WEIGHT_LARGELY_RECOMMENDED,
+            TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+        )
+        currentWeightReliability = prefs.getInt(
+            TournesolHelper.PREF_TOURNESOL_FILTER_WEIGHT_RELIABILITY,
+            TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+        )
+        currentWeightImportance = prefs.getInt(
+            TournesolHelper.PREF_TOURNESOL_FILTER_WEIGHT_IMPORTANCE,
+            TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+        )
+        currentWeightPedagogy = prefs.getInt(
+            TournesolHelper.PREF_TOURNESOL_FILTER_WEIGHT_PEDAGOGY,
+            TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+        )
+        currentWeightLaymanFriendly = prefs.getInt(
+            TournesolHelper.PREF_TOURNESOL_FILTER_WEIGHT_LAYMAN_FRIENDLY,
+            TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+        )
+        currentWeightEntertainingRelaxing = prefs.getInt(
+            TournesolHelper.PREF_TOURNESOL_FILTER_WEIGHT_ENTERTAINING_RELAXING,
+            TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+        )
+        currentWeightEngaging = prefs.getInt(
+            TournesolHelper.PREF_TOURNESOL_FILTER_WEIGHT_ENGAGING,
+            TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+        )
+        currentWeightDiversityInclusion = prefs.getInt(
+            TournesolHelper.PREF_TOURNESOL_FILTER_WEIGHT_DIVERSITY_INCLUSION,
+            TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+        )
+        currentWeightBetterHabits = prefs.getInt(
+            TournesolHelper.PREF_TOURNESOL_FILTER_WEIGHT_BETTER_HABITS,
+            TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+        )
+        currentWeightBackfireRisk = prefs.getInt(
+            TournesolHelper.PREF_TOURNESOL_FILTER_WEIGHT_BACKFIRE_RISK,
+            TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+        )
     }
 
     private fun saveFilters() {
@@ -222,6 +378,54 @@ class TournesolFilterController(
             .putBoolean(
                 TournesolHelper.PREF_TOURNESOL_FILTER_INCLUDE_LOW_SCORE,
                 currentIncludeLowScoreVideos
+            )
+            .putInt(
+                TournesolHelper.PREF_TOURNESOL_FILTER_DURATION_MIN,
+                currentDurationMinSeconds
+            )
+            .putInt(
+                TournesolHelper.PREF_TOURNESOL_FILTER_DURATION_MAX,
+                currentDurationMaxSeconds
+            )
+            .putInt(
+                TournesolHelper.PREF_TOURNESOL_FILTER_WEIGHT_LARGELY_RECOMMENDED,
+                currentWeightLargelyRecommended
+            )
+            .putInt(
+                TournesolHelper.PREF_TOURNESOL_FILTER_WEIGHT_RELIABILITY,
+                currentWeightReliability
+            )
+            .putInt(
+                TournesolHelper.PREF_TOURNESOL_FILTER_WEIGHT_IMPORTANCE,
+                currentWeightImportance
+            )
+            .putInt(
+                TournesolHelper.PREF_TOURNESOL_FILTER_WEIGHT_PEDAGOGY,
+                currentWeightPedagogy
+            )
+            .putInt(
+                TournesolHelper.PREF_TOURNESOL_FILTER_WEIGHT_LAYMAN_FRIENDLY,
+                currentWeightLaymanFriendly
+            )
+            .putInt(
+                TournesolHelper.PREF_TOURNESOL_FILTER_WEIGHT_ENTERTAINING_RELAXING,
+                currentWeightEntertainingRelaxing
+            )
+            .putInt(
+                TournesolHelper.PREF_TOURNESOL_FILTER_WEIGHT_ENGAGING,
+                currentWeightEngaging
+            )
+            .putInt(
+                TournesolHelper.PREF_TOURNESOL_FILTER_WEIGHT_DIVERSITY_INCLUSION,
+                currentWeightDiversityInclusion
+            )
+            .putInt(
+                TournesolHelper.PREF_TOURNESOL_FILTER_WEIGHT_BETTER_HABITS,
+                currentWeightBetterHabits
+            )
+            .putInt(
+                TournesolHelper.PREF_TOURNESOL_FILTER_WEIGHT_BACKFIRE_RISK,
+                currentWeightBackfireRisk
             )
             .apply()
     }

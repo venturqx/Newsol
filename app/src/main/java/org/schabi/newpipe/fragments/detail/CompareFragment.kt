@@ -118,6 +118,8 @@ class CompareFragment : Fragment() {
         }
         if (currentInfo == null && useCompactUi) {
             loadRandomPair()
+        } else if (useCompactUi) {
+            prefetchPool()
         }
         loadWeeklyStats()
         refreshUserInfo()
@@ -1125,6 +1127,10 @@ class CompareFragment : Fragment() {
                 }
             }
         }
+    }
+
+    private fun prefetchPool() {
+        fetchPoolThen { _ -> }
     }
 
     private fun loadRandomPair() {

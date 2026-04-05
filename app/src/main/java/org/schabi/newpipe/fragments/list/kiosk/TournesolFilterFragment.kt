@@ -26,6 +26,8 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -59,7 +61,19 @@ class TournesolFilterFragment : BottomSheetDialogFragment() {
         fun onApply(
             languages: List<String>,
             dateKey: String,
-            includeLowScoreVideos: Boolean
+            includeLowScoreVideos: Boolean,
+            durationMinSeconds: Int,
+            durationMaxSeconds: Int,
+            weightLargelyRecommended: Int,
+            weightReliability: Int,
+            weightImportance: Int,
+            weightPedagogy: Int,
+            weightLaymanFriendly: Int,
+            weightEntertainingRelaxing: Int,
+            weightEngaging: Int,
+            weightDiversityInclusion: Int,
+            weightBetterHabits: Int,
+            weightBackfireRisk: Int
         )
     }
 
@@ -68,6 +82,18 @@ class TournesolFilterFragment : BottomSheetDialogFragment() {
     private var initialDateKey: String? = null
     private var initialIncludeLowScoreVideos: Boolean =
         TournesolHelper.DEFAULT_TOURNESOL_FILTER_INCLUDE_LOW_SCORE
+    private var initialDurationMinSeconds: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_DURATION_MIN
+    private var initialDurationMaxSeconds: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_DURATION_MAX
+    private var initialWeightLargelyRecommended: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+    private var initialWeightReliability: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+    private var initialWeightImportance: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+    private var initialWeightPedagogy: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+    private var initialWeightLaymanFriendly: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+    private var initialWeightEntertainingRelaxing: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+    private var initialWeightEngaging: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+    private var initialWeightDiversityInclusion: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+    private var initialWeightBetterHabits: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
+    private var initialWeightBackfireRisk: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
 
     fun setListener(listener: FilterListener) {
         this.listener = listener
@@ -76,11 +102,35 @@ class TournesolFilterFragment : BottomSheetDialogFragment() {
     fun setInitialData(
         languages: List<String>,
         dateKey: String,
-        includeLowScoreVideos: Boolean
+        includeLowScoreVideos: Boolean,
+        durationMinSeconds: Int,
+        durationMaxSeconds: Int,
+        weightLargelyRecommended: Int,
+        weightReliability: Int,
+        weightImportance: Int,
+        weightPedagogy: Int,
+        weightLaymanFriendly: Int,
+        weightEntertainingRelaxing: Int,
+        weightEngaging: Int,
+        weightDiversityInclusion: Int,
+        weightBetterHabits: Int,
+        weightBackfireRisk: Int
     ) {
         this.initialLanguages = languages
         this.initialDateKey = dateKey
         this.initialIncludeLowScoreVideos = includeLowScoreVideos
+        this.initialDurationMinSeconds = durationMinSeconds
+        this.initialDurationMaxSeconds = durationMaxSeconds
+        this.initialWeightLargelyRecommended = weightLargelyRecommended
+        this.initialWeightReliability = weightReliability
+        this.initialWeightImportance = weightImportance
+        this.initialWeightPedagogy = weightPedagogy
+        this.initialWeightLaymanFriendly = weightLaymanFriendly
+        this.initialWeightEntertainingRelaxing = weightEntertainingRelaxing
+        this.initialWeightEngaging = weightEngaging
+        this.initialWeightDiversityInclusion = weightDiversityInclusion
+        this.initialWeightBetterHabits = weightBetterHabits
+        this.initialWeightBackfireRisk = weightBackfireRisk
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -116,8 +166,44 @@ class TournesolFilterFragment : BottomSheetDialogFragment() {
                         initialLanguages = seedLanguages,
                         initialDateKey = seedDateKey,
                         initialIncludeLowScoreVideos = seedIncludeLowScoreVideos,
-                        onApply = { languages, dateKey, includeLowScoreVideos ->
-                            listener?.onApply(languages, dateKey, includeLowScoreVideos)
+                        initialDurationMinSeconds = initialDurationMinSeconds,
+                        initialDurationMaxSeconds = initialDurationMaxSeconds,
+                        initialWeightLargelyRecommended = initialWeightLargelyRecommended,
+                        initialWeightReliability = initialWeightReliability,
+                        initialWeightImportance = initialWeightImportance,
+                        initialWeightPedagogy = initialWeightPedagogy,
+                        initialWeightLaymanFriendly = initialWeightLaymanFriendly,
+                        initialWeightEntertainingRelaxing = initialWeightEntertainingRelaxing,
+                        initialWeightEngaging = initialWeightEngaging,
+                        initialWeightDiversityInclusion = initialWeightDiversityInclusion,
+                        initialWeightBetterHabits = initialWeightBetterHabits,
+                        initialWeightBackfireRisk = initialWeightBackfireRisk,
+                        onApply = {
+                                languages,
+                                dateKey,
+                                includeLowScoreVideos,
+                                durationMin,
+                                durationMax,
+                                wLR,
+                                wRel,
+                                wImp,
+                                wPed,
+                                wLay,
+                                wEnt,
+                                wEng,
+                                wDiv,
+                                wBet,
+                                wBack
+                            ->
+                            listener?.onApply(
+                                languages,
+                                dateKey,
+                                includeLowScoreVideos,
+                                durationMin,
+                                durationMax,
+                                wLR, wRel, wImp,
+                                wPed, wLay, wEnt, wEng, wDiv, wBet, wBack
+                            )
                         },
                         onClose = { dismiss() }
                     )
@@ -129,13 +215,27 @@ class TournesolFilterFragment : BottomSheetDialogFragment() {
 
 private data class FilterOption(val key: String, @StringRes val labelResId: Int)
 
+private const val DURATION_SLIDER_MAX = 120f
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TournesolFilterSheet(
     initialLanguages: List<String>,
     initialDateKey: String,
     initialIncludeLowScoreVideos: Boolean,
-    onApply: (List<String>, String, Boolean) -> Unit,
+    initialDurationMinSeconds: Int,
+    initialDurationMaxSeconds: Int,
+    initialWeightLargelyRecommended: Int,
+    initialWeightReliability: Int,
+    initialWeightImportance: Int,
+    initialWeightPedagogy: Int,
+    initialWeightLaymanFriendly: Int,
+    initialWeightEntertainingRelaxing: Int,
+    initialWeightEngaging: Int,
+    initialWeightDiversityInclusion: Int,
+    initialWeightBetterHabits: Int,
+    initialWeightBackfireRisk: Int,
+    onApply: (List<String>, String, Boolean, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Unit,
     onClose: () -> Unit
 ) {
     val chipColors = FilterChipDefaults.filterChipColors(
@@ -155,6 +255,49 @@ private fun TournesolFilterSheet(
     }
     var selectedDateKey by remember { mutableStateOf(initialDateKey) }
     var includeLowScoreVideos by remember { mutableStateOf(initialIncludeLowScoreVideos) }
+
+    // Duration: store as minutes in slider, convert to seconds for API
+    var durationMinMinutes by remember {
+        mutableStateOf(if (initialDurationMinSeconds >= 0) initialDurationMinSeconds / 60f else 0f)
+    }
+    var durationMaxMinutes by remember {
+        mutableStateOf(if (initialDurationMaxSeconds >= 0) initialDurationMaxSeconds / 60f else DURATION_SLIDER_MAX)
+    }
+
+    // Weights: -1 means default (not set), 0-100 are explicit values
+    var weightLR by remember { mutableStateOf(initialWeightLargelyRecommended) }
+    var weightRel by remember { mutableStateOf(initialWeightReliability) }
+    var weightImp by remember { mutableStateOf(initialWeightImportance) }
+    var weightPed by remember { mutableStateOf(initialWeightPedagogy) }
+    var weightLay by remember { mutableStateOf(initialWeightLaymanFriendly) }
+    var weightEnt by remember { mutableStateOf(initialWeightEntertainingRelaxing) }
+    var weightEng by remember { mutableStateOf(initialWeightEngaging) }
+    var weightDiv by remember { mutableStateOf(initialWeightDiversityInclusion) }
+    var weightBet by remember { mutableStateOf(initialWeightBetterHabits) }
+    var weightBack by remember { mutableStateOf(initialWeightBackfireRisk) }
+
+    fun currentDurationMinSeconds(): Int = if (durationMinMinutes <= 0f) -1 else (durationMinMinutes * 60).toInt()
+    fun currentDurationMaxSeconds(): Int = if (durationMaxMinutes >= DURATION_SLIDER_MAX) -1 else (durationMaxMinutes * 60).toInt()
+
+    fun applyAll() {
+        onApply(
+            selectedLanguages.toList(),
+            selectedDateKey,
+            includeLowScoreVideos,
+            currentDurationMinSeconds(),
+            currentDurationMaxSeconds(),
+            weightLR,
+            weightRel,
+            weightImp,
+            weightPed,
+            weightLay,
+            weightEnt,
+            weightEng,
+            weightDiv,
+            weightBet,
+            weightBack
+        )
+    }
 
     val languageOptions = remember {
         listOf(
@@ -212,7 +355,7 @@ private fun TournesolFilterSheet(
                     selected = includeLowScoreVideos,
                     onClick = {
                         includeLowScoreVideos = !includeLowScoreVideos
-                        onApply(selectedLanguages.toList(), selectedDateKey, includeLowScoreVideos)
+                        applyAll()
                     },
                     label = { Text(text = stringResource(R.string.include_low_score_videos), style = chipTextStyle) },
                     colors = chipColors,
@@ -237,11 +380,7 @@ private fun TournesolFilterSheet(
                                 } else {
                                     selectedLanguages.add(option.key)
                                 }
-                                onApply(
-                                    selectedLanguages.toList(),
-                                    selectedDateKey,
-                                    includeLowScoreVideos
-                                )
+                                applyAll()
                             },
                             label = { Text(text = stringResource(option.labelResId), style = chipTextStyle) },
                             colors = chipColors,
@@ -265,11 +404,7 @@ private fun TournesolFilterSheet(
                             onClick = {
                                 if (!isSelected) {
                                     selectedDateKey = option.key
-                                    onApply(
-                                        selectedLanguages.toList(),
-                                        selectedDateKey,
-                                        includeLowScoreVideos
-                                    )
+                                    applyAll()
                                 }
                             },
                             label = { Text(text = stringResource(option.labelResId), style = chipTextStyle) },
@@ -278,6 +413,108 @@ private fun TournesolFilterSheet(
                             border = null
                         )
                     }
+                }
+            }
+
+            // Duration filter
+            Spacer(modifier = Modifier.height(12.dp))
+            FilterSection(stringResource(R.string.filter_duration)) {
+                Column {
+                    DurationSliderRow(
+                        label = stringResource(
+                            R.string.filter_duration_min,
+                            formatDurationLabel(durationMinMinutes, 0f)
+                        ),
+                        value = durationMinMinutes,
+                        onValueChange = { durationMinMinutes = it },
+                        onValueChangeFinished = { applyAll() }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    DurationSliderRow(
+                        label = stringResource(
+                            R.string.filter_duration_max,
+                            formatDurationLabel(durationMaxMinutes, DURATION_SLIDER_MAX)
+                        ),
+                        value = durationMaxMinutes,
+                        onValueChange = { durationMaxMinutes = it },
+                        onValueChangeFinished = { applyAll() }
+                    )
+                }
+            }
+
+            // Criteria weights filter
+            Spacer(modifier = Modifier.height(12.dp))
+            FilterSection(stringResource(R.string.filter_criteria)) {
+                Column {
+                    WeightSliderRow(
+                        label = stringResource(R.string.filter_criteria_largely_recommended),
+                        value = weightLR,
+                        onValueChange = { weightLR = it },
+                        onValueChangeFinished = { applyAll() }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    WeightSliderRow(
+                        label = stringResource(R.string.filter_criteria_reliability),
+                        value = weightRel,
+                        onValueChange = { weightRel = it },
+                        onValueChangeFinished = { applyAll() }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    WeightSliderRow(
+                        label = stringResource(R.string.filter_criteria_importance),
+                        value = weightImp,
+                        onValueChange = { weightImp = it },
+                        onValueChangeFinished = { applyAll() }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    WeightSliderRow(
+                        label = stringResource(R.string.filter_criteria_pedagogy),
+                        value = weightPed,
+                        onValueChange = { weightPed = it },
+                        onValueChangeFinished = { applyAll() }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    WeightSliderRow(
+                        label = stringResource(R.string.filter_criteria_layman_friendly),
+                        value = weightLay,
+                        onValueChange = { weightLay = it },
+                        onValueChangeFinished = { applyAll() }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    WeightSliderRow(
+                        label = stringResource(R.string.filter_criteria_entertaining_relaxing),
+                        value = weightEnt,
+                        onValueChange = { weightEnt = it },
+                        onValueChangeFinished = { applyAll() }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    WeightSliderRow(
+                        label = stringResource(R.string.filter_criteria_engaging),
+                        value = weightEng,
+                        onValueChange = { weightEng = it },
+                        onValueChangeFinished = { applyAll() }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    WeightSliderRow(
+                        label = stringResource(R.string.filter_criteria_diversity_inclusion),
+                        value = weightDiv,
+                        onValueChange = { weightDiv = it },
+                        onValueChangeFinished = { applyAll() }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    WeightSliderRow(
+                        label = stringResource(R.string.filter_criteria_better_habits),
+                        value = weightBet,
+                        onValueChange = { weightBet = it },
+                        onValueChangeFinished = { applyAll() }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    WeightSliderRow(
+                        label = stringResource(R.string.filter_criteria_backfire_risk),
+                        value = weightBack,
+                        onValueChange = { weightBack = it },
+                        onValueChangeFinished = { applyAll() }
+                    )
                 }
             }
         }
@@ -302,5 +539,83 @@ private fun FilterSection(title: String, content: @Composable () -> Unit) {
         Box(modifier = Modifier.padding(12.dp)) {
             content()
         }
+    }
+}
+
+@Composable
+private fun formatDurationLabel(minutes: Float, noLimitValue: Float): String {
+    return if (minutes <= 0f && noLimitValue == 0f || minutes >= DURATION_SLIDER_MAX && noLimitValue == DURATION_SLIDER_MAX) {
+        stringResource(R.string.filter_duration_no_limit)
+    } else {
+        stringResource(R.string.filter_duration_minutes, minutes.toInt())
+    }
+}
+
+@Composable
+private fun DurationSliderRow(
+    label: String,
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    onValueChangeFinished: () -> Unit
+) {
+    val sliderColors = SliderDefaults.colors(
+        thumbColor = colorResource(R.color.tournesol_chip_bg_selected),
+        activeTrackColor = colorResource(R.color.tournesol_chip_bg_selected)
+    )
+    Column {
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            onValueChangeFinished = onValueChangeFinished,
+            valueRange = 0f..DURATION_SLIDER_MAX,
+            steps = 23,
+            colors = sliderColors,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun WeightSliderRow(
+    label: String,
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    onValueChangeFinished: () -> Unit
+) {
+    val sliderColors = SliderDefaults.colors(
+        thumbColor = colorResource(R.color.tournesol_chip_bg_selected),
+        activeTrackColor = colorResource(R.color.tournesol_chip_bg_selected)
+    )
+    val displayValue = if (value < 0) 50 else value
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = label,
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = if (value < 0) "Default" else "$value",
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Slider(
+            value = displayValue.toFloat(),
+            onValueChange = { onValueChange(it.toInt()) },
+            onValueChangeFinished = onValueChangeFinished,
+            valueRange = 0f..100f,
+            steps = 3,
+            colors = sliderColors,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
