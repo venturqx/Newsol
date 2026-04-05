@@ -64,6 +64,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -75,9 +76,11 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -139,6 +142,8 @@ import org.schabi.newpipe.ui.components.items.stream.StreamThumbnail
 
 private const val WEEKLY_GOAL = 2500
 private const val DAILY_GOAL = 2
+private const val COMPARE_SCALE_REFERENCE_WIDTH = 500f
+private val LocalCompareScale = staticCompositionLocalOf { 1f }
 
 @Composable
 private fun GoalRing(
@@ -158,6 +163,7 @@ private fun GoalRing(
         else -> "\uD83C\uDF31"
     }
 
+    val scale = LocalCompareScale.current
     val animatedProgress by animateFloatAsState(
         targetValue = progress.coerceIn(0f, 1f),
         animationSpec = tween(durationMillis = 600, easing = LinearOutSlowInEasing),
@@ -170,7 +176,7 @@ private fun GoalRing(
         modifier = modifier
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Canvas(modifier = Modifier.size(44.dp)) {
+            Canvas(modifier = Modifier.size(44.dp * scale)) {
                 val stroke = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
                 drawArc(
                     color = trackColor,
@@ -189,21 +195,21 @@ private fun GoalRing(
             }
             Text(
                 text = emoji,
-                fontSize = 16.sp
+                fontSize = 16.sp * scale
             )
         }
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(2.dp * scale))
         Text(
             text = "$current / $goal",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-            fontSize = 9.sp
+            fontSize = 9.sp * scale
         )
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-            fontSize = 8.sp
+            fontSize = 8.sp * scale
         )
     }
 }
@@ -217,11 +223,12 @@ private fun UserGreetingBanner(
     onLogin: () -> Unit,
     onRegister: () -> Unit
 ) {
+    val scale = LocalCompareScale.current
     if (username != null) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp),
+                .padding(vertical = 4.dp * scale),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -263,7 +270,7 @@ private fun UserGreetingBanner(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp),
+                .padding(vertical = 4.dp * scale),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -273,16 +280,16 @@ private fun UserGreetingBanner(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 modifier = Modifier.weight(1f)
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp * scale)) {
                 Button(
                     onClick = onLogin,
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
+                    contentPadding = PaddingValues(horizontal = 16.dp * scale, vertical = 6.dp * scale)
                 ) {
                     Text(text = stringResource(R.string.tournesol_login_button))
                 }
                 OutlinedButton(
                     onClick = onRegister,
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
+                    contentPadding = PaddingValues(horizontal = 16.dp * scale, vertical = 6.dp * scale)
                 ) {
                     Text(text = stringResource(R.string.tournesol_register_button))
                 }
@@ -308,245 +315,250 @@ fun CompareScreen(
     val currentEntry = state.selectedEntry
     val scrollState = rememberScrollState()
     val nestedScrollInterop = rememberNestedScrollInteropConnection()
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .nestedScroll(nestedScrollInterop)
-            .verticalScroll(scrollState)
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = stringResource(
-                R.string.compare_instruction_text,
-                stringResource(R.string.compare_current_video_header),
-                stringResource(R.string.compare_last_viewed_header)
-            ),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 3.dp)
-        )
-
-        HistoryWheel(
-            entries = state.historyEntries,
-            selectedIndex = state.selectedIndex,
-            historyMessageRes = state.historyMessageRes,
-            onSelectIndex = onSelectIndex,
-            onNavigateToVideo = onNavigateToVideo
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = stringResource(R.string.compare_current_video_header),
-                style = MaterialTheme.typography.labelMedium,
-                color = Color(0xFFE57373)
-            )
-            Text(
-                text = stringResource(R.string.compare_last_viewed_header),
-                style = MaterialTheme.typography.labelMedium,
-                color = Color(0xFF64B5F6)
-            )
-        }
-
-        ThickScoreSlider(
-            value = state.score,
-            onValueChange = onScoreChange,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        val submitEnabled = currentEntry != null && !state.submitted && !state.submitInProgress
-        val showChange = state.submittedConfirmed
-        val changeEnabled = showChange &&
-            currentEntry != null &&
-            !state.changeInProgress &&
-            (state.storedMainScore == null || state.score != state.storedMainScore)
-        val submitLabel = stringResource(
-            if (state.submitInProgress) {
-                R.string.compare_submitting_label
-            } else if (state.submitted) {
-                R.string.compare_submitted_label
-            } else {
-                R.string.compare_submit_label
-            }
-        )
-        val chipColors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = colorResource(R.color.tournesol_chip_bg_selected),
-            containerColor = colorResource(R.color.tournesol_chip_bg_unselected),
-            selectedLabelColor = colorResource(R.color.tournesol_chip_text_selected),
-            labelColor = MaterialTheme.colorScheme.onSurface
-        )
-        val chipShape = RoundedCornerShape(8.dp)
-        val chipTextStyle = TextStyle(
-            fontFamily = FontFamily(Typeface.create("sans-serif-medium", Typeface.NORMAL)),
-            fontSize = 14.sp,
-            letterSpacing = TextUnit(0.04f, TextUnitType.Em)
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            FilterChip(
-                selected = true,
-                onClick = { onSubmit() },
-                enabled = submitEnabled,
-                label = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        if (state.submitInProgress) {
-                            SubmitSpinner(
-                                modifier = Modifier.size(16.dp),
-                                color = colorResource(R.color.tournesol_chip_text_selected)
-                            )
-                        }
-                        Text(text = submitLabel, style = chipTextStyle)
-                    }
-                },
-                colors = chipColors,
-                shape = chipShape,
-                border = null
-            )
-            if (showChange) {
-                FilterChip(
-                    selected = true,
-                    onClick = { onChangeMainScore() },
-                    enabled = changeEnabled,
-                    label = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            if (state.changeInProgress) {
-                                SubmitSpinner(
-                                    modifier = Modifier.size(16.dp),
-                                    color = colorResource(R.color.tournesol_chip_text_selected)
-                                )
-                            } else {
-                                Image(
-                                    painter = painterResource(R.drawable.ic_refresh),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                            Text(
-                                text = stringResource(R.string.compare_change_label),
-                                style = chipTextStyle
-                            )
-                        }
-                    },
-                    colors = chipColors,
-                    shape = chipShape,
-                    border = null
-                )
-            }
-        }
-
-        if (state.submitted) {
-            Spacer(modifier = Modifier.height(18.dp))
-            Text(
-                text = stringResource(R.string.compare_more_criteria_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            AdditionalCriteriaSection(
-                scores = state.extraScores,
-                onScoreChange = onExtraScoreChange
-            )
-
-            val submitMoreEnabled = currentEntry != null &&
-                !state.submitMoreInProgress &&
-                !state.extraSubmitted
-            val showUpdate = state.extraSubmitted
-            val extraChanged = EXTRA_CRITERIA.any { criterion ->
-                state.extraScores[criterion.id] != state.storedExtraScores[criterion.id]
-            }
-            val updateEnabled = showUpdate &&
-                currentEntry != null &&
-                !state.submitMoreInProgress &&
-                extraChanged
-            val submitMoreLabel = stringResource(
-                if (state.submitMoreInProgress) {
-                    R.string.compare_submitting_label
-                } else if (state.extraSubmitted) {
-                    R.string.compare_submitted_label
-                } else {
-                    R.string.compare_submit_more_label
-                }
-            )
-            Row(
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val scale = (maxWidth.value / COMPARE_SCALE_REFERENCE_WIDTH).coerceIn(0.7f, 1f)
+        CompositionLocalProvider(LocalCompareScale provides scale) {
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
+                    .fillMaxSize()
+                    .nestedScroll(nestedScrollInterop)
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = 16.dp * scale, vertical = 6.dp * scale),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Row(
-                    modifier = Modifier.clickable(
-                        enabled = submitMoreEnabled,
-                        onClick = { onSubmitMore() }
+                Text(
+                    text = stringResource(
+                        R.string.compare_instruction_text,
+                        stringResource(R.string.compare_current_video_header),
+                        stringResource(R.string.compare_last_viewed_header)
                     ),
-                    verticalAlignment = Alignment.CenterVertically
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 3.dp)
+                )
+
+                HistoryWheel(
+                    entries = state.historyEntries,
+                    selectedIndex = state.selectedIndex,
+                    historyMessageRes = state.historyMessageRes,
+                    onSelectIndex = onSelectIndex,
+                    onNavigateToVideo = onNavigateToVideo
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = submitMoreLabel,
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = if (submitMoreEnabled) {
-                            lerp(MaterialTheme.colorScheme.onSurface, Color(0xFFFFD54F), 0.35f)
-                        } else {
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        }
+                        text = stringResource(R.string.compare_current_video_header),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color(0xFFE57373)
                     )
-                    if (state.submitMoreInProgress) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        SubmitSpinner(
-                            modifier = Modifier.size(18.dp),
-                            color = MaterialTheme.colorScheme.onSurface
+                    Text(
+                        text = stringResource(R.string.compare_last_viewed_header),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color(0xFF64B5F6)
+                    )
+                }
+
+                ThickScoreSlider(
+                    value = state.score,
+                    onValueChange = onScoreChange,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                val submitEnabled = currentEntry != null && !state.submitted && !state.submitInProgress
+                val showChange = state.submittedConfirmed
+                val changeEnabled = showChange &&
+                    currentEntry != null &&
+                    !state.changeInProgress &&
+                    (state.storedMainScore == null || state.score != state.storedMainScore)
+                val submitLabel = stringResource(
+                    if (state.submitInProgress) {
+                        R.string.compare_submitting_label
+                    } else if (state.submitted) {
+                        R.string.compare_submitted_label
+                    } else {
+                        R.string.compare_submit_label
+                    }
+                )
+                val chipColors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = colorResource(R.color.tournesol_chip_bg_selected),
+                    containerColor = colorResource(R.color.tournesol_chip_bg_unselected),
+                    selectedLabelColor = colorResource(R.color.tournesol_chip_text_selected),
+                    labelColor = MaterialTheme.colorScheme.onSurface
+                )
+                val chipShape = RoundedCornerShape(8.dp)
+                val chipTextStyle = TextStyle(
+                    fontFamily = FontFamily(Typeface.create("sans-serif-medium", Typeface.NORMAL)),
+                    fontSize = 14.sp,
+                    letterSpacing = TextUnit(0.04f, TextUnitType.Em)
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    FilterChip(
+                        selected = true,
+                        onClick = { onSubmit() },
+                        enabled = submitEnabled,
+                        label = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                if (state.submitInProgress) {
+                                    SubmitSpinner(
+                                        modifier = Modifier.size(16.dp),
+                                        color = colorResource(R.color.tournesol_chip_text_selected)
+                                    )
+                                }
+                                Text(text = submitLabel, style = chipTextStyle)
+                            }
+                        },
+                        colors = chipColors,
+                        shape = chipShape,
+                        border = null
+                    )
+                    if (showChange) {
+                        FilterChip(
+                            selected = true,
+                            onClick = { onChangeMainScore() },
+                            enabled = changeEnabled,
+                            label = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    if (state.changeInProgress) {
+                                        SubmitSpinner(
+                                            modifier = Modifier.size(16.dp),
+                                            color = colorResource(R.color.tournesol_chip_text_selected)
+                                        )
+                                    } else {
+                                        Image(
+                                            painter = painterResource(R.drawable.ic_refresh),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                    Text(
+                                        text = stringResource(R.string.compare_change_label),
+                                        style = chipTextStyle
+                                    )
+                                }
+                            },
+                            colors = chipColors,
+                            shape = chipShape,
+                            border = null
                         )
                     }
                 }
-                if (showUpdate) {
-                    Spacer(modifier = Modifier.width(14.dp))
+
+                if (state.submitted) {
+                    Spacer(modifier = Modifier.height(18.dp))
+                    Text(
+                        text = stringResource(R.string.compare_more_criteria_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    AdditionalCriteriaSection(
+                        scores = state.extraScores,
+                        onScoreChange = onExtraScoreChange
+                    )
+
+                    val submitMoreEnabled = currentEntry != null &&
+                        !state.submitMoreInProgress &&
+                        !state.extraSubmitted
+                    val showUpdate = state.extraSubmitted
+                    val extraChanged = EXTRA_CRITERIA.any { criterion ->
+                        state.extraScores[criterion.id] != state.storedExtraScores[criterion.id]
+                    }
+                    val updateEnabled = showUpdate &&
+                        currentEntry != null &&
+                        !state.submitMoreInProgress &&
+                        extraChanged
+                    val submitMoreLabel = stringResource(
+                        if (state.submitMoreInProgress) {
+                            R.string.compare_submitting_label
+                        } else if (state.extraSubmitted) {
+                            R.string.compare_submitted_label
+                        } else {
+                            R.string.compare_submit_more_label
+                        }
+                    )
                     Row(
-                        modifier = Modifier.clickable(
-                            enabled = updateEnabled,
-                            onClick = { onSubmitMore() }
-                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp),
+                        horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = stringResource(R.string.compare_update_label),
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                            color = if (updateEnabled) {
-                                lerp(MaterialTheme.colorScheme.onSurface, Color(0xFFFFD54F), 0.35f)
-                            } else {
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        Row(
+                            modifier = Modifier.clickable(
+                                enabled = submitMoreEnabled,
+                                onClick = { onSubmitMore() }
+                            ),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = submitMoreLabel,
+                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                color = if (submitMoreEnabled) {
+                                    lerp(MaterialTheme.colorScheme.onSurface, Color(0xFFFFD54F), 0.35f)
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                }
+                            )
+                            if (state.submitMoreInProgress) {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                SubmitSpinner(
+                                    modifier = Modifier.size(18.dp),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
                             }
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        if (state.submitMoreInProgress) {
-                            SubmitSpinner(
-                                modifier = Modifier.size(18.dp),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        } else {
-                            Image(
-                                painter = painterResource(R.drawable.ic_refresh),
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
+                        }
+                        if (showUpdate) {
+                            Spacer(modifier = Modifier.width(14.dp))
+                            Row(
+                                modifier = Modifier.clickable(
+                                    enabled = updateEnabled,
+                                    onClick = { onSubmitMore() }
+                                ),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.compare_update_label),
+                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                    color = if (updateEnabled) {
+                                        lerp(MaterialTheme.colorScheme.onSurface, Color(0xFFFFD54F), 0.35f)
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                    }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                if (state.submitMoreInProgress) {
+                                    SubmitSpinner(
+                                        modifier = Modifier.size(18.dp),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                } else {
+                                    Image(
+                                        painter = painterResource(R.drawable.ic_refresh),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -940,735 +952,759 @@ internal fun CompareCompactScreen(
         }
         false
     }
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .navigationBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .zIndex(1f)
-        ) {
-            Column(
+        val scale = (maxWidth.value / COMPARE_SCALE_REFERENCE_WIDTH).coerceIn(0.7f, 1f)
+        CompositionLocalProvider(LocalCompareScale provides scale) {
+            Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(bottom = bottomContentPadding),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp * scale, vertical = 12.dp * scale)
             ) {
-                if (showGreeting) {
-                    UserGreetingBanner(
-                        username = state.username,
-                        comparisonCount = state.comparisonCount,
-                        weeklyComparisons = state.weeklyComparisons,
-                        dailyComparisons = state.dailyComparisons,
-                        onLogin = onShowLogin,
-                        onRegister = onRegister
-                    )
-                }
-
-                CompactDimensionList(
-                    dimensions = dimensions,
-                    activeIndex = activeIndexSafe,
-                    scores = state,
-                    selectedIds = selectedIds,
-                    onToggleSelected = { id, selected -> onSelectionChange(id, selected) },
-                    onSelect = { index ->
-                        activeIndex = index
-                    },
+                Column(
                     modifier = Modifier
-                        .then(criteriaTouchLockModifier)
-                        .then(gestureModifier)
-                )
-
-                val showLeftContent = hasSuggestedLeft || selectedHistoryEntryLeft != null
-                val showRightContent = hasSuggestedRight || selectedHistoryEntryRight != null
-                if (showLeftContent || showRightContent) {
-                    val effectiveLeftTitle = if (hasSuggestedLeft) {
-                        suggestedLeftTitle
-                    } else {
-                        selectedHistoryEntryLeft?.streamEntity?.title.orEmpty()
-                    }
-                    val effectiveLeftUploader = if (hasSuggestedLeft) {
-                        suggestedLeftUploader
-                    } else {
-                        selectedHistoryEntryLeft?.streamEntity?.uploader.orEmpty()
-                    }
-                    val effectiveRightTitle = if (hasSuggestedRight) {
-                        suggestedRightTitle
-                    } else {
-                        selectedHistoryEntryRight?.streamEntity?.title.orEmpty()
-                    }
-                    val effectiveRightUploader = if (hasSuggestedRight) {
-                        suggestedRightUploader
-                    } else {
-                        selectedHistoryEntryRight?.streamEntity?.uploader.orEmpty()
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        .fillMaxSize()
+                        .zIndex(1f)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(bottom = bottomContentPadding),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .combinedClickable(
-                                    onClick = {
-                                        openHistoryOverlay(OverlayTarget.LEFT)
-                                    },
-                                    onLongClick = {
-                                        if (hasSuggestedLeft) {
-                                            val sl = state.suggestedLeft
-                                            if (sl?.videoUrl != null) {
-                                                onNavigateToVideo?.invoke(
-                                                    CompareRepository.uidToServiceId(sl.uid),
-                                                    sl.videoUrl,
-                                                    sl.title
-                                                )
-                                            }
-                                        } else {
-                                            selectedHistoryEntryLeft?.streamEntity?.let {
-                                                onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
-                                            }
-                                        }
-                                    }
-                                ),
-                            contentAlignment = Alignment.CenterEnd
-                        ) {
-                            CompareSideLabel(
-                                title = effectiveLeftTitle,
-                                uploader = effectiveLeftUploader,
-                                textAlign = TextAlign.End
+                        if (showGreeting) {
+                            UserGreetingBanner(
+                                username = state.username,
+                                comparisonCount = state.comparisonCount,
+                                weeklyComparisons = state.weeklyComparisons,
+                                dailyComparisons = state.dailyComparisons,
+                                onLogin = onShowLogin,
+                                onRegister = onRegister
                             )
                         }
 
-                        Box(
-                            modifier = Modifier.weight(2f),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Box {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    if (showLeftContent) {
-                                        Box(
-                                            modifier = Modifier.weight(1f),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Surface(
-                                                modifier = Modifier
-                                                    .combinedClickable(
-                                                        onClick = {
-                                                            openHistoryOverlay(OverlayTarget.LEFT)
-                                                        },
-                                                        onLongClick = {
-                                                            if (hasSuggestedLeft) {
-                                                                val sl = state.suggestedLeft
-                                                                if (sl?.videoUrl != null) {
-                                                                    onNavigateToVideo?.invoke(
-                                                                        CompareRepository.uidToServiceId(sl.uid),
-                                                                        sl.videoUrl,
-                                                                        sl.title
-                                                                    )
-                                                                }
-                                                            } else {
-                                                                selectedHistoryEntryLeft?.streamEntity?.let {
-                                                                    onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
-                                                                }
-                                                            }
-                                                        }
-                                                    ),
-                                                shape = RoundedCornerShape(6.dp),
-                                                border = BorderStroke(2.dp, Color(0xFF42A5F5)),
-                                                color = MaterialTheme.colorScheme.surface
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier.padding(2.dp)
-                                                ) {
-                                                    if (hasSuggestedLeft) {
-                                                        SuggestedVideoThumbnail(
-                                                            thumbnailUrl = state.suggestedLeft?.thumbnailUrl,
-                                                            thumbnailHeight = 52.dp
-                                                        )
-                                                    } else {
-                                                        CompareVideoThumbnailCard(
-                                                            entry = selectedHistoryEntryLeft!!,
-                                                            thumbnailHeight = 52.dp,
-                                                            showMeta = false,
-                                                            contentScale = ContentScale.Fit
-                                                        )
-                                                    }
-                                                    if (isLeftCurrent) {
-                                                        CurrentBadge(
-                                                            modifier = Modifier.align(Alignment.TopEnd)
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    } else {
-                                        Spacer(modifier = Modifier.weight(1f))
-                                    }
+                        CompactDimensionList(
+                            dimensions = dimensions,
+                            activeIndex = activeIndexSafe,
+                            scores = state,
+                            selectedIds = selectedIds,
+                            onToggleSelected = { id, selected -> onSelectionChange(id, selected) },
+                            onSelect = { index ->
+                                activeIndex = index
+                            },
+                            modifier = Modifier
+                                .then(criteriaTouchLockModifier)
+                                .then(gestureModifier)
+                        )
 
-                                    if (showRightContent) {
-                                        Box(
-                                            modifier = Modifier.weight(1f),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Surface(
-                                                modifier = Modifier
-                                                    .combinedClickable(
-                                                        onClick = {
-                                                            openHistoryOverlay(OverlayTarget.RIGHT)
-                                                        },
-                                                        onLongClick = {
-                                                            if (hasSuggestedRight) {
-                                                                val sr = state.suggestedRight
-                                                                if (sr?.videoUrl != null) {
-                                                                    onNavigateToVideo?.invoke(
-                                                                        CompareRepository.uidToServiceId(sr.uid),
-                                                                        sr.videoUrl,
-                                                                        sr.title
-                                                                    )
-                                                                }
-                                                            } else {
-                                                                selectedHistoryEntryRight?.streamEntity?.let {
-                                                                    onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
-                                                                }
-                                                            }
-                                                        }
-                                                    ),
-                                                shape = RoundedCornerShape(6.dp),
-                                                border = BorderStroke(2.dp, Color(0xFFE57373)),
-                                                color = MaterialTheme.colorScheme.surface
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier.padding(2.dp)
-                                                ) {
-                                                    if (hasSuggestedRight) {
-                                                        SuggestedVideoThumbnail(
-                                                            thumbnailUrl = state.suggestedRight?.thumbnailUrl,
-                                                            thumbnailHeight = 52.dp
-                                                        )
-                                                    } else {
-                                                        CompareVideoThumbnailCard(
-                                                            entry = selectedHistoryEntryRight!!,
-                                                            thumbnailHeight = 52.dp,
-                                                            showMeta = false,
-                                                            contentScale = ContentScale.Fit
+                        CompactHeader(
+                            description = activeDescription,
+                            iconRes = activeDimension.iconRes,
+                            modifier = Modifier
+                                .padding(start = 12.dp, end = 12.dp)
+                        )
+
+                        val showLeftContent = hasSuggestedLeft || selectedHistoryEntryLeft != null
+                        val showRightContent = hasSuggestedRight || selectedHistoryEntryRight != null
+                        if (showLeftContent || showRightContent) {
+                            val effectiveLeftTitle = if (hasSuggestedLeft) {
+                                suggestedLeftTitle
+                            } else {
+                                selectedHistoryEntryLeft?.streamEntity?.title.orEmpty()
+                            }
+                            val effectiveLeftUploader = if (hasSuggestedLeft) {
+                                suggestedLeftUploader
+                            } else {
+                                selectedHistoryEntryLeft?.streamEntity?.uploader.orEmpty()
+                            }
+                            val effectiveRightTitle = if (hasSuggestedRight) {
+                                suggestedRightTitle
+                            } else {
+                                selectedHistoryEntryRight?.streamEntity?.title.orEmpty()
+                            }
+                            val effectiveRightUploader = if (hasSuggestedRight) {
+                                suggestedRightUploader
+                            } else {
+                                selectedHistoryEntryRight?.streamEntity?.uploader.orEmpty()
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp * scale),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .combinedClickable(
+                                            onClick = {
+                                                openHistoryOverlay(OverlayTarget.LEFT)
+                                            },
+                                            onLongClick = {
+                                                if (hasSuggestedLeft) {
+                                                    val sl = state.suggestedLeft
+                                                    if (sl?.videoUrl != null) {
+                                                        onNavigateToVideo?.invoke(
+                                                            CompareRepository.uidToServiceId(sl.uid),
+                                                            sl.videoUrl,
+                                                            sl.title
                                                         )
                                                     }
-                                                    if (isRightCurrent) {
-                                                        CurrentBadge(
-                                                            modifier = Modifier.align(Alignment.TopEnd)
-                                                        )
+                                                } else {
+                                                    selectedHistoryEntryLeft?.streamEntity?.let {
+                                                        onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
                                                     }
                                                 }
                                             }
+                                        ),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    CompareSideLabel(
+                                        title = effectiveLeftTitle,
+                                        uploader = effectiveLeftUploader,
+                                        textAlign = TextAlign.End
+                                    )
+                                }
+
+                                Box(
+                                    modifier = Modifier.weight(2f),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Box {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            if (showLeftContent) {
+                                                Box(
+                                                    modifier = Modifier.weight(1f),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Surface(
+                                                        modifier = Modifier
+                                                            .then(
+                                                                if (isLeftCurrent) {
+                                                                    Modifier.shadow(
+                                                                        elevation = 20.dp,
+                                                                        shape = RoundedCornerShape(6.dp),
+                                                                        ambientColor = Color(0xFF42A5F5),
+                                                                        spotColor = Color(0xFF42A5F5)
+                                                                    )
+                                                                } else {
+                                                                    Modifier
+                                                                }
+                                                            )
+                                                            .combinedClickable(
+                                                                onClick = {
+                                                                    openHistoryOverlay(OverlayTarget.LEFT)
+                                                                },
+                                                                onLongClick = {
+                                                                    if (hasSuggestedLeft) {
+                                                                        val sl = state.suggestedLeft
+                                                                        if (sl?.videoUrl != null) {
+                                                                            onNavigateToVideo?.invoke(
+                                                                                CompareRepository.uidToServiceId(sl.uid),
+                                                                                sl.videoUrl,
+                                                                                sl.title
+                                                                            )
+                                                                        }
+                                                                    } else {
+                                                                        selectedHistoryEntryLeft?.streamEntity?.let {
+                                                                            onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
+                                                                        }
+                                                                    }
+                                                                }
+                                                            ),
+                                                        shape = RoundedCornerShape(6.dp),
+                                                        border = BorderStroke(if (isLeftCurrent) 3.dp else 2.dp, Color(0xFF42A5F5)),
+                                                        color = MaterialTheme.colorScheme.surface
+                                                    ) {
+                                                        Box(
+                                                            modifier = Modifier.padding(2.dp)
+                                                        ) {
+                                                            if (hasSuggestedLeft) {
+                                                                SuggestedVideoThumbnail(
+                                                                    thumbnailUrl = state.suggestedLeft?.thumbnailUrl,
+                                                                    thumbnailHeight = 52.dp * scale
+                                                                )
+                                                            } else {
+                                                                CompareVideoThumbnailCard(
+                                                                    entry = selectedHistoryEntryLeft!!,
+                                                                    thumbnailHeight = 52.dp * scale,
+                                                                    showMeta = false,
+                                                                    contentScale = ContentScale.Fit
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                Spacer(modifier = Modifier.weight(1f))
+                                            }
+
+                                            if (showRightContent) {
+                                                Box(
+                                                    modifier = Modifier.weight(1f),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Surface(
+                                                        modifier = Modifier
+                                                            .then(
+                                                                if (isRightCurrent) {
+                                                                    Modifier.shadow(
+                                                                        elevation = 20.dp,
+                                                                        shape = RoundedCornerShape(6.dp),
+                                                                        ambientColor = Color(0xFFE57373),
+                                                                        spotColor = Color(0xFFE57373)
+                                                                    )
+                                                                } else {
+                                                                    Modifier
+                                                                }
+                                                            )
+                                                            .combinedClickable(
+                                                                onClick = {
+                                                                    openHistoryOverlay(OverlayTarget.RIGHT)
+                                                                },
+                                                                onLongClick = {
+                                                                    if (hasSuggestedRight) {
+                                                                        val sr = state.suggestedRight
+                                                                        if (sr?.videoUrl != null) {
+                                                                            onNavigateToVideo?.invoke(
+                                                                                CompareRepository.uidToServiceId(sr.uid),
+                                                                                sr.videoUrl,
+                                                                                sr.title
+                                                                            )
+                                                                        }
+                                                                    } else {
+                                                                        selectedHistoryEntryRight?.streamEntity?.let {
+                                                                            onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
+                                                                        }
+                                                                    }
+                                                                }
+                                                            ),
+                                                        shape = RoundedCornerShape(6.dp),
+                                                        border = BorderStroke(if (isRightCurrent) 3.dp else 2.dp, Color(0xFFE57373)),
+                                                        color = MaterialTheme.colorScheme.surface
+                                                    ) {
+                                                        Box(
+                                                            modifier = Modifier.padding(2.dp)
+                                                        ) {
+                                                            if (hasSuggestedRight) {
+                                                                SuggestedVideoThumbnail(
+                                                                    thumbnailUrl = state.suggestedRight?.thumbnailUrl,
+                                                                    thumbnailHeight = 52.dp * scale
+                                                                )
+                                                            } else {
+                                                                CompareVideoThumbnailCard(
+                                                                    entry = selectedHistoryEntryRight!!,
+                                                                    thumbnailHeight = 52.dp * scale,
+                                                                    showMeta = false,
+                                                                    contentScale = ContentScale.Fit
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                Spacer(modifier = Modifier.weight(1f))
+                                            }
                                         }
-                                    } else {
-                                        Spacer(modifier = Modifier.weight(1f))
+
+                                        Box(
+                                            modifier = Modifier
+                                                .align(Alignment.Center)
+                                                .background(colorResource(R.color.tournesol_chip_bg_selected), RoundedCornerShape(6.dp))
+                                                .padding(horizontal = 4.dp, vertical = 1.dp)
+                                        ) {
+                                            Text(
+                                                text = "VS",
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontWeight = FontWeight.Bold
+                                                ),
+                                                color = Color(0xFF1B1B1B)
+                                            )
+                                        }
                                     }
                                 }
 
                                 Box(
                                     modifier = Modifier
-                                        .align(Alignment.Center)
-                                        .background(colorResource(R.color.tournesol_chip_bg_selected), RoundedCornerShape(6.dp))
-                                        .padding(horizontal = 4.dp, vertical = 1.dp)
-                                ) {
-                                    Text(
-                                        text = "VS",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontWeight = FontWeight.Bold
+                                        .weight(1f)
+                                        .combinedClickable(
+                                            onClick = {
+                                                openHistoryOverlay(OverlayTarget.RIGHT)
+                                            },
+                                            onLongClick = {
+                                                if (hasSuggestedRight) {
+                                                    val sr = state.suggestedRight
+                                                    if (sr?.videoUrl != null) {
+                                                        onNavigateToVideo?.invoke(
+                                                            CompareRepository.uidToServiceId(sr.uid),
+                                                            sr.videoUrl,
+                                                            sr.title
+                                                        )
+                                                    }
+                                                } else {
+                                                    selectedHistoryEntryRight?.streamEntity?.let {
+                                                        onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
+                                                    }
+                                                }
+                                            }
                                         ),
-                                        color = Color(0xFF1B1B1B)
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    CompareSideLabel(
+                                        title = effectiveRightTitle,
+                                        uploader = effectiveRightUploader,
+                                        textAlign = TextAlign.Start
                                     )
                                 }
                             }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                val chipColors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = colorResource(R.color.tournesol_chip_bg_selected),
+                                    containerColor = colorResource(R.color.tournesol_chip_bg_unselected),
+                                    selectedLabelColor = colorResource(R.color.tournesol_chip_text_selected),
+                                    labelColor = MaterialTheme.colorScheme.onSurface
+                                )
+                                val chipShape = RoundedCornerShape(8.dp)
+                                val chipTextStyle = TextStyle(
+                                    fontFamily = FontFamily(Typeface.create("sans-serif-medium", Typeface.NORMAL)),
+                                    fontSize = 14.sp,
+                                    letterSpacing = TextUnit(0.04f, TextUnitType.Em)
+                                )
+                                FilterChip(
+                                    selected = true,
+                                    onClick = submitOrUpdateAction,
+                                    enabled = canSubmit,
+                                    label = { Text(text = submitButtonLabel, style = chipTextStyle) },
+                                    colors = chipColors,
+                                    shape = chipShape,
+                                    border = null
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                val diceEnabled = !state.suggestionsLoading
+                                Surface(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clickable(enabled = diceEnabled) { onRandomizeLeft() },
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color(0xFF42A5F5).copy(alpha = 0.15f)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Image(
+                                            painter = painterResource(R.drawable.ic_casino),
+                                            contentDescription = stringResource(R.string.compare_randomize_left),
+                                            colorFilter = ColorFilter.tint(Color(0xFF42A5F5)),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Surface(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clickable(enabled = diceEnabled) { onRandomizeRight() },
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color(0xFFE57373).copy(alpha = 0.15f)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Image(
+                                            painter = painterResource(R.drawable.ic_casino),
+                                            contentDescription = stringResource(R.string.compare_randomize_right),
+                                            colorFilter = ColorFilter.tint(Color(0xFFE57373)),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
                         }
 
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .combinedClickable(
-                                    onClick = {
-                                        openHistoryOverlay(OverlayTarget.RIGHT)
-                                    },
-                                    onLongClick = {
-                                        if (hasSuggestedRight) {
-                                            val sr = state.suggestedRight
-                                            if (sr?.videoUrl != null) {
-                                                onNavigateToVideo?.invoke(
-                                                    CompareRepository.uidToServiceId(sr.uid),
-                                                    sr.videoUrl,
-                                                    sr.title
-                                                )
-                                            }
-                                        } else {
-                                            selectedHistoryEntryRight?.streamEntity?.let {
-                                                onNavigateToVideo?.invoke(it.serviceId, it.url, it.title)
-                                            }
-                                        }
-                                    }
-                                ),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            CompareSideLabel(
-                                title = effectiveRightTitle,
-                                uploader = effectiveRightUploader,
-                                textAlign = TextAlign.Start
-                            )
-                        }
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        val chipColors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = colorResource(R.color.tournesol_chip_bg_selected),
-                            containerColor = colorResource(R.color.tournesol_chip_bg_unselected),
-                            selectedLabelColor = colorResource(R.color.tournesol_chip_text_selected),
-                            labelColor = MaterialTheme.colorScheme.onSurface
-                        )
-                        val chipShape = RoundedCornerShape(8.dp)
-                        val chipTextStyle = TextStyle(
-                            fontFamily = FontFamily(Typeface.create("sans-serif-medium", Typeface.NORMAL)),
-                            fontSize = 14.sp,
-                            letterSpacing = TextUnit(0.04f, TextUnitType.Em)
-                        )
-                        FilterChip(
-                            selected = true,
-                            onClick = submitOrUpdateAction,
-                            enabled = canSubmit,
-                            label = { Text(text = submitButtonLabel, style = chipTextStyle) },
-                            colors = chipColors,
-                            shape = chipShape,
-                            border = null
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        val diceEnabled = !state.suggestionsLoading
-                        Surface(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clickable(enabled = diceEnabled) { onRandomizeLeft() },
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFF42A5F5).copy(alpha = 0.15f)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Image(
-                                    painter = painterResource(R.drawable.ic_casino),
-                                    contentDescription = stringResource(R.string.compare_randomize_left),
-                                    colorFilter = ColorFilter.tint(Color(0xFF42A5F5)),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Surface(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clickable(enabled = diceEnabled) { onRandomizeRight() },
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFFE57373).copy(alpha = 0.15f)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Image(
-                                    painter = painterResource(R.drawable.ic_casino),
-                                    contentDescription = stringResource(R.string.compare_randomize_right),
-                                    colorFilter = ColorFilter.tint(Color(0xFFE57373)),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
-            }
 
-            CompactHeader(
-                description = activeDescription,
-                iconRes = activeDimension.iconRes,
-                modifier = Modifier
-                    .padding(start = 12.dp, end = 12.dp, bottom = 4.dp)
-            )
-        }
-
-        if (hasOpenedHistoryOverlay) {
-            val accentColor = if (activeOverlayTarget == OverlayTarget.RIGHT) {
-                Color(0xFFE57373)
-            } else {
-                Color(0xFF42A5F5)
-            }
-            val overlayBackground = Color(0xFF0B0B0B)
-            val overlayRowSpacing = 6.dp
-            val overlayColumnSpacing = 6.dp
-            val overlayCardHeight = 54.dp
-            val overlayRowSpacingPx = with(density) { overlayRowSpacing.roundToPx() }
-            val overlayColumnSpacingPx = with(density) { overlayColumnSpacing.roundToPx() }
-            val overlayCardHeightPx = with(density) { overlayCardHeight.roundToPx() }
-            val overlayBody: @Composable () -> Unit = {
-                BoxWithConstraints(
-                    modifier = Modifier
-                        .fillMaxSize()
-                ) {
-                    val visibleRowsPerPage = if (overlayGridBounds == null) {
-                        overlayRowsPerPage.coerceAtLeast(1).coerceAtMost(16)
+                if (hasOpenedHistoryOverlay) {
+                    val accentColor = if (activeOverlayTarget == OverlayTarget.RIGHT) {
+                        Color(0xFFE57373)
                     } else {
-                        val gridViewportHeightPx = overlayGridBounds!!.height
-                            .roundToInt()
-                            .coerceAtLeast(0)
-                        (
-                            (gridViewportHeightPx + overlayRowSpacingPx) /
-                                (overlayCardHeightPx + overlayRowSpacingPx)
-                            )
-                            .coerceAtLeast(1)
-                            .coerceAtMost(16)
+                        Color(0xFF42A5F5)
                     }
-                    LaunchedEffect(visibleRowsPerPage) {
-                        if (overlayRowsPerPage != visibleRowsPerPage) {
-                            overlayRowsPerPage = visibleRowsPerPage
-                        }
-                    }
-                    val visiblePageSize = overlayGridColumns * visibleRowsPerPage
-                    val pageCount = ((overlayEntries.size + visiblePageSize - 1) / visiblePageSize)
-                        .coerceAtLeast(1)
-                    val currentPage = (historyOverlayIndex / visiblePageSize)
-                        .coerceIn(0, pageCount - 1)
-                    LaunchedEffect(currentPage) {
-                        if (historyOverlayPage != currentPage) {
-                            historyOverlayPage = currentPage
-                        }
-                    }
-                    val pageStart = currentPage * visiblePageSize
-                    val pageEnd = kotlin.math.min(pageStart + visiblePageSize, overlayEntries.size)
-                    val pageEntries = overlayEntries.subList(pageStart, pageEnd)
-                    val selectedAbsoluteIndex = (overlayDragPreviewIndex ?: historyOverlayIndex)
-                        .coerceIn(pageStart, (pageEnd - 1).coerceAtLeast(pageStart))
-                    val selectedOffsetInPage = (selectedAbsoluteIndex - pageStart)
-                        .coerceIn(0, (pageEntries.size - 1).coerceAtLeast(0))
-                    val pageRows = ((pageEntries.size + overlayGridColumns - 1) / overlayGridColumns)
-                        .coerceAtLeast(1)
-                    LaunchedEffect(
-                        showHistoryOverlay,
-                        activeOverlayTarget,
-                        currentPage,
-                        visiblePageSize,
-                        overlayEntries.size
-                    ) {
-                        if (!showHistoryOverlay || overlayEntries.isEmpty()) {
-                            return@LaunchedEffect
-                        }
-
-                        val pagesToPrefetch = LinkedHashSet<Int>().apply {
-                            add(currentPage)
-                            if (currentPage < pageCount - 1) {
-                                add(currentPage + 1)
+                    val overlayBackground = Color(0xFF0B0B0B)
+                    val overlayRowSpacing = 6.dp
+                    val overlayColumnSpacing = 6.dp
+                    val overlayCardHeight = 54.dp
+                    val overlayRowSpacingPx = with(density) { overlayRowSpacing.roundToPx() }
+                    val overlayColumnSpacingPx = with(density) { overlayColumnSpacing.roundToPx() }
+                    val overlayCardHeightPx = with(density) { overlayCardHeight.roundToPx() }
+                    val overlayBody: @Composable () -> Unit = {
+                        BoxWithConstraints(
+                            modifier = Modifier
+                                .fillMaxSize()
+                        ) {
+                            val visibleRowsPerPage = if (overlayGridBounds == null) {
+                                overlayRowsPerPage.coerceAtLeast(1).coerceAtMost(16)
+                            } else {
+                                val gridViewportHeightPx = overlayGridBounds!!.height
+                                    .roundToInt()
+                                    .coerceAtLeast(0)
+                                (
+                                    (gridViewportHeightPx + overlayRowSpacingPx) /
+                                        (overlayCardHeightPx + overlayRowSpacingPx)
+                                    )
+                                    .coerceAtLeast(1)
+                                    .coerceAtMost(16)
                             }
-                        }
-                        val urlsToPrefetch = LinkedHashSet<String>()
-                        pagesToPrefetch.forEach { page ->
-                            val start = page * visiblePageSize
-                            val end = kotlin.math.min(start + visiblePageSize, overlayEntries.size)
-                            for (index in start until end) {
-                                val url = overlayEntries[index].streamEntity.thumbnailUrl
-                                if (!url.isNullOrBlank()) {
-                                    urlsToPrefetch.add(url)
+                            LaunchedEffect(visibleRowsPerPage) {
+                                if (overlayRowsPerPage != visibleRowsPerPage) {
+                                    overlayRowsPerPage = visibleRowsPerPage
                                 }
                             }
-                        }
+                            val visiblePageSize = overlayGridColumns * visibleRowsPerPage
+                            val pageCount = ((overlayEntries.size + visiblePageSize - 1) / visiblePageSize)
+                                .coerceAtLeast(1)
+                            val currentPage = (historyOverlayIndex / visiblePageSize)
+                                .coerceIn(0, pageCount - 1)
+                            LaunchedEffect(currentPage) {
+                                if (historyOverlayPage != currentPage) {
+                                    historyOverlayPage = currentPage
+                                }
+                            }
+                            val pageStart = currentPage * visiblePageSize
+                            val pageEnd = kotlin.math.min(pageStart + visiblePageSize, overlayEntries.size)
+                            val pageEntries = overlayEntries.subList(pageStart, pageEnd)
+                            val selectedAbsoluteIndex = (overlayDragPreviewIndex ?: historyOverlayIndex)
+                                .coerceIn(pageStart, (pageEnd - 1).coerceAtLeast(pageStart))
+                            val selectedOffsetInPage = (selectedAbsoluteIndex - pageStart)
+                                .coerceIn(0, (pageEntries.size - 1).coerceAtLeast(0))
+                            val pageRows = ((pageEntries.size + overlayGridColumns - 1) / overlayGridColumns)
+                                .coerceAtLeast(1)
+                            LaunchedEffect(
+                                showHistoryOverlay,
+                                activeOverlayTarget,
+                                currentPage,
+                                visiblePageSize,
+                                overlayEntries.size
+                            ) {
+                                if (!showHistoryOverlay || overlayEntries.isEmpty()) {
+                                    return@LaunchedEffect
+                                }
 
-                        val imageLoader = context.imageLoader
-                        urlsToPrefetch.forEach { url ->
-                            imageLoader.enqueue(
-                                ImageRequest.Builder(context)
-                                    .data(url)
-                                    .memoryCacheKey(url)
-                                    .diskCacheKey(url)
-                                    .build()
-                            )
-                        }
-                    }
-                    LaunchedEffect(pageStart, pageEnd) {
-                        overlayDragPreviewIndex = null
-                    }
-                    val hitTestOverlayIndex: (Offset) -> Int? = { localPosition ->
-                        val gridWidthPx = overlayGridSize.width.toFloat()
-                        val gridHeightPx = overlayGridSize.height.toFloat()
-                        if (gridWidthPx <= 0f ||
-                            gridHeightPx <= 0f ||
-                            localPosition.x < 0f ||
-                            localPosition.y < 0f ||
-                            localPosition.x > gridWidthPx ||
-                            localPosition.y > gridHeightPx
-                        ) {
-                            null
-                        } else {
-                            val rowStridePx = overlayCardHeightPx + overlayRowSpacingPx
-                            val row = (localPosition.y / rowStridePx).toInt()
-                            val yInRow = localPosition.y - row * rowStridePx
-                            if (yInRow > overlayCardHeightPx) {
-                                null
-                            } else {
-                                val cardWidthPx = (
-                                    gridWidthPx - overlayColumnSpacingPx * (overlayGridColumns - 1)
-                                    ) / overlayGridColumns
-                                if (cardWidthPx <= 0f) {
+                                val pagesToPrefetch = LinkedHashSet<Int>().apply {
+                                    add(currentPage)
+                                    if (currentPage < pageCount - 1) {
+                                        add(currentPage + 1)
+                                    }
+                                }
+                                val urlsToPrefetch = LinkedHashSet<String>()
+                                pagesToPrefetch.forEach { page ->
+                                    val start = page * visiblePageSize
+                                    val end = kotlin.math.min(start + visiblePageSize, overlayEntries.size)
+                                    for (index in start until end) {
+                                        val url = overlayEntries[index].streamEntity.thumbnailUrl
+                                        if (!url.isNullOrBlank()) {
+                                            urlsToPrefetch.add(url)
+                                        }
+                                    }
+                                }
+
+                                val imageLoader = context.imageLoader
+                                urlsToPrefetch.forEach { url ->
+                                    imageLoader.enqueue(
+                                        ImageRequest.Builder(context)
+                                            .data(url)
+                                            .memoryCacheKey(url)
+                                            .diskCacheKey(url)
+                                            .build()
+                                    )
+                                }
+                            }
+                            LaunchedEffect(pageStart, pageEnd) {
+                                overlayDragPreviewIndex = null
+                            }
+                            val hitTestOverlayIndex: (Offset) -> Int? = { localPosition ->
+                                val gridWidthPx = overlayGridSize.width.toFloat()
+                                val gridHeightPx = overlayGridSize.height.toFloat()
+                                if (gridWidthPx <= 0f ||
+                                    gridHeightPx <= 0f ||
+                                    localPosition.x < 0f ||
+                                    localPosition.y < 0f ||
+                                    localPosition.x > gridWidthPx ||
+                                    localPosition.y > gridHeightPx
+                                ) {
                                     null
                                 } else {
-                                    val colStridePx = cardWidthPx + overlayColumnSpacingPx
-                                    val col = (localPosition.x / colStridePx).toInt()
-                                    if (col < 0 || col >= overlayGridColumns) {
+                                    val rowStridePx = overlayCardHeightPx + overlayRowSpacingPx
+                                    val row = (localPosition.y / rowStridePx).toInt()
+                                    val yInRow = localPosition.y - row * rowStridePx
+                                    if (yInRow > overlayCardHeightPx) {
                                         null
                                     } else {
-                                        val xInCol = localPosition.x - col * colStridePx
-                                        if (xInCol > cardWidthPx) {
+                                        val cardWidthPx = (
+                                            gridWidthPx - overlayColumnSpacingPx * (overlayGridColumns - 1)
+                                            ) / overlayGridColumns
+                                        if (cardWidthPx <= 0f) {
                                             null
                                         } else {
-                                            val offsetInPage = row * overlayGridColumns + col
-                                            if (offsetInPage < 0 || offsetInPage >= pageEntries.size) {
+                                            val colStridePx = cardWidthPx + overlayColumnSpacingPx
+                                            val col = (localPosition.x / colStridePx).toInt()
+                                            if (col < 0 || col >= overlayGridColumns) {
                                                 null
                                             } else {
-                                                pageStart + offsetInPage
+                                                val xInCol = localPosition.x - col * colStridePx
+                                                if (xInCol > cardWidthPx) {
+                                                    null
+                                                } else {
+                                                    val offsetInPage = row * overlayGridColumns + col
+                                                    if (offsetInPage < 0 || offsetInPage >= pageEntries.size) {
+                                                        null
+                                                    } else {
+                                                        pageStart + offsetInPage
+                                                    }
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
-                        }
-                    }
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .statusBarsPadding()
-                            .padding(horizontal = 6.dp, vertical = 10.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Box(modifier = Modifier.fillMaxWidth()) {
-                            Surface(
-                                shape = RoundedCornerShape(999.dp),
-                                color = accentColor.copy(alpha = 0.2f),
-                                border = BorderStroke(1.dp, accentColor.copy(alpha = 0.5f)),
-                                modifier = Modifier.align(Alignment.Center)
-                            ) {
-                                Text(
-                                    text = "${currentPage + 1}/$pageCount",
-                                    style = MaterialTheme.typography.labelLarge.copy(
-                                        fontWeight = FontWeight.SemiBold
-                                    ),
-                                    color = Color(0xFFEDEDED),
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
-                                )
-                            }
-                            Image(
-                                painter = painterResource(R.drawable.ic_close),
-                                contentDescription = stringResource(R.string.close),
-                                colorFilter = ColorFilter.tint(Color(0xFFEDEDED)),
+                            Column(
                                 modifier = Modifier
-                                    .align(Alignment.CenterEnd)
-                                    .size(22.dp)
-                                    .clickable { showHistoryOverlay = false }
-                            )
-                        }
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                                .onGloballyPositioned { coordinates ->
-                                    if (showHistoryOverlay) {
-                                        val bounds = coordinates.boundsInRoot()
-                                        overlayGridBounds = bounds
-                                        overlayGridSize = coordinates.size
+                                    .fillMaxSize()
+                                    .statusBarsPadding()
+                                    .padding(horizontal = 6.dp, vertical = 10.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    Surface(
+                                        shape = RoundedCornerShape(999.dp),
+                                        color = accentColor.copy(alpha = 0.2f),
+                                        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.5f)),
+                                        modifier = Modifier.align(Alignment.Center)
+                                    ) {
+                                        Text(
+                                            text = "${currentPage + 1}/$pageCount",
+                                            style = MaterialTheme.typography.labelLarge.copy(
+                                                fontWeight = FontWeight.SemiBold
+                                            ),
+                                            color = Color(0xFFEDEDED),
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
+                                        )
                                     }
+                                    Image(
+                                        painter = painterResource(R.drawable.ic_close),
+                                        contentDescription = stringResource(R.string.close),
+                                        colorFilter = ColorFilter.tint(Color(0xFFEDEDED)),
+                                        modifier = Modifier
+                                            .align(Alignment.CenterEnd)
+                                            .size(22.dp)
+                                            .clickable { showHistoryOverlay = false }
+                                    )
                                 }
-                                .pointerInput(
-                                    showHistoryOverlay,
-                                    pageStart,
-                                    pageEnd,
-                                    pageEntries.size,
-                                    overlayGridSize,
-                                    overlayGridColumns,
-                                    overlayCardHeightPx,
-                                    overlayRowSpacingPx,
-                                    overlayColumnSpacingPx
-                                ) {
-                                    if (!showHistoryOverlay) {
-                                        return@pointerInput
-                                    }
-                                    awaitEachGesture {
-                                        val down = awaitFirstDown(requireUnconsumed = false)
-                                        var pointerId = down.id
-                                        var releasedOnIndex: Int? = null
-                                        var previewIndex = hitTestOverlayIndex(down.position)
-                                        overlayDragPreviewIndex = previewIndex
-                                        while (true) {
-                                            val event = awaitPointerEvent()
-                                            val change = event.changes
-                                                .firstOrNull { it.id == pointerId }
-                                                ?: break
-                                            pointerId = change.id
-                                            val hoveredIndex = hitTestOverlayIndex(change.position)
-                                            val insideGrid = change.position.x >= 0f &&
-                                                change.position.y >= 0f &&
-                                                change.position.x <= overlayGridSize.width.toFloat() &&
-                                                change.position.y <= overlayGridSize.height.toFloat()
-                                            previewIndex = when {
-                                                hoveredIndex != null -> hoveredIndex
-                                                insideGrid -> previewIndex
-                                                else -> null
-                                            }
-                                            overlayDragPreviewIndex = previewIndex
-                                            if (!change.pressed) {
-                                                releasedOnIndex = hoveredIndex
-                                                break
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f)
+                                        .onGloballyPositioned { coordinates ->
+                                            if (showHistoryOverlay) {
+                                                val bounds = coordinates.boundsInRoot()
+                                                overlayGridBounds = bounds
+                                                overlayGridSize = coordinates.size
                                             }
                                         }
-                                        overlayDragPreviewIndex = null
-                                        if (releasedOnIndex != null) {
-                                            val absoluteIndex = releasedOnIndex!!
-                                            when (activeOverlayTarget) {
-                                                OverlayTarget.LEFT -> leftHistoryIndex = absoluteIndex
-                                                OverlayTarget.RIGHT -> rightHistoryIndex = absoluteIndex
+                                        .pointerInput(
+                                            showHistoryOverlay,
+                                            pageStart,
+                                            pageEnd,
+                                            pageEntries.size,
+                                            overlayGridSize,
+                                            overlayGridColumns,
+                                            overlayCardHeightPx,
+                                            overlayRowSpacingPx,
+                                            overlayColumnSpacingPx
+                                        ) {
+                                            if (!showHistoryOverlay) {
+                                                return@pointerInput
                                             }
-                                            historyOverlayIndex = absoluteIndex
-                                            showHistoryOverlay = false
-                                        }
-                                    }
-                                },
-                            verticalArrangement = Arrangement.spacedBy(overlayRowSpacing)
-                        ) {
-                            for (row in 0 until pageRows) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(overlayColumnSpacing)
-                                ) {
-                                    for (column in 0 until overlayGridColumns) {
-                                        val offsetInPage = row * overlayGridColumns + column
-                                        if (offsetInPage < pageEntries.size) {
-                                            val absoluteIndex = pageStart + offsetInPage
-                                            CompareHistoryOverlayGridCard(
-                                                entry = pageEntries[offsetInPage],
-                                                selected = offsetInPage == selectedOffsetInPage,
-                                                accentColor = accentColor,
-                                                onClick = {
+                                            awaitEachGesture {
+                                                val down = awaitFirstDown(requireUnconsumed = false)
+                                                var pointerId = down.id
+                                                var releasedOnIndex: Int? = null
+                                                var previewIndex = hitTestOverlayIndex(down.position)
+                                                overlayDragPreviewIndex = previewIndex
+                                                while (true) {
+                                                    val event = awaitPointerEvent()
+                                                    val change = event.changes
+                                                        .firstOrNull { it.id == pointerId }
+                                                        ?: break
+                                                    pointerId = change.id
+                                                    val hoveredIndex = hitTestOverlayIndex(change.position)
+                                                    val insideGrid = change.position.x >= 0f &&
+                                                        change.position.y >= 0f &&
+                                                        change.position.x <= overlayGridSize.width.toFloat() &&
+                                                        change.position.y <= overlayGridSize.height.toFloat()
+                                                    previewIndex = when {
+                                                        hoveredIndex != null -> hoveredIndex
+                                                        insideGrid -> previewIndex
+                                                        else -> null
+                                                    }
+                                                    overlayDragPreviewIndex = previewIndex
+                                                    if (!change.pressed) {
+                                                        releasedOnIndex = hoveredIndex
+                                                        break
+                                                    }
+                                                }
+                                                overlayDragPreviewIndex = null
+                                                if (releasedOnIndex != null) {
+                                                    val absoluteIndex = releasedOnIndex!!
                                                     when (activeOverlayTarget) {
                                                         OverlayTarget.LEFT -> leftHistoryIndex = absoluteIndex
                                                         OverlayTarget.RIGHT -> rightHistoryIndex = absoluteIndex
                                                     }
                                                     historyOverlayIndex = absoluteIndex
                                                     showHistoryOverlay = false
-                                                },
-                                                modifier = Modifier
-                                                    .weight(1f)
-                                                    .height(overlayCardHeight)
+                                                }
+                                            }
+                                        },
+                                    verticalArrangement = Arrangement.spacedBy(overlayRowSpacing)
+                                ) {
+                                    for (row in 0 until pageRows) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(overlayColumnSpacing)
+                                        ) {
+                                            for (column in 0 until overlayGridColumns) {
+                                                val offsetInPage = row * overlayGridColumns + column
+                                                if (offsetInPage < pageEntries.size) {
+                                                    val absoluteIndex = pageStart + offsetInPage
+                                                    CompareHistoryOverlayGridCard(
+                                                        entry = pageEntries[offsetInPage],
+                                                        selected = offsetInPage == selectedOffsetInPage,
+                                                        accentColor = accentColor,
+                                                        onClick = {
+                                                            when (activeOverlayTarget) {
+                                                                OverlayTarget.LEFT -> leftHistoryIndex = absoluteIndex
+                                                                OverlayTarget.RIGHT -> rightHistoryIndex = absoluteIndex
+                                                            }
+                                                            historyOverlayIndex = absoluteIndex
+                                                            showHistoryOverlay = false
+                                                        },
+                                                        modifier = Modifier
+                                                            .weight(1f)
+                                                            .height(overlayCardHeight)
+                                                    )
+                                                } else {
+                                                    Spacer(
+                                                        modifier = Modifier
+                                                            .weight(1f)
+                                                            .height(overlayCardHeight)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                if (pageCount > 1) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        OutlinedButton(
+                                            onClick = {
+                                                val targetPage = (currentPage - 1).coerceAtLeast(0)
+                                                val targetStart = targetPage * visiblePageSize
+                                                val targetPageCount = kotlin.math.min(
+                                                    visiblePageSize,
+                                                    overlayEntries.size - targetStart
+                                                ).coerceAtLeast(1)
+                                                val targetOffset = selectedOffsetInPage.coerceIn(
+                                                    0,
+                                                    targetPageCount - 1
+                                                )
+                                                historyOverlayPage = targetPage
+                                                historyOverlayIndex = targetStart + targetOffset
+                                            },
+                                            enabled = currentPage > 0,
+                                            contentPadding = PaddingValues(
+                                                horizontal = 14.dp,
+                                                vertical = 4.dp
                                             )
-                                        } else {
-                                            Spacer(
-                                                modifier = Modifier
-                                                    .weight(1f)
-                                                    .height(overlayCardHeight)
+                                        ) {
+                                            Text("<<")
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        OutlinedButton(
+                                            onClick = {
+                                                val targetPage = (currentPage + 1).coerceAtMost(pageCount - 1)
+                                                val targetStart = targetPage * visiblePageSize
+                                                val targetPageCount = kotlin.math.min(
+                                                    visiblePageSize,
+                                                    overlayEntries.size - targetStart
+                                                ).coerceAtLeast(1)
+                                                val targetOffset = selectedOffsetInPage.coerceIn(
+                                                    0,
+                                                    targetPageCount - 1
+                                                )
+                                                historyOverlayPage = targetPage
+                                                historyOverlayIndex = targetStart + targetOffset
+                                            },
+                                            enabled = currentPage < pageCount - 1,
+                                            contentPadding = PaddingValues(
+                                                horizontal = 14.dp,
+                                                vertical = 4.dp
                                             )
+                                        ) {
+                                            Text(">>")
                                         }
                                     }
                                 }
                             }
                         }
-                        if (pageCount > 1) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
+                    }
+                    if (state.compactPopupVisible) {
+                        val overlayModifier = if (showHistoryOverlay) {
+                            Modifier
+                                .fillMaxSize()
+                                .background(overlayBackground)
+                                .zIndex(4f)
+                        } else {
+                            Modifier
+                                .size(1.dp)
+                                .graphicsLayer { alpha = 0f }
+                                .zIndex(-1f)
+                        }
+                        Box(
+                            modifier = overlayModifier,
+                            contentAlignment = Alignment.TopCenter
+                        ) {
+                            overlayBody()
+                        }
+                    } else if (showHistoryOverlay) {
+                        Dialog(
+                            onDismissRequest = { showHistoryOverlay = false },
+                            properties = DialogProperties(
+                                usePlatformDefaultWidth = false,
+                                decorFitsSystemWindows = false,
+                                dismissOnBackPress = true,
+                                dismissOnClickOutside = false
+                            )
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(overlayBackground)
+                                    .navigationBarsPadding(),
+                                contentAlignment = Alignment.TopCenter
                             ) {
-                                OutlinedButton(
-                                    onClick = {
-                                        val targetPage = (currentPage - 1).coerceAtLeast(0)
-                                        val targetStart = targetPage * visiblePageSize
-                                        val targetPageCount = kotlin.math.min(
-                                            visiblePageSize,
-                                            overlayEntries.size - targetStart
-                                        ).coerceAtLeast(1)
-                                        val targetOffset = selectedOffsetInPage.coerceIn(
-                                            0,
-                                            targetPageCount - 1
-                                        )
-                                        historyOverlayPage = targetPage
-                                        historyOverlayIndex = targetStart + targetOffset
-                                    },
-                                    enabled = currentPage > 0,
-                                    contentPadding = PaddingValues(
-                                        horizontal = 14.dp,
-                                        vertical = 4.dp
-                                    )
-                                ) {
-                                    Text("<<")
-                                }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                OutlinedButton(
-                                    onClick = {
-                                        val targetPage = (currentPage + 1).coerceAtMost(pageCount - 1)
-                                        val targetStart = targetPage * visiblePageSize
-                                        val targetPageCount = kotlin.math.min(
-                                            visiblePageSize,
-                                            overlayEntries.size - targetStart
-                                        ).coerceAtLeast(1)
-                                        val targetOffset = selectedOffsetInPage.coerceIn(
-                                            0,
-                                            targetPageCount - 1
-                                        )
-                                        historyOverlayPage = targetPage
-                                        historyOverlayIndex = targetStart + targetOffset
-                                    },
-                                    enabled = currentPage < pageCount - 1,
-                                    contentPadding = PaddingValues(
-                                        horizontal = 14.dp,
-                                        vertical = 4.dp
-                                    )
-                                ) {
-                                    Text(">>")
-                                }
+                                overlayBody()
                             }
                         }
-                    }
-                }
-            }
-            if (state.compactPopupVisible) {
-                val overlayModifier = if (showHistoryOverlay) {
-                    Modifier
-                        .fillMaxSize()
-                        .background(overlayBackground)
-                        .zIndex(4f)
-                } else {
-                    Modifier
-                        .size(1.dp)
-                        .graphicsLayer { alpha = 0f }
-                        .zIndex(-1f)
-                }
-                Box(
-                    modifier = overlayModifier,
-                    contentAlignment = Alignment.TopCenter
-                ) {
-                    overlayBody()
-                }
-            } else if (showHistoryOverlay) {
-                Dialog(
-                    onDismissRequest = { showHistoryOverlay = false },
-                    properties = DialogProperties(
-                        usePlatformDefaultWidth = false,
-                        decorFitsSystemWindows = false,
-                        dismissOnBackPress = true,
-                        dismissOnClickOutside = false
-                    )
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(overlayBackground)
-                            .navigationBarsPadding(),
-                        contentAlignment = Alignment.TopCenter
-                    ) {
-                        overlayBody()
                     }
                 }
             }
@@ -1710,15 +1746,16 @@ private fun CompactHeader(
     iconRes: Int,
     modifier: Modifier = Modifier
 ) {
+    val scale = LocalCompareScale.current
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp * scale),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
             painter = painterResource(iconRes),
             contentDescription = null,
-            modifier = Modifier.size(28.dp)
+            modifier = Modifier.size(28.dp * scale)
         )
         Text(
             text = description,
@@ -2117,6 +2154,7 @@ private fun CompactDimensionRow(
     onToggleSelected: (Boolean) -> Unit,
     onClick: () -> Unit
 ) {
+    val scale = LocalCompareScale.current
     val highlight = if (isActive) {
         MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
     } else {
@@ -2133,8 +2171,8 @@ private fun CompactDimensionRow(
             .background(highlight, RoundedCornerShape(12.dp))
             .clickable { onClick() }
             .padding(
-                horizontal = 10.dp,
-                vertical = if (isMainCriterion) 4.dp else 1.dp
+                horizontal = 10.dp * scale,
+                vertical = if (isMainCriterion) 4.dp * scale else 1.dp * scale
             )
             .graphicsLayer(alpha = rowAlpha),
         verticalAlignment = Alignment.CenterVertically
@@ -2149,8 +2187,8 @@ private fun CompactDimensionRow(
         ) {
             Box(
                 modifier = Modifier
-                    .width(18.dp)
-                    .padding(end = 4.dp)
+                    .width(18.dp * scale)
+                    .padding(end = 4.dp * scale)
                     .then(
                         if (isSelected) Modifier.clickable { onToggleSelected(false) } else Modifier
                     ),
@@ -2160,16 +2198,16 @@ private fun CompactDimensionRow(
                     Image(
                         painter = painterResource(R.drawable.ic_close),
                         contentDescription = null,
-                        modifier = Modifier.size(12.dp)
+                        modifier = Modifier.size(12.dp * scale)
                     )
                 }
             }
             Image(
                 painter = painterResource(criterion.iconRes),
                 contentDescription = null,
-                modifier = Modifier.size(12.dp)
+                modifier = Modifier.size(12.dp * scale)
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(8.dp * scale))
             Text(
                 text = criterionLabel,
                 style = MaterialTheme.typography.labelLarge.copy(
@@ -2197,13 +2235,13 @@ private fun CompactDimensionRow(
                 style = MaterialTheme.typography.labelSmall,
                 color = scoreColor,
                 textAlign = TextAlign.End,
-                modifier = Modifier.width(28.dp)
+                modifier = Modifier.width(28.dp * scale)
             )
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(6.dp * scale))
             MiniScoreBar(
                 value = score,
                 isActive = isActive,
-                barHeight = if (isMainCriterion) 5.dp else 3.dp,
+                barHeight = if (isMainCriterion) 5.dp * scale else 3.dp * scale,
                 showAttentionRing = showMainAttention,
                 modifier = Modifier
                     .weight(1f)
@@ -2388,6 +2426,7 @@ private fun CompareHistoryOverlayGridCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val scale = LocalCompareScale.current
     val stream = remember(entry) { entry.toStreamInfoItem() }
     val titleColor = compareMetaTitleColor()
     val uploaderColor = compareMetaUploaderColor()
@@ -2408,7 +2447,7 @@ private fun CompareHistoryOverlayGridCard(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 6.dp, vertical = 3.dp),
+                .padding(horizontal = 6.dp * scale, vertical = 3.dp * scale),
             verticalAlignment = Alignment.CenterVertically
         ) {
             StreamThumbnail(
@@ -2417,12 +2456,12 @@ private fun CompareHistoryOverlayGridCard(
                 showDuration = true,
                 durationTextStyle = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.size(width = 84.dp, height = 48.dp)
+                modifier = Modifier.size(width = 84.dp * scale, height = 48.dp * scale)
             )
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(start = 8.dp),
+                    .padding(start = 8.dp * scale),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
@@ -2852,7 +2891,8 @@ private fun HistoryWheel(
     onSelectIndex: (Int) -> Unit,
     onNavigateToVideo: ((Int, String, String) -> Unit)? = null
 ) {
-    val itemHeight = 64.dp
+    val scale = LocalCompareScale.current
+    val itemHeight = 64.dp * scale
     if (entries.isEmpty()) {
         val message = historyMessageRes?.let { stringResource(it) }.orEmpty()
         Surface(
@@ -2880,8 +2920,8 @@ private fun HistoryWheel(
     ) { entries.size }
     val coroutineScope = rememberCoroutineScope()
     val latestSelectedIndex by rememberUpdatedState(selectedIndex)
-    val cameraDistance = with(density) { 22.dp.toPx() }
-    val depthShift = with(density) { 18.dp.toPx() }
+    val cameraDistance = with(density) { (22.dp * scale).toPx() }
+    val depthShift = with(density) { (18.dp * scale).toPx() }
     val pageSizePx = with(density) { itemHeight.toPx() }
     val overlap = itemHeight * 0.75f
     val pageStepPx = with(density) { (itemHeight - overlap).toPx() }.coerceAtLeast(1f)
@@ -3063,7 +3103,7 @@ private fun HistoryWheel(
                 rawOffset < 0f -> -1f
                 else -> 0f
             }
-            val scale = lerp(1f, 0.88f, pageOffset)
+            val pageScale = lerp(1f, 0.88f, pageOffset)
             val alpha = lerp(1f, 0.35f, pageOffset)
             val rotationX = lerp(0f, 10f, pageOffset) * -direction
             val translation = depthShift * pageOffset * direction
@@ -3096,8 +3136,8 @@ private fun HistoryWheel(
                     .height(itemHeight)
                     .zIndex(focus)
                     .graphicsLayer(
-                        scaleX = scale,
-                        scaleY = scale,
+                        scaleX = pageScale,
+                        scaleY = pageScale,
                         rotationX = rotationX,
                         translationY = translation,
                         cameraDistance = cameraDistance
@@ -3139,6 +3179,7 @@ private fun HistoryCard(
     onLongClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val scale = LocalCompareScale.current
     val clampedFocus = focus.coerceIn(0f, 1f)
     val clampedBackgroundAlpha = backgroundAlpha.coerceIn(0f, 1f)
     val background = lerp(
@@ -3169,7 +3210,7 @@ private fun HistoryCard(
                     onClick = {},
                     onLongClick = onLongClick
                 )
-                .padding(horizontal = 10.dp, vertical = 4.dp),
+                .padding(horizontal = 10.dp * scale, vertical = 4.dp * scale),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             CompareVideoRow(entry)
@@ -3183,6 +3224,7 @@ private fun ThickScoreSlider(
     onValueChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val scale = LocalCompareScale.current
     val displayValue = abs(value)
     val scoreDescription = stringResource(
         R.string.compare_score_accessibility,
@@ -3229,8 +3271,8 @@ private fun ThickScoreSlider(
 
     Canvas(
         modifier = modifier
-            .height(72.dp)
-            .padding(vertical = 6.dp)
+            .height(72.dp * scale)
+            .padding(vertical = 6.dp * scale)
             .onSizeChanged { sliderSize = it }
             .semantics { contentDescription = scoreDescription }
             .pointerInput(Unit) {
@@ -3349,9 +3391,10 @@ private fun AdditionalCriteriaSection(
     scores: Map<String, Int>,
     onScoreChange: (String, Int) -> Unit
 ) {
+    val scale = LocalCompareScale.current
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp * scale)
     ) {
         EXTRA_CRITERIA.forEach { criterion ->
             CriteriaScoreRow(
@@ -3369,6 +3412,7 @@ private fun CriteriaScoreRow(
     score: Int,
     onScoreChange: (Int) -> Unit
 ) {
+    val scale = LocalCompareScale.current
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -3377,9 +3421,9 @@ private fun CriteriaScoreRow(
             Image(
                 painter = painterResource(criterion.iconRes),
                 contentDescription = null,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(18.dp * scale)
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(8.dp * scale))
             Text(
                 text = stringResource(criterion.labelRes),
                 style = MaterialTheme.typography.labelLarge,
@@ -3396,19 +3440,20 @@ private fun CriteriaScoreRow(
 
 @Composable
 private fun CompareVideoRow(entry: StreamHistoryEntry) {
+    val scale = LocalCompareScale.current
     val stream = remember(entry) { entry.toStreamInfoItem() }
     val thumbnailDescription = stringResource(R.string.compare_thumbnail_description)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 4.dp * scale),
         verticalAlignment = Alignment.CenterVertically
     ) {
         StreamThumbnail(
             stream = stream,
             showProgress = false,
             modifier = Modifier
-                .size(width = 88.dp, height = 48.dp)
+                .size(width = 88.dp * scale, height = 48.dp * scale)
                 .semantics {
                     contentDescription = thumbnailDescription
                 }
@@ -3417,7 +3462,7 @@ private fun CompareVideoRow(entry: StreamHistoryEntry) {
         Column(
             modifier = Modifier
                 .weight(1f)
-                .padding(start = 12.dp)
+                .padding(start = 12.dp * scale)
         ) {
             Text(
                 text = stream.name,
@@ -3501,25 +3546,6 @@ private fun SuggestedVideoThumbnail(
             .aspectRatio(16f / 9f)
             .height(thumbnailHeight)
     )
-}
-
-@Composable
-private fun CurrentBadge(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .padding(top = 2.dp, end = 2.dp)
-            .background(Color(0xCC1B1B1B), RoundedCornerShape(3.dp))
-            .padding(horizontal = 4.dp, vertical = 1.dp)
-    ) {
-        Text(
-            text = stringResource(R.string.compare_current_label),
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 8.sp
-            ),
-            color = Color.White
-        )
-    }
 }
 
 @Composable
