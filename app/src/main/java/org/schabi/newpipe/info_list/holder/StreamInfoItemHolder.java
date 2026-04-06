@@ -1,6 +1,8 @@
 package org.schabi.newpipe.info_list.holder;
 
 import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
@@ -177,7 +179,7 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
             }
             icon.setBounds(0, 0, iconSize, iconSize);
             sb.append(" ");
-            sb.setSpan(new ImageSpan(icon, ImageSpan.ALIGN_BASELINE),
+            sb.setSpan(new CenteredImageSpan(icon),
                     sb.length() - 1, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             sb.append("\u2009");
         }
@@ -186,6 +188,27 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
         if (textColor != null) {
             sb.setSpan(new ForegroundColorSpan(textColor),
                     textStart, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+    }
+
+    private static class CenteredImageSpan extends ImageSpan {
+        CenteredImageSpan(final Drawable d) {
+            super(d, ImageSpan.ALIGN_BASELINE);
+        }
+
+        @Override
+        public void draw(final Canvas canvas, final CharSequence text,
+                         final int start, final int end, final float x,
+                         final int top, final int y, final int bottom,
+                         final Paint paint) {
+            final Drawable d = getDrawable();
+            final Paint.FontMetricsInt fm = paint.getFontMetricsInt();
+            final int textCenter = y + (fm.descent + fm.ascent) / 2;
+            final int transY = textCenter - d.getBounds().height() / 2;
+            canvas.save();
+            canvas.translate(x, transY);
+            d.draw(canvas);
+            canvas.restore();
         }
     }
 

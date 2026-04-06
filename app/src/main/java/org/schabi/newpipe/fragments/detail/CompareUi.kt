@@ -93,6 +93,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.nativeCanvas
@@ -3404,6 +3405,166 @@ private fun ThickScoreSlider(
     }
 }
 
+private val LOLLIPOP_COLORS = mapOf(
+    "reliability" to Color(0xFF4F77DD),
+    "pedagogy" to Color(0xFFC28BED),
+    "importance" to Color(0xFFDC8A5D),
+    "layman_friendly" to Color(0xFF4BB061),
+    "entertaining_relaxing" to Color(0xFFD8B36D),
+    "engaging" to Color(0xFFDFC642),
+    "diversity_inclusion" to Color(0xFF76C6CB),
+    "better_habits" to Color(0xFF9DD654),
+    "backfire_risk" to Color(0xFFD37A80)
+)
+
+@Composable
+private fun LollipopPicker(
+    scores: Map<String, Int>,
+    onScoreChange: (String, Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current
+    val painters = EXTRA_CRITERIA.map { painterResource(it.iconRes) }
+    val colors = EXTRA_CRITERIA.map { LOLLIPOP_COLORS[it.id] ?: Color.White }
+    val circleRadius = with(density) { 14.dp.toPx() }
+    val barWidth = with(density) { 12.dp.toPx() }
+    val iconSize = with(density) { 18.dp.toPx() }
+    val strokeWidth = with(density) { 3.5.dp.toPx() }
+    val textSizePx = with(density) { 10.dp.toPx() }
+    val textGap = with(density) { 6.dp.toPx() }
+    val topPaddingPx = with(density) { 22.dp.toPx() }
+    val bottomPaddingPx = with(density) { 22.dp.toPx() }
+    val totalHeight = 160.dp
+    val activeIndex = remember { mutableIntStateOf(-1) }
+    val labelPaint = remember {
+        AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
+            textAlign = AndroidPaint.Align.CENTER
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        }
+    }
+    labelPaint.textSize = textSizePx
+
+    fun yToScore(y: Float, drawTop: Float, drawBottom: Float): Int {
+        val ratio = ((drawBottom - y) / (drawBottom - drawTop)).coerceIn(0f, 1f)
+        return (ratio * 200f - 100f).roundToInt().coerceIn(SCORE_MIN, SCORE_MAX)
+    }
+
+    Canvas(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(totalHeight)
+            .pointerInput(Unit) {
+                val n = EXTRA_CRITERIA.size
+                detectDragGestures(
+                    onDragStart = { offset ->
+                        val w = size.width.toFloat()
+                        val slot = w / n
+                        val drawTop = topPaddingPx + circleRadius
+                        val drawBottom = size.height - bottomPaddingPx - circleRadius
+                        var found = -1
+                        for (i in 0 until n) {
+                            val cx = slot * (i + 0.5f)
+                            val score = scores[EXTRA_CRITERIA[i].id] ?: 0
+                            val cy = drawBottom -
+                                ((score + 100) / 200f) * (drawBottom - drawTop)
+                            val dx = offset.x - cx
+                            val dy = offset.y - cy
+                            val r = circleRadius + with(density) { 12.dp.toPx() }
+                            if (dx * dx + dy * dy <= r * r) {
+                                found = i
+                                break
+                            }
+                        }
+                        if (found < 0) {
+                            // Fall back to nearest column horizontally
+                            found = (offset.x / slot).toInt().coerceIn(0, n - 1)
+                        }
+                        activeIndex.intValue = found
+                        val newScore = yToScore(offset.y, drawTop, drawBottom)
+                        onScoreChange(EXTRA_CRITERIA[found].id, newScore)
+                    },
+                    onDrag = { change, _ ->
+                        change.consumeAllChanges()
+                        val i = activeIndex.intValue
+                        if (i >= 0) {
+                            val drawTop = topPaddingPx + circleRadius
+                            val drawBottom = size.height - bottomPaddingPx - circleRadius
+                            val newScore = yToScore(change.position.y, drawTop, drawBottom)
+                            onScoreChange(EXTRA_CRITERIA[i].id, newScore)
+                        }
+                    },
+                    onDragEnd = { activeIndex.intValue = -1 },
+                    onDragCancel = { activeIndex.intValue = -1 }
+                )
+            }
+    ) {
+        val n = EXTRA_CRITERIA.size
+        val w = size.width
+        val h = size.height
+        val drawTop = topPaddingPx + circleRadius
+        val drawBottom = h - bottomPaddingPx - circleRadius
+        val zeroY = (drawTop + drawBottom) / 2f
+        val slotWidth = w / n
+
+        // Zero line
+        drawLine(
+            color = Color.White.copy(alpha = 0.25f),
+            start = Offset(slotWidth * 0.3f, zeroY),
+            end = Offset(w - slotWidth * 0.3f, zeroY),
+            strokeWidth = with(density) { 1.dp.toPx() }
+        )
+
+        for (i in 0 until n) {
+            val score = scores[EXTRA_CRITERIA[i].id] ?: 0
+            val color = colors[i]
+            val cx = slotWidth * (i + 0.5f)
+            val cy = drawBottom - ((score + 100) / 200f) * (drawBottom - drawTop)
+
+            // Bar
+            drawLine(
+                color = color,
+                start = Offset(cx, zeroY),
+                end = Offset(cx, cy),
+                strokeWidth = barWidth,
+                cap = StrokeCap.Butt
+            )
+
+            // Background fill of circle
+            drawCircle(
+                color = Color(0xFF0F0F0F),
+                radius = circleRadius,
+                center = Offset(cx, cy)
+            )
+            // Stroke
+            drawCircle(
+                color = color,
+                radius = circleRadius,
+                center = Offset(cx, cy),
+                style = Stroke(width = strokeWidth)
+            )
+
+            // Icon
+            val painter = painters[i]
+            val half = iconSize / 2f
+            translate(left = cx - half, top = cy - half) {
+                with(painter) {
+                    draw(size = Size(iconSize, iconSize))
+                }
+            }
+
+            // Score label
+            labelPaint.color = color.toArgb()
+            val txt = score.toString()
+            val labelY = if (score >= 0) {
+                cy - circleRadius - textGap
+            } else {
+                cy + circleRadius + textSizePx + textGap * 0.3f
+            }
+            drawContext.canvas.nativeCanvas.drawText(txt, cx, labelY, labelPaint)
+        }
+    }
+}
+
 @Composable
 private fun AdditionalCriteriaSection(
     scores: Map<String, Int>,
@@ -3414,6 +3575,11 @@ private fun AdditionalCriteriaSection(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(2.dp * scale)
     ) {
+        LollipopPicker(
+            scores = scores,
+            onScoreChange = onScoreChange,
+            modifier = Modifier.fillMaxWidth()
+        )
         EXTRA_CRITERIA.forEach { criterion ->
             CriteriaScoreRow(
                 criterion = criterion,
