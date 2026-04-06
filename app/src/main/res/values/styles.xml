@@ -160,7 +160,7 @@
 
     <style name="TextAppearance.Chip.Tournesol" parent="TextAppearance.MaterialComponents.Chip">
         <item name="android:fontFamily">sans-serif-medium</item>
-        <item name="android:textSize">14sp</item>
+        <item name="android:textSize">12sp</item>
         <item name="android:letterSpacing">0.04</item>
     </style>
 
@@ -171,7 +171,7 @@
         <item name="android:textAppearance">@style/TextAppearance.Chip.Tournesol</item>
         <item name="chipStrokeColor">@color/tournesol_chip_stroke_color</item>
         <item name="chipStrokeWidth">0dp</item>
-        <item name="chipMinHeight">29dp</item>
+        <item name="chipMinHeight">26dp</item>
         <item name="chipCornerRadius">8dp</item>
         <item name="chipMinTouchTargetSize">0dp</item>
         <item name="checkedIconVisible">false</item>

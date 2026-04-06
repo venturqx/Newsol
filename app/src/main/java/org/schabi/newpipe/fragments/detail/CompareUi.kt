@@ -80,6 +80,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -90,6 +91,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
@@ -898,7 +900,6 @@ internal fun CompareCompactScreen(
                 verticalStepTriggered = false
             },
             onDrag = { change, dragAmount ->
-                change.consumeAllChanges()
                 totalDragX += dragAmount.x
                 totalDragY += dragAmount.y
                 if (dragAxis == null) {
@@ -914,6 +915,9 @@ internal fun CompareCompactScreen(
                 }
                 when (dragAxis) {
                     DragAxis.HORIZONTAL -> {
+                        // Horizontal drags belong to the criteria slider — consume them
+                        // so the parent pager/scroll never steals them.
+                        change.consumeAllChanges()
                         accumulatedX += dragAmount.x * horizontalSensitivity
                         val steps = (accumulatedX / pxPerScore).toInt()
                         if (steps != 0) {
@@ -930,6 +934,7 @@ internal fun CompareCompactScreen(
 
                     DragAxis.VERTICAL -> {
                         accumulatedY += dragAmount.y * verticalSensitivity
+                        var consumedStep = false
                         while (abs(accumulatedY) >= verticalStepPx) {
                             val step = if (accumulatedY > 0f) 1 else -1
                             val nextIndex = (currentIndex + step).coerceIn(0, latestMaxIndex)
@@ -937,8 +942,15 @@ internal fun CompareCompactScreen(
                                 currentIndex = nextIndex
                                 latestIndexUpdater(currentIndex)
                                 verticalStepTriggered = true
+                                consumedStep = true
                             }
                             accumulatedY -= step * verticalStepPx
+                        }
+                        // Only consume when we actually stepped criteria selection.
+                        // Otherwise leave the change unconsumed so the page's
+                        // verticalScroll / nested scroll can take over.
+                        if (consumedStep) {
+                            change.consumeAllChanges()
                         }
                     }
 
@@ -960,11 +972,9 @@ internal fun CompareCompactScreen(
         }
         false
     }
-    val nestedScrollInterop = rememberNestedScrollInteropConnection()
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .nestedScroll(nestedScrollInterop)
             .navigationBarsPadding()
     ) {
         val scale = computeCompareScale(maxWidth.value)
@@ -972,7 +982,11 @@ internal fun CompareCompactScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp * scale, vertical = 12.dp * scale)
+                    .padding(
+                        start = 16.dp * scale,
+                        end = 16.dp * scale,
+                        top = 12.dp * scale
+                    )
             ) {
                 Column(
                     modifier = Modifier
@@ -982,6 +996,7 @@ internal fun CompareCompactScreen(
                     Column(
                         modifier = Modifier
                             .weight(1f)
+                            .verticalScroll(rememberScrollState())
                             .padding(bottom = bottomContentPadding),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
@@ -1096,12 +1111,7 @@ internal fun CompareCompactScreen(
                                                         modifier = Modifier
                                                             .then(
                                                                 if (isLeftCurrent) {
-                                                                    Modifier.shadow(
-                                                                        elevation = 20.dp,
-                                                                        shape = RoundedCornerShape(6.dp),
-                                                                        ambientColor = Color(0xFF42A5F5),
-                                                                        spotColor = Color(0xFF42A5F5)
-                                                                    )
+                                                                    Modifier.tightBorderGlow(Color(0xFF42A5F5), 6.dp)
                                                                 } else {
                                                                     Modifier
                                                                 }
@@ -1163,12 +1173,7 @@ internal fun CompareCompactScreen(
                                                         modifier = Modifier
                                                             .then(
                                                                 if (isRightCurrent) {
-                                                                    Modifier.shadow(
-                                                                        elevation = 20.dp,
-                                                                        shape = RoundedCornerShape(6.dp),
-                                                                        ambientColor = Color(0xFFE57373),
-                                                                        spotColor = Color(0xFFE57373)
-                                                                    )
+                                                                    Modifier.tightBorderGlow(Color(0xFFE57373), 6.dp)
                                                                 } else {
                                                                     Modifier
                                                                 }
@@ -1335,8 +1340,6 @@ internal fun CompareCompactScreen(
                                 }
                             }
                         }
-
-                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
 
@@ -1769,7 +1772,7 @@ private fun CompactHeader(
         )
         Text(
             text = description,
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             textAlign = TextAlign.Start,
             maxLines = 3,
@@ -2182,7 +2185,7 @@ private fun CompactDimensionRow(
             .clickable { onClick() }
             .padding(
                 horizontal = 10.dp * scale,
-                vertical = if (isMainCriterion) 4.dp * scale else 1.dp * scale
+                vertical = if (isMainCriterion) 3.dp * scale else 1.dp * scale
             )
             .graphicsLayer(alpha = rowAlpha),
         verticalAlignment = Alignment.CenterVertically
@@ -2197,7 +2200,7 @@ private fun CompactDimensionRow(
         ) {
             Box(
                 modifier = Modifier
-                    .width(18.dp * scale)
+                    .width(20.dp * scale)
                     .padding(end = 4.dp * scale)
                     .then(
                         if (isSelected) Modifier.clickable { onToggleSelected(false) } else Modifier
@@ -2208,19 +2211,21 @@ private fun CompactDimensionRow(
                     Image(
                         painter = painterResource(R.drawable.ic_close),
                         contentDescription = null,
-                        modifier = Modifier.size(12.dp * scale)
+                        modifier = Modifier.size(14.dp * scale)
                     )
                 }
             }
             Image(
                 painter = painterResource(criterion.iconRes),
                 contentDescription = null,
-                modifier = Modifier.size(12.dp * scale)
+                modifier = Modifier.size(21.dp * scale)
             )
-            Spacer(modifier = Modifier.width(8.dp * scale))
+            Spacer(modifier = Modifier.width(6.dp * scale))
             Text(
                 text = criterionLabel,
-                style = MaterialTheme.typography.labelLarge.copy(
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 13.5.sp * scale,
+                    lineHeight = 15.sp * scale,
                     fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal
                 ),
                 color = textColor,
@@ -2242,10 +2247,13 @@ private fun CompactDimensionRow(
         ) {
             Text(
                 text = valueText,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 9.sp * scale,
+                    lineHeight = 10.sp * scale
+                ),
                 color = scoreColor,
                 textAlign = TextAlign.End,
-                modifier = Modifier.width(28.dp * scale)
+                modifier = Modifier.width(24.dp * scale)
             )
             Spacer(modifier = Modifier.width(6.dp * scale))
             MiniScoreBar(
@@ -2417,9 +2425,9 @@ private fun SwipeHintWaveText(
                 Text(
                     text = char.toString(),
                     style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 9.sp,
+                        fontSize = 7.sp,
                         fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 0.7.sp
+                        letterSpacing = 0.5.sp
                     ),
                     color = animatedColor
                 )
@@ -3600,5 +3608,45 @@ private fun SubmitSpinner(
             useCenter = false,
             style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
         )
+    }
+}
+
+private fun Modifier.tightBorderGlow(
+    color: Color,
+    cornerRadius: androidx.compose.ui.unit.Dp
+): Modifier = this.drawBehind {
+    val radiusPx = cornerRadius.toPx()
+    val blurPx = 8.dp.toPx()
+    val strokePx = 3.dp.toPx()
+    val inset = -1.dp.toPx()
+    drawIntoCanvas { canvas ->
+        // Outer softer halo
+        val outer = AndroidPaint().apply {
+            isAntiAlias = true
+            style = AndroidPaint.Style.STROKE
+            strokeWidth = strokePx
+            this.color = color.copy(alpha = 0.55f).toArgb()
+            maskFilter = android.graphics.BlurMaskFilter(
+                blurPx,
+                android.graphics.BlurMaskFilter.Blur.NORMAL
+            )
+        }
+        // Inner bright core
+        val inner = AndroidPaint().apply {
+            isAntiAlias = true
+            style = AndroidPaint.Style.STROKE
+            strokeWidth = strokePx
+            this.color = color.copy(alpha = 1f).toArgb()
+            maskFilter = android.graphics.BlurMaskFilter(
+                3.dp.toPx(),
+                android.graphics.BlurMaskFilter.Blur.NORMAL
+            )
+        }
+        val left = inset
+        val top = inset
+        val right = size.width - inset
+        val bottom = size.height - inset
+        canvas.nativeCanvas.drawRoundRect(left, top, right, bottom, radiusPx, radiusPx, outer)
+        canvas.nativeCanvas.drawRoundRect(left, top, right, bottom, radiusPx, radiusPx, inner)
     }
 }

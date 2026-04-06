@@ -5,6 +5,7 @@ import android.graphics.drawable.Drawable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextUtils;
+import android.text.style.ForegroundColorSpan;
 import android.text.style.ImageSpan;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,6 +23,7 @@ import org.schabi.newpipe.extractor.stream.StreamType;
 import org.schabi.newpipe.info_list.InfoItemBuilder;
 import org.schabi.newpipe.local.history.HistoryRecordManager;
 import org.schabi.newpipe.util.Localization;
+import org.schabi.newpipe.util.TournesolHelper;
 
 /*
  * Created by Christian Schabesberger on 01.08.16.
@@ -96,11 +98,21 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
         final int textColor = itemAdditionalDetails.getCurrentTextColor();
         final SpannableStringBuilder sb = new SpannableStringBuilder();
 
-        // Tournesol score: logo icon + score
+        // Tournesol score: logo icon (or plant emoji if insufficient) + score (accent yellow)
         final Long tournesolScore = item.getTournesolScore();
         if (tournesolScore != null) {
-            appendIconAndText(sb, context, R.drawable.logo_small, iconSize,
-                    Long.toString(tournesolScore), textColor);
+            final boolean hasInsufficientReason = TournesolHelper.hasInsufficientReason(
+                    item.getTournesolUnsafeReasons());
+            if (hasInsufficientReason) {
+                sb.append("\uD83C\uDF31\u2009");
+                final int textStart = sb.length();
+                sb.append(Long.toString(tournesolScore));
+                sb.setSpan(new ForegroundColorSpan(0xFFD1B65C),
+                        textStart, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            } else {
+                appendIconAndText(sb, context, R.drawable.logo_small, iconSize,
+                        Long.toString(tournesolScore), null, 0xFFD1B65C);
+            }
         }
 
         // Views: eye icon + compact count
@@ -128,14 +140,14 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
                     uploadDate, textColor);
         }
 
-        // Votes: thumb icon + count
+        // Votes: balance scale emoji + count
         final int nComparisons = item.getTournesolNComparisons();
         if (nComparisons >= 0) {
             if (sb.length() > 0) {
                 sb.append("  ");
             }
-            appendIconAndText(sb, context, R.drawable.ic_thumb_up, iconSize,
-                    String.valueOf(nComparisons), textColor);
+            sb.append("\u2696\uFE0F\u2009");
+            sb.append(String.valueOf(nComparisons));
         }
 
         return sb;
@@ -147,17 +159,34 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
                                           final int iconSize,
                                           final String text,
                                           final int tintColor) {
+        appendIconAndText(sb, context, iconRes, iconSize, text, (Integer) tintColor, null);
+    }
+
+    private static void appendIconAndText(final SpannableStringBuilder sb,
+                                          final Context context,
+                                          @DrawableRes final int iconRes,
+                                          final int iconSize,
+                                          final String text,
+                                          @Nullable final Integer iconTint,
+                                          @Nullable final Integer textColor) {
         final Drawable icon = ContextCompat.getDrawable(context, iconRes);
         if (icon != null) {
             icon.mutate();
-            icon.setTint(tintColor);
+            if (iconTint != null) {
+                icon.setTint(iconTint);
+            }
             icon.setBounds(0, 0, iconSize, iconSize);
             sb.append(" ");
             sb.setSpan(new ImageSpan(icon, ImageSpan.ALIGN_BASELINE),
                     sb.length() - 1, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             sb.append("\u2009");
         }
+        final int textStart = sb.length();
         sb.append(text);
+        if (textColor != null) {
+            sb.setSpan(new ForegroundColorSpan(textColor),
+                    textStart, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
     }
 
     private void bindInlineCriteria(final StreamInfoItem item) {
