@@ -117,7 +117,28 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
             }
         }
 
-        // Views: eye icon + compact count
+        // Votes: balance scale emoji + count
+        final int nComparisons = item.getTournesolNComparisons();
+        if (nComparisons >= 0) {
+            if (sb.length() > 0) {
+                sb.append("  ");
+            }
+            sb.append("\u2696\uFE0F\u2009");
+            sb.append(String.valueOf(nComparisons));
+        }
+
+        // Date: clock emoji + compact relative time (natural color)
+        final String uploadDate = Localization.compactRelativeTimeOrTextual(
+                item.getUploadDate(), item.getTextualUploadDate());
+        if (!TextUtils.isEmpty(uploadDate)) {
+            if (sb.length() > 0) {
+                sb.append("  ");
+            }
+            sb.append("\uD83D\uDD52\uFE0F\u2009");
+            sb.append(uploadDate);
+        }
+
+        // Views: eye emoji + compact count (natural color)
         if (item.getViewCount() >= 0) {
             final String viewText;
             if (item.getStreamType().equals(StreamType.AUDIO_LIVE_STREAM)) {
@@ -127,29 +148,11 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
             } else {
                 viewText = Localization.shortCount(context, item.getViewCount());
             }
-            appendIconAndText(sb, context, R.drawable.ic_visibility_on, iconSize,
-                    viewText, textColor);
-        }
-
-        // Date: clock icon + compact relative time
-        final String uploadDate = Localization.compactRelativeTimeOrTextual(
-                item.getUploadDate(), item.getTextualUploadDate());
-        if (!TextUtils.isEmpty(uploadDate)) {
             if (sb.length() > 0) {
                 sb.append("  ");
             }
-            appendIconAndText(sb, context, R.drawable.ic_watch_later, iconSize,
-                    uploadDate, textColor);
-        }
-
-        // Votes: balance scale emoji + count
-        final int nComparisons = item.getTournesolNComparisons();
-        if (nComparisons >= 0) {
-            if (sb.length() > 0) {
-                sb.append("  ");
-            }
-            sb.append("\u2696\uFE0F\u2009");
-            sb.append(String.valueOf(nComparisons));
+            sb.append("\uD83D\uDC41\uFE0F\u2009");
+            sb.append(viewText);
         }
 
         return sb;

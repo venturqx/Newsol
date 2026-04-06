@@ -105,11 +105,6 @@ fun StreamListItem(
                     }
                 }
 
-                Text(
-                    text = getStreamInfoDetail(stream),
-                    style = MaterialTheme.typography.bodySmall
-                )
-
                 val hasContributors = stream.tournesolNContributors >= 0
                 val hasComparisons = stream.tournesolNComparisons >= 0
                 val bestIcon = criteriaIcon(stream.tournesolBestCriteria)
@@ -166,6 +161,11 @@ fun StreamListItem(
                         }
                     }
                 }
+
+                Text(
+                    text = getStreamInfoDetail(stream),
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
 

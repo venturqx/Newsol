@@ -377,6 +377,14 @@ fun CompareScreen(
                     )
                 }
 
+                LollipopPicker(
+                    scores = state.extraScores,
+                    onScoreChange = onExtraScoreChange,
+                    mainScore = state.score,
+                    onMainScoreChange = onScoreChange,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
                 ThickScoreSlider(
                     value = state.score,
                     onValueChange = onScoreChange,
@@ -1011,6 +1019,14 @@ internal fun CompareCompactScreen(
                                 onRegister = onRegister
                             )
                         }
+
+                        LollipopPicker(
+                            scores = state.extraScores,
+                            onScoreChange = onExtraScoreChange,
+                            mainScore = state.score,
+                            onMainScoreChange = onScoreChange,
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
                         CompactDimensionList(
                             dimensions = dimensions,
@@ -3414,18 +3430,40 @@ private val LOLLIPOP_COLORS = mapOf(
     "engaging" to Color(0xFFDFC642),
     "diversity_inclusion" to Color(0xFF76C6CB),
     "better_habits" to Color(0xFF9DD654),
-    "backfire_risk" to Color(0xFFD37A80)
+    "backfire_risk" to Color(0xFFD37A80),
+    "largely_recommended" to Color(0xFFFFCA1D)
 )
 
 @Composable
 private fun LollipopPicker(
     scores: Map<String, Int>,
     onScoreChange: (String, Int) -> Unit,
+    mainScore: Int,
+    onMainScoreChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
-    val painters = EXTRA_CRITERIA.map { painterResource(it.iconRes) }
-    val colors = EXTRA_CRITERIA.map { LOLLIPOP_COLORS[it.id] ?: Color.White }
+    val dimensions = remember {
+        EXTRA_CRITERIA + CompareCriterion(
+            id = COMPACT_MAIN_CRITERION_ID,
+            labelRes = R.string.compare_criteria_largely_recommended,
+            iconRes = R.drawable.logo_small
+        )
+    }
+    val painters = dimensions.map { painterResource(it.iconRes) }
+    val colors = dimensions.map { LOLLIPOP_COLORS[it.id] ?: Color.White }
+    fun scoreAt(i: Int): Int = if (dimensions[i].id == COMPACT_MAIN_CRITERION_ID) {
+        mainScore
+    } else {
+        scores[dimensions[i].id] ?: 0
+    }
+    fun setScoreAt(i: Int, value: Int) {
+        if (dimensions[i].id == COMPACT_MAIN_CRITERION_ID) {
+            onMainScoreChange(value)
+        } else {
+            onScoreChange(dimensions[i].id, value)
+        }
+    }
     val circleRadius = with(density) { 14.dp.toPx() }
     val barWidth = with(density) { 12.dp.toPx() }
     val iconSize = with(density) { 18.dp.toPx() }
@@ -3449,118 +3487,159 @@ private fun LollipopPicker(
         return (ratio * 200f - 100f).roundToInt().coerceIn(SCORE_MIN, SCORE_MAX)
     }
 
-    Canvas(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(totalHeight)
-            .pointerInput(Unit) {
-                val n = EXTRA_CRITERIA.size
-                detectDragGestures(
-                    onDragStart = { offset ->
-                        val w = size.width.toFloat()
-                        val slot = w / n
-                        val drawTop = topPaddingPx + circleRadius
-                        val drawBottom = size.height - bottomPaddingPx - circleRadius
-                        var found = -1
-                        for (i in 0 until n) {
-                            val cx = slot * (i + 0.5f)
-                            val score = scores[EXTRA_CRITERIA[i].id] ?: 0
-                            val cy = drawBottom -
-                                ((score + 100) / 200f) * (drawBottom - drawTop)
-                            val dx = offset.x - cx
-                            val dy = offset.y - cy
-                            val r = circleRadius + with(density) { 12.dp.toPx() }
-                            if (dx * dx + dy * dy <= r * r) {
-                                found = i
-                                break
-                            }
-                        }
-                        if (found < 0) {
-                            // Fall back to nearest column horizontally
-                            found = (offset.x / slot).toInt().coerceIn(0, n - 1)
-                        }
-                        activeIndex.intValue = found
-                        val newScore = yToScore(offset.y, drawTop, drawBottom)
-                        onScoreChange(EXTRA_CRITERIA[found].id, newScore)
-                    },
-                    onDrag = { change, _ ->
-                        change.consumeAllChanges()
-                        val i = activeIndex.intValue
-                        if (i >= 0) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(totalHeight)
+                .pointerInput(Unit) {
+                    val n = dimensions.size
+                    detectDragGestures(
+                        onDragStart = { offset ->
+                            val w = size.width.toFloat()
+                            val slot = w / n
                             val drawTop = topPaddingPx + circleRadius
                             val drawBottom = size.height - bottomPaddingPx - circleRadius
-                            val newScore = yToScore(change.position.y, drawTop, drawBottom)
-                            onScoreChange(EXTRA_CRITERIA[i].id, newScore)
-                        }
-                    },
-                    onDragEnd = { activeIndex.intValue = -1 },
-                    onDragCancel = { activeIndex.intValue = -1 }
-                )
-            }
-    ) {
-        val n = EXTRA_CRITERIA.size
-        val w = size.width
-        val h = size.height
-        val drawTop = topPaddingPx + circleRadius
-        val drawBottom = h - bottomPaddingPx - circleRadius
-        val zeroY = (drawTop + drawBottom) / 2f
-        val slotWidth = w / n
+                            var found = -1
+                            for (i in 0 until n) {
+                                val cx = slot * (i + 0.5f)
+                                val score = scoreAt(i)
+                                val cy = drawBottom -
+                                    ((score + 100) / 200f) * (drawBottom - drawTop)
+                                val dx = offset.x - cx
+                                val dy = offset.y - cy
+                                val r = circleRadius + with(density) { 12.dp.toPx() }
+                                if (dx * dx + dy * dy <= r * r) {
+                                    found = i
+                                    break
+                                }
+                            }
+                            if (found < 0) {
+                                // Fall back to nearest column horizontally
+                                found = (offset.x / slot).toInt().coerceIn(0, n - 1)
+                            }
+                            activeIndex.intValue = found
+                            val newScore = yToScore(offset.y, drawTop, drawBottom)
+                            setScoreAt(found, newScore)
+                        },
+                        onDrag = { change, _ ->
+                            change.consumeAllChanges()
+                            val i = activeIndex.intValue
+                            if (i >= 0) {
+                                val drawTop = topPaddingPx + circleRadius
+                                val drawBottom = size.height - bottomPaddingPx - circleRadius
+                                val newScore = yToScore(change.position.y, drawTop, drawBottom)
+                                setScoreAt(i, newScore)
+                            }
+                        },
+                        onDragEnd = { },
+                        onDragCancel = { }
+                    )
+                }
+        ) {
+            val n = dimensions.size
+            val w = size.width
+            val h = size.height
+            val drawTop = topPaddingPx + circleRadius
+            val drawBottom = h - bottomPaddingPx - circleRadius
+            val zeroY = (drawTop + drawBottom) / 2f
+            val slotWidth = w / n
 
-        // Zero line
-        drawLine(
-            color = Color.White.copy(alpha = 0.25f),
-            start = Offset(slotWidth * 0.3f, zeroY),
-            end = Offset(w - slotWidth * 0.3f, zeroY),
-            strokeWidth = with(density) { 1.dp.toPx() }
-        )
-
-        for (i in 0 until n) {
-            val score = scores[EXTRA_CRITERIA[i].id] ?: 0
-            val color = colors[i]
-            val cx = slotWidth * (i + 0.5f)
-            val cy = drawBottom - ((score + 100) / 200f) * (drawBottom - drawTop)
-
-            // Bar
+            // Zero line
             drawLine(
-                color = color,
-                start = Offset(cx, zeroY),
-                end = Offset(cx, cy),
-                strokeWidth = barWidth,
-                cap = StrokeCap.Butt
+                color = Color.White.copy(alpha = 0.25f),
+                start = Offset(slotWidth * 0.3f, zeroY),
+                end = Offset(w - slotWidth * 0.3f, zeroY),
+                strokeWidth = with(density) { 1.dp.toPx() }
             )
 
-            // Background fill of circle
-            drawCircle(
-                color = Color(0xFF0F0F0F),
-                radius = circleRadius,
-                center = Offset(cx, cy)
-            )
-            // Stroke
-            drawCircle(
-                color = color,
-                radius = circleRadius,
-                center = Offset(cx, cy),
-                style = Stroke(width = strokeWidth)
-            )
+            for (i in 0 until n) {
+                val score = scoreAt(i)
+                val color = colors[i]
+                val cx = slotWidth * (i + 0.5f)
+                val cy = drawBottom - ((score + 100) / 200f) * (drawBottom - drawTop)
 
-            // Icon
-            val painter = painters[i]
-            val half = iconSize / 2f
-            translate(left = cx - half, top = cy - half) {
-                with(painter) {
-                    draw(size = Size(iconSize, iconSize))
+                // Bar
+                drawLine(
+                    color = color,
+                    start = Offset(cx, zeroY),
+                    end = Offset(cx, cy),
+                    strokeWidth = barWidth,
+                    cap = StrokeCap.Butt
+                )
+
+                // Background fill of circle
+                drawCircle(
+                    color = Color(0xFF0F0F0F),
+                    radius = circleRadius,
+                    center = Offset(cx, cy)
+                )
+                // Stroke
+                drawCircle(
+                    color = color,
+                    radius = circleRadius,
+                    center = Offset(cx, cy),
+                    style = Stroke(width = strokeWidth)
+                )
+                // Selected outer ring
+                if (i == activeIndex.intValue) {
+                    drawCircle(
+                        color = color.copy(alpha = 0.7f),
+                        radius = circleRadius + with(density) { 4.dp.toPx() },
+                        center = Offset(cx, cy),
+                        style = Stroke(width = with(density) { 2.dp.toPx() })
+                    )
+                }
+
+                // Icon
+                val painter = painters[i]
+                val half = iconSize / 2f
+                translate(left = cx - half, top = cy - half) {
+                    with(painter) {
+                        draw(size = Size(iconSize, iconSize))
+                    }
+                }
+
+                // Score label
+                labelPaint.color = color.toArgb()
+                val txt = score.toString()
+                val labelY = if (score >= 0) {
+                    cy - circleRadius - textGap
+                } else {
+                    cy + circleRadius + textSizePx + textGap * 0.3f
+                }
+                drawContext.canvas.nativeCanvas.drawText(txt, cx, labelY, labelPaint)
+            }
+        }
+        val sel = activeIndex.intValue
+        if (sel in dimensions.indices) {
+            val criterion = dimensions[sel]
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Image(
+                    painter = painterResource(criterion.iconRes),
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(criterion.labelRes),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(compactDescriptionRes(criterion.id)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 4
+                    )
                 }
             }
-
-            // Score label
-            labelPaint.color = color.toArgb()
-            val txt = score.toString()
-            val labelY = if (score >= 0) {
-                cy - circleRadius - textGap
-            } else {
-                cy + circleRadius + textSizePx + textGap * 0.3f
-            }
-            drawContext.canvas.nativeCanvas.drawText(txt, cx, labelY, labelPaint)
         }
     }
 }
@@ -3575,11 +3654,6 @@ private fun AdditionalCriteriaSection(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(2.dp * scale)
     ) {
-        LollipopPicker(
-            scores = scores,
-            onScoreChange = onScoreChange,
-            modifier = Modifier.fillMaxWidth()
-        )
         EXTRA_CRITERIA.forEach { criterion ->
             CriteriaScoreRow(
                 criterion = criterion,
