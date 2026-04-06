@@ -1,6 +1,11 @@
 package org.schabi.newpipe.info_list.holder;
 
+import android.content.Context;
+import android.graphics.drawable.Drawable;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
 import android.text.TextUtils;
+import android.text.style.ImageSpan;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -8,6 +13,7 @@ import android.widget.TextView;
 
 import androidx.annotation.DrawableRes;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 
 import org.schabi.newpipe.R;
 import org.schabi.newpipe.extractor.InfoItem;
@@ -72,62 +78,86 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
         }
         final StreamInfoItem item = (StreamInfoItem) infoItem;
 
-        String details = getStreamInfoDetailLine(item);
-        if (item.getTournesolScore() != null && !TextUtils.isEmpty(details)) {
-            details = "\u2022 " + details;
-        }
+        final SpannableStringBuilder details = buildCompactDetailLine(item);
 
-        final String socialProof = buildSocialProofText(item);
-        if (!TextUtils.isEmpty(socialProof)) {
-            if (!TextUtils.isEmpty(details)) {
-                details = details + " \u2022 " + socialProof;
-            } else {
-                details = socialProof;
-            }
+        if (details.length() > 0) {
+            itemAdditionalDetails.setText(details);
+            itemAdditionalDetails.setVisibility(View.VISIBLE);
+        } else {
+            itemAdditionalDetails.setVisibility(View.GONE);
         }
-
-        itemAdditionalDetails.setText(details);
-        itemAdditionalDetails.setVisibility(
-                TextUtils.isEmpty(details) ? View.GONE : View.VISIBLE);
 
         bindInlineCriteria(item);
     }
 
-    private String getStreamInfoDetailLine(final StreamInfoItem infoItem) {
-        String viewsAndDate = "";
-        if (infoItem.getViewCount() >= 0) {
-            if (infoItem.getStreamType().equals(StreamType.AUDIO_LIVE_STREAM)) {
-                viewsAndDate = Localization
-                        .listeningCount(itemBuilder.getContext(), infoItem.getViewCount());
-            } else if (infoItem.getStreamType().equals(StreamType.LIVE_STREAM)) {
-                viewsAndDate = Localization
-                        .shortWatchingCount(itemBuilder.getContext(), infoItem.getViewCount());
+    private SpannableStringBuilder buildCompactDetailLine(final StreamInfoItem item) {
+        final Context context = itemBuilder.getContext();
+        final int iconSize = (int) itemAdditionalDetails.getTextSize();
+        final int textColor = itemAdditionalDetails.getCurrentTextColor();
+        final SpannableStringBuilder sb = new SpannableStringBuilder();
+
+        // Tournesol score: logo icon + score
+        final Long tournesolScore = item.getTournesolScore();
+        if (tournesolScore != null) {
+            appendIconAndText(sb, context, R.drawable.logo_small, iconSize,
+                    Long.toString(tournesolScore), textColor);
+        }
+
+        // Views: eye icon + compact count
+        if (item.getViewCount() >= 0) {
+            final String viewText;
+            if (item.getStreamType().equals(StreamType.AUDIO_LIVE_STREAM)) {
+                viewText = Localization.listeningCount(context, item.getViewCount());
+            } else if (item.getStreamType().equals(StreamType.LIVE_STREAM)) {
+                viewText = Localization.shortWatchingCount(context, item.getViewCount());
             } else {
-                viewsAndDate = Localization
-                        .shortViewCount(itemBuilder.getContext(), infoItem.getViewCount());
+                viewText = Localization.shortCount(context, item.getViewCount());
             }
+            appendIconAndText(sb, context, R.drawable.ic_visibility_on, iconSize,
+                    viewText, textColor);
         }
 
-        final String uploadDate = Localization.relativeTimeOrTextual(itemBuilder.getContext(),
-                infoItem.getUploadDate(),
-                infoItem.getTextualUploadDate());
+        // Date: clock icon + compact relative time
+        final String uploadDate = Localization.compactRelativeTimeOrTextual(
+                item.getUploadDate(), item.getTextualUploadDate());
         if (!TextUtils.isEmpty(uploadDate)) {
-            if (viewsAndDate.isEmpty()) {
-                return uploadDate;
+            if (sb.length() > 0) {
+                sb.append("  ");
             }
-
-            return Localization.concatenateStrings(viewsAndDate, uploadDate);
+            appendIconAndText(sb, context, R.drawable.ic_watch_later, iconSize,
+                    uploadDate, textColor);
         }
 
-        return viewsAndDate;
-    }
-
-    private String buildSocialProofText(final StreamInfoItem item) {
+        // Votes: thumb icon + count
         final int nComparisons = item.getTournesolNComparisons();
         if (nComparisons >= 0) {
-            return nComparisons + " votes";
+            if (sb.length() > 0) {
+                sb.append("  ");
+            }
+            appendIconAndText(sb, context, R.drawable.ic_thumb_up, iconSize,
+                    String.valueOf(nComparisons), textColor);
         }
-        return "";
+
+        return sb;
+    }
+
+    private static void appendIconAndText(final SpannableStringBuilder sb,
+                                          final Context context,
+                                          @DrawableRes final int iconRes,
+                                          final int iconSize,
+                                          final String text,
+                                          final int tintColor) {
+        final Drawable icon = ContextCompat.getDrawable(context, iconRes);
+        if (icon != null) {
+            icon.mutate();
+            icon.setTint(tintColor);
+            icon.setBounds(0, 0, iconSize, iconSize);
+            sb.append(" ");
+            sb.setSpan(new ImageSpan(icon, ImageSpan.ALIGN_BASELINE),
+                    sb.length() - 1, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            sb.append("\u2009");
+        }
+        sb.append(text);
     }
 
     private void bindInlineCriteria(final StreamInfoItem item) {

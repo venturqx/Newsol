@@ -26,8 +26,8 @@
     <dimen name="video_item_search_duration_text_size">11sp</dimen>
     <dimen name="video_item_search_uploader_text_size">11sp</dimen>
     <dimen name="video_item_search_upload_date_text_size">12sp</dimen>
-    <dimen name="tournesol_score_text_size">16sp</dimen>
-    <dimen name="tournesol_score_icon_size">14dp</dimen>
+    <dimen name="tournesol_score_text_size">11sp</dimen>
+    <dimen name="tournesol_score_icon_size">12dp</dimen>
     <!-- Elements Size -->
     <!-- 16 / 9 ratio-->
     <dimen name="video_item_search_thumbnail_image_width">124dp</dimen>

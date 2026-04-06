@@ -420,6 +420,56 @@ public final class Localization {
     }
 
     /**
+     * Returns a compact relative time string like "3mo", "2yr", "5d", "1hr", "30min".
+     *
+     * @param offsetDateTime the date/time to compute the relative time from
+     * @return a compact relative time string
+     */
+    public static String compactRelativeTime(@NonNull final OffsetDateTime offsetDateTime) {
+        final OffsetDateTime now = OffsetDateTime.now();
+        final long totalSeconds = java.time.Duration.between(offsetDateTime, now).getSeconds();
+        if (totalSeconds < 0) {
+            return "";
+        }
+        final long minutes = totalSeconds / 60;
+        final long hours = minutes / 60;
+        final long days = hours / 24;
+        final long months = days / 30;
+        final long years = days / 365;
+
+        if (years > 0) {
+            return years + "yr";
+        } else if (months > 0) {
+            return months + "mo";
+        } else if (days > 0) {
+            return days + "d";
+        } else if (hours > 0) {
+            return hours + "hr";
+        } else if (minutes > 0) {
+            return minutes + "min";
+        } else {
+            return "now";
+        }
+    }
+
+    /**
+     * Like {@link #relativeTimeOrTextual} but returns compact format (e.g. "3mo", "2yr").
+     *
+     * @param parsed  the parsed date, or {@code null} to fall back to textual
+     * @param textual the textual date string to use as fallback
+     * @return a compact relative time string, or {@code textual} if parsed is null
+     */
+    @Nullable
+    public static String compactRelativeTimeOrTextual(
+            @Nullable final DateWrapper parsed,
+            @Nullable final String textual) {
+        if (parsed == null) {
+            return textual;
+        }
+        return compactRelativeTime(parsed.offsetDateTime());
+    }
+
+    /**
      * @param context the Android context; if {@code null} then even if in debug mode and the
      *                setting is enabled, {@code textual} will not be shown next to {@code parsed}
      * @param parsed  the textual date or time ago parsed by NewPipeExtractor, or {@code null} if

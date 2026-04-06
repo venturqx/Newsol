@@ -143,6 +143,14 @@ import org.schabi.newpipe.ui.components.items.stream.StreamThumbnail
 private const val WEEKLY_GOAL = 2500
 private const val DAILY_GOAL = 2
 private const val COMPARE_SCALE_REFERENCE_WIDTH = 500f
+private const val COMPARE_SCALE_MIN_WIDTH = 200f
+private const val COMPARE_SCALE_FLOOR = 0.55f
+
+private fun computeCompareScale(maxWidthDp: Float): Float {
+    val range = COMPARE_SCALE_REFERENCE_WIDTH - COMPARE_SCALE_MIN_WIDTH
+    val raw = (maxWidthDp - COMPARE_SCALE_MIN_WIDTH) / range
+    return raw.coerceIn(COMPARE_SCALE_FLOOR, 1f)
+}
 private val LocalCompareScale = staticCompositionLocalOf { 1f }
 
 @Composable
@@ -316,7 +324,7 @@ fun CompareScreen(
     val scrollState = rememberScrollState()
     val nestedScrollInterop = rememberNestedScrollInteropConnection()
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val scale = (maxWidth.value / COMPARE_SCALE_REFERENCE_WIDTH).coerceIn(0.7f, 1f)
+        val scale = computeCompareScale(maxWidth.value)
         CompositionLocalProvider(LocalCompareScale provides scale) {
             Column(
                 modifier = Modifier
@@ -952,12 +960,14 @@ internal fun CompareCompactScreen(
         }
         false
     }
+    val nestedScrollInterop = rememberNestedScrollInteropConnection()
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
+            .nestedScroll(nestedScrollInterop)
             .navigationBarsPadding()
     ) {
-        val scale = (maxWidth.value / COMPARE_SCALE_REFERENCE_WIDTH).coerceIn(0.7f, 1f)
+        val scale = computeCompareScale(maxWidth.value)
         CompositionLocalProvider(LocalCompareScale provides scale) {
             Box(
                 modifier = Modifier
@@ -3271,8 +3281,8 @@ private fun ThickScoreSlider(
 
     Canvas(
         modifier = modifier
-            .height(72.dp * scale)
-            .padding(vertical = 6.dp * scale)
+            .height(44.dp * scale)
+            .padding(vertical = 2.dp * scale)
             .onSizeChanged { sliderSize = it }
             .semantics { contentDescription = scoreDescription }
             .pointerInput(Unit) {
@@ -3394,7 +3404,7 @@ private fun AdditionalCriteriaSection(
     val scale = LocalCompareScale.current
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(14.dp * scale)
+        verticalArrangement = Arrangement.spacedBy(2.dp * scale)
     ) {
         EXTRA_CRITERIA.forEach { criterion ->
             CriteriaScoreRow(

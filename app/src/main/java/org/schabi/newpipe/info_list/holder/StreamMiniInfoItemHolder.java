@@ -1,7 +1,5 @@
 package org.schabi.newpipe.info_list.holder;
 
-import android.graphics.Color;
-import android.graphics.drawable.Drawable;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -19,22 +17,16 @@ import org.schabi.newpipe.local.history.HistoryRecordManager;
 import org.schabi.newpipe.util.DependentPreferenceHelper;
 import org.schabi.newpipe.util.Localization;
 import org.schabi.newpipe.util.StreamTypeUtil;
-import org.schabi.newpipe.util.TournesolHelper;
 import org.schabi.newpipe.util.image.CoilHelper;
 import org.schabi.newpipe.views.AnimatedProgressBar;
 
-import androidx.annotation.Nullable;
 import java.util.concurrent.TimeUnit;
 
 public class StreamMiniInfoItemHolder extends InfoItemHolder {
-    private static final int TOURNESOL_SCORE_COLOR = Color.parseColor("#FFCA1D");
-
     public final ImageView itemThumbnailView;
     public final TextView itemVideoTitleView;
     public final TextView itemUploaderView;
     public final TextView itemDurationView;
-    @Nullable
-    private final TextView itemTournesolScoreView;
     private final AnimatedProgressBar itemProgressView;
 
     StreamMiniInfoItemHolder(final InfoItemBuilder infoItemBuilder, final int layoutId,
@@ -45,7 +37,6 @@ public class StreamMiniInfoItemHolder extends InfoItemHolder {
         itemVideoTitleView = itemView.findViewById(R.id.itemVideoTitleView);
         itemUploaderView = itemView.findViewById(R.id.itemUploaderView);
         itemDurationView = itemView.findViewById(R.id.itemDurationView);
-        itemTournesolScoreView = itemView.findViewById(R.id.itemTournesolScore);
         itemProgressView = itemView.findViewById(R.id.itemProgressView);
     }
 
@@ -63,7 +54,6 @@ public class StreamMiniInfoItemHolder extends InfoItemHolder {
 
         itemVideoTitleView.setText(item.getName());
         itemUploaderView.setText(item.getUploaderName());
-        bindTournesolScore(item);
 
         if (item.getDuration() > 0) {
             itemDurationView.setText(Localization.getDurationString(item.getDuration()));
@@ -162,35 +152,4 @@ public class StreamMiniInfoItemHolder extends InfoItemHolder {
         itemView.setOnLongClickListener(null);
     }
 
-    private void bindTournesolScore(final StreamInfoItem item) {
-        if (itemTournesolScoreView == null) {
-            return;
-        }
-        final Long tournesolScore = item.getTournesolScore();
-        if (tournesolScore != null) {
-            final boolean isUnsafe = !item.getTournesolUnsafeReasons().isEmpty();
-            final boolean hasInsufficientReason = TournesolHelper.hasInsufficientReason(
-                    item.getTournesolUnsafeReasons());
-            final String scoreText = itemBuilder.getContext().getString(
-                    R.string.tournesol_score_label,
-                    Long.toString(tournesolScore));
-            final Drawable icon = hasInsufficientReason
-                    ? null
-                    : ContextCompat.getDrawable(itemBuilder.getContext(), R.drawable.logo_small);
-            if (icon != null) {
-                final int iconSize = itemBuilder.getContext().getResources()
-                        .getDimensionPixelSize(R.dimen.tournesol_score_icon_size);
-                icon.setBounds(0, 0, iconSize, iconSize);
-            }
-            itemTournesolScoreView.setCompoundDrawablesRelative(icon, null, null, null);
-            itemTournesolScoreView.setTextColor(TOURNESOL_SCORE_COLOR);
-            itemTournesolScoreView.setAlpha(isUnsafe ? 0.5f : 1f);
-            itemTournesolScoreView.setText(hasInsufficientReason
-                    ? "\uD83C\uDF31 " + scoreText
-                    : scoreText);
-            itemTournesolScoreView.setVisibility(View.VISIBLE);
-            return;
-        }
-        itemTournesolScoreView.setVisibility(View.GONE);
-    }
 }
