@@ -931,6 +931,7 @@
     <string name="compare_failed_with_message">Échec de la comparaison : %1$s</string>
     <string name="compare_select_criteria">Sélectionnez au moins un critère</string>
     <string name="compare_criteria_largely_recommended">Largement recommandée</string>
+    <string name="compare_compact_initial_prompt">Commencez à noter en faisant glisser l\'icône %1$s vers le haut ou le bas.</string>
     <string name="compare_criteria_desc_largely_recommended">Globalement, devrait être recommandée au plus grand nombre.</string>
     <string name="compare_criteria_desc_reliability">Les informations sont fiables, étayées, nuancées et non trompeuses.</string>
     <string name="compare_criteria_desc_pedagogy">Favorise la compréhension pas à pas avec des explications claires et utiles.</string>

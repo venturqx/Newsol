@@ -1028,6 +1028,22 @@ internal fun CompareCompactScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
 
+                        val hasAnyScore = state.score != 0 ||
+                            state.extraScores.values.any { it != 0 }
+                        if (hasAnyScore) {
+                            CompactHeader(
+                                description = activeDescription,
+                                iconRes = activeDimension.iconRes,
+                                modifier = Modifier
+                                    .padding(start = 12.dp, end = 12.dp)
+                            )
+                        } else {
+                            CompactInitialPromptHeader(
+                                modifier = Modifier
+                                    .padding(start = 12.dp, end = 12.dp)
+                            )
+                        }
+
                         CompactDimensionList(
                             dimensions = dimensions,
                             activeIndex = activeIndexSafe,
@@ -1040,13 +1056,6 @@ internal fun CompareCompactScreen(
                             modifier = Modifier
                                 .then(criteriaTouchLockModifier)
                                 .then(gestureModifier)
-                        )
-
-                        CompactHeader(
-                            description = activeDescription,
-                            iconRes = activeDimension.iconRes,
-                            modifier = Modifier
-                                .padding(start = 12.dp, end = 12.dp)
                         )
 
                         val showLeftContent = hasSuggestedLeft || selectedHistoryEntryLeft != null
@@ -1767,6 +1776,50 @@ private fun dimensionScore(state: CompareUiState, criterion: CompareCriterion): 
         state.score
     } else {
         state.extraScores[criterion.id] ?: 0
+    }
+}
+
+@Composable
+private fun CompactInitialPromptHeader(
+    modifier: Modifier = Modifier
+) {
+    val scale = LocalCompareScale.current
+    val template = stringResource(R.string.compare_compact_initial_prompt)
+    val parts = template.split("%1\$s", limit = 2)
+    val prefix = parts.getOrNull(0).orEmpty()
+    val suffix = parts.getOrNull(1).orEmpty()
+    val textStyle = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp)
+    val textColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (prefix.isNotEmpty()) {
+            Text(
+                text = prefix,
+                style = textStyle,
+                color = textColor,
+                textAlign = TextAlign.Start
+            )
+        }
+        Image(
+            painter = painterResource(R.drawable.logo_small),
+            contentDescription = null,
+            modifier = Modifier
+                .padding(horizontal = 4.dp * scale)
+                .size(16.dp * scale)
+        )
+        if (suffix.isNotEmpty()) {
+            Text(
+                text = suffix,
+                style = textStyle,
+                color = textColor,
+                textAlign = TextAlign.Start,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 
@@ -3612,6 +3665,11 @@ private fun LollipopPicker(
             }
         }
         val sel = activeIndex.intValue
+        if (sel !in dimensions.indices) {
+            CompactInitialPromptHeader(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            )
+        }
         if (sel in dimensions.indices) {
             val criterion = dimensions[sel]
             Row(
