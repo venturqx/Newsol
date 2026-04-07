@@ -215,13 +215,15 @@ private fun GoalRing(
             text = "$current / $goal",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-            fontSize = 9.sp * scale
+            fontSize = 12.sp * scale,
+            lineHeight = 14.sp * scale
         )
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-            fontSize = 8.sp * scale
+            fontSize = 11.sp * scale,
+            lineHeight = 13.sp * scale
         )
     }
 }
@@ -1001,7 +1003,7 @@ internal fun CompareCompactScreen(
                 ) {
                     Column(
                         modifier = Modifier
-                            .weight(1f, fill = !embedInDetail)
+                            .weight(1f)
                             .padding(bottom = bottomContentPadding)
                             .nestedScroll(compactNestedScrollInterop)
                             .verticalScroll(rememberScrollState()),
@@ -1338,7 +1340,6 @@ internal fun CompareCompactScreen(
                         }
                     }
                     if (embedInDetail) {
-                        Spacer(modifier = Modifier.weight(1f))
                         LollipopDescriptionRow(activeIndex = pickerActiveIndex.intValue)
                     }
                 }

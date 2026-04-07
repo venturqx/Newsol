@@ -342,7 +342,7 @@ private fun TournesolFilterSheet(
     val scaledDensity = remember(baseDensity) {
         Density(
             density = baseDensity.density * 0.5f,
-            fontScale = baseDensity.fontScale * 0.5f
+            fontScale = baseDensity.fontScale * 1.6f
         )
     }
     CompositionLocalProvider(LocalDensity provides scaledDensity) {
