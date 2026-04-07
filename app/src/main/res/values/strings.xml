@@ -439,11 +439,8 @@
     <string name="filter_duration">Duration</string>
     <string name="filter_duration_min">Min: %1$s</string>
     <string name="filter_duration_max">Max: %1$s</string>
-    <string name="filter_duration_no_limit">Any length</string>
+    <string name="filter_duration_no_limit">No limit</string>
     <string name="filter_duration_minutes">%1$d min</string>
-    <string name="filter_duration_short">&lt; 4 min</string>
-    <string name="filter_duration_medium">4–20 min</string>
-    <string name="filter_duration_long">&gt; 20 min</string>
     <string name="filter_criteria">Sorting criteria</string>
     <string name="filter_criteria_largely_recommended">Should be largely recommended</string>
     <string name="filter_criteria_reliability">Reliable &amp; not misleading</string>

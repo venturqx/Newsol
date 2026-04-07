@@ -606,7 +606,8 @@ internal fun CompareCompactScreen(
     onNavigateToVideo: ((Int, String, String) -> Unit)? = null,
     onRandomizeLeft: () -> Unit = {},
     onRandomizeRight: () -> Unit = {},
-    showGreeting: Boolean = true
+    showGreeting: Boolean = true,
+    reserveMiniPlayerSpace: Boolean = true
 ) {
     val dimensions = remember { COMPACT_DIMENSIONS }
     var activeIndex by rememberSaveable { mutableIntStateOf(0) }
@@ -661,7 +662,7 @@ internal fun CompareCompactScreen(
     val latestIndexUpdater by rememberUpdatedState { index: Int -> activeIndex = index }
     val latestMaxIndex by rememberUpdatedState(maxIndex)
     val miniPlayerHeight = dimensionResource(R.dimen.mini_player_height)
-    val bottomContentPadding = miniPlayerHeight + 12.dp
+    val bottomContentPadding = if (reserveMiniPlayerSpace) miniPlayerHeight + 12.dp else 0.dp
     var showHistoryOverlay by remember { mutableStateOf(false) }
     var hasOpenedHistoryOverlay by rememberSaveable { mutableStateOf(false) }
     val overlayGridColumns = 1
@@ -971,6 +972,7 @@ internal fun CompareCompactScreen(
         }
         false
     }
+    val compactNestedScrollInterop = rememberNestedScrollInteropConnection()
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
@@ -995,6 +997,7 @@ internal fun CompareCompactScreen(
                     Column(
                         modifier = Modifier
                             .weight(1f)
+                            .nestedScroll(compactNestedScrollInterop)
                             .verticalScroll(rememberScrollState())
                             .padding(bottom = bottomContentPadding),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -3448,6 +3451,7 @@ private fun LollipopPicker(
                         halfW *= 0.88f
                         halfH *= 0.88f
                     }
+
                     "backfire_risk" -> {
                         iconOffsetY = with(density) { 1.dp.toPx() }
                     }

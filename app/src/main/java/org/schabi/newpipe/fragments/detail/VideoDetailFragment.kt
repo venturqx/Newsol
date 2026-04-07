@@ -907,7 +907,7 @@ class VideoDetailFragment :
             when (val relatedItemsLayout = binding.relatedItemsLayout) {
                 null -> {
                     if (isTournesolTab) {
-                        pageAdapter.updateItem(COMPARE_TAB_TAG, CompareFragment.getInstance(info, true))
+                        pageAdapter.updateItem(COMPARE_TAB_TAG, CompareFragment.getInstance(info, true, true))
                     } else {
                         pageAdapter.updateItem(RELATED_TAB_TAG, getInstance(info))
                     }
@@ -915,7 +915,7 @@ class VideoDetailFragment :
 
                 else -> { // tablet + TV
                     val fragment = if (isTournesolTab) {
-                        CompareFragment.getInstance(info, true)
+                        CompareFragment.getInstance(info, true, true)
                     } else {
                         getInstance(info)
                     }

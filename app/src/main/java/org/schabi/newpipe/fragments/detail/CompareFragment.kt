@@ -39,6 +39,7 @@ import org.schabi.newpipe.util.TournesolAuthManager
 class CompareFragment : Fragment() {
     private var currentInfo: StreamInfo? = null
     private var useCompactUi = false
+    private var embedInDetail = false
     private val disposables = CompositeDisposable()
 
     private var currentHistoryEntry: StreamHistoryEntry? = null
@@ -86,6 +87,7 @@ class CompareFragment : Fragment() {
         super.onCreate(savedInstanceState)
         currentInfo = arguments?.serializable<StreamInfo>(KEY_INFO)
         useCompactUi = arguments?.getBoolean(KEY_COMPACT_UI) == true
+        embedInDetail = arguments?.getBoolean(KEY_EMBED_IN_DETAIL) == true
         currentHistoryEntry = currentInfo?.let { buildCurrentEntry(it) }
         loadSubmittedComparisons()
         loadStoredScores()
@@ -187,7 +189,8 @@ class CompareFragment : Fragment() {
                             },
                             onRandomizeLeft = { randomizeLeft() },
                             onRandomizeRight = { randomizeRight() },
-                            showGreeting = currentInfo == null
+                            showGreeting = currentInfo == null,
+                            reserveMiniPlayerSpace = !embedInDetail
                         )
                     } else {
                         CompareScreen(
@@ -1247,15 +1250,22 @@ class CompareFragment : Fragment() {
         private const val PREF_SUBMITTED_COMPARISONS = "compare_submitted_pairs_v1"
         private const val PREF_COMPARISON_SCORES = "compare_submitted_scores_v1"
         private const val KEY_COMPACT_UI = "compare_compact_ui"
+        private const val KEY_EMBED_IN_DETAIL = "compare_embed_in_detail"
         private const val COMPARISONS_USERNAME = "me"
         private const val COMPARISONS_LIMIT = 20
 
         @JvmStatic
-        fun getInstance(info: StreamInfo?, useCompactUi: Boolean = false): CompareFragment {
+        @JvmOverloads
+        fun getInstance(
+            info: StreamInfo?,
+            useCompactUi: Boolean = false,
+            embedInDetail: Boolean = false
+        ): CompareFragment {
             return CompareFragment().apply {
                 arguments = bundleOf(
                     KEY_INFO to info,
-                    KEY_COMPACT_UI to useCompactUi
+                    KEY_COMPACT_UI to useCompactUi,
+                    KEY_EMBED_IN_DETAIL to embedInDetail
                 )
             }
         }
