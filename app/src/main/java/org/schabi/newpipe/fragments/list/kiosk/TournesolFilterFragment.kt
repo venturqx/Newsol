@@ -8,7 +8,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -18,18 +17,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RangeSlider
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -217,7 +211,19 @@ class TournesolFilterFragment : BottomSheetDialogFragment() {
 
 private data class FilterOption(val key: String, @StringRes val labelResId: Int)
 
-private const val DURATION_SLIDER_MAX = 120f
+private data class DurationPreset(val key: String, @StringRes val labelResId: Int, val minSec: Int, val maxSec: Int)
+
+private val DURATION_PRESETS = listOf(
+    DurationPreset("any", R.string.filter_duration_no_limit, -1, -1),
+    DurationPreset("short", R.string.filter_duration_short, -1, 240),
+    DurationPreset("medium", R.string.filter_duration_medium, 240, 1200),
+    DurationPreset("long", R.string.filter_duration_long, 1200, -1)
+)
+
+private fun matchDurationPreset(min: Int, max: Int): String = DURATION_PRESETS.firstOrNull { it.minSec == min && it.maxSec == max }?.key ?: "any"
+
+private const val WEIGHT_BOOSTED = 100
+private const val WEIGHT_DEFAULT = -1
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -258,12 +264,8 @@ private fun TournesolFilterSheet(
     var selectedDateKey by remember { mutableStateOf(initialDateKey) }
     var includeLowScoreVideos by remember { mutableStateOf(initialIncludeLowScoreVideos) }
 
-    // Duration: store as minutes in slider, convert to seconds for API
-    var durationMinMinutes by remember {
-        mutableStateOf(if (initialDurationMinSeconds >= 0) initialDurationMinSeconds / 60f else 0f)
-    }
-    var durationMaxMinutes by remember {
-        mutableStateOf(if (initialDurationMaxSeconds >= 0) initialDurationMaxSeconds / 60f else DURATION_SLIDER_MAX)
+    var durationKey by remember {
+        mutableStateOf(matchDurationPreset(initialDurationMinSeconds, initialDurationMaxSeconds))
     }
 
     // Weights: -1 means default (not set), 0-100 are explicit values
@@ -278,16 +280,19 @@ private fun TournesolFilterSheet(
     var weightBet by remember { mutableStateOf(initialWeightBetterHabits) }
     var weightBack by remember { mutableStateOf(initialWeightBackfireRisk) }
 
-    fun currentDurationMinSeconds(): Int = if (durationMinMinutes <= 0f) -1 else (durationMinMinutes * 60).toInt()
-    fun currentDurationMaxSeconds(): Int = if (durationMaxMinutes >= DURATION_SLIDER_MAX) -1 else (durationMaxMinutes * 60).toInt()
+    fun currentDuration(): Pair<Int, Int> {
+        val preset = DURATION_PRESETS.firstOrNull { it.key == durationKey } ?: DURATION_PRESETS[0]
+        return preset.minSec to preset.maxSec
+    }
 
     fun applyAll() {
+        val (dMin, dMax) = currentDuration()
         onApply(
             selectedLanguages.toList(),
             selectedDateKey,
             includeLowScoreVideos,
-            currentDurationMinSeconds(),
-            currentDurationMaxSeconds(),
+            dMin,
+            dMax,
             weightLR,
             weightRel,
             weightImp,
@@ -343,7 +348,6 @@ private fun TournesolFilterSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 10.dp)
         ) {
             // Header
@@ -432,36 +436,49 @@ private fun TournesolFilterSheet(
                 }
             }
 
-            // Duration: single range slider
+            // Duration: preset chips
             CompactSectionHeader(stringResource(R.string.filter_duration))
-            DurationRangeRow(
-                minMinutes = durationMinMinutes,
-                maxMinutes = durationMaxMinutes,
-                onValueChange = { lo, hi ->
-                    durationMinMinutes = lo
-                    durationMaxMinutes = hi
-                },
-                onValueChangeFinished = { applyAll() }
-            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                DURATION_PRESETS.forEach { preset ->
+                    val isSelected = durationKey == preset.key
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = {
+                            if (!isSelected) {
+                                durationKey = preset.key
+                                applyAll()
+                            }
+                        },
+                        label = { Text(text = stringResource(preset.labelResId), style = chipTextStyle) },
+                        colors = chipColors,
+                        shape = chipShape,
+                        border = null
+                    )
+                }
+            }
 
-            // Criteria weights: 2-column compact grid
+            // Criteria: tap to boost. Each chip toggles weight between default (-1) and boosted (100).
             CompactSectionHeader(stringResource(R.string.filter_criteria))
-            criteria.chunked(2).forEach { pair ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    pair.forEach { (labelRes, value, setter) ->
-                        Box(modifier = Modifier.weight(1f)) {
-                            CompactWeightSlider(
-                                label = stringResource(labelRes),
-                                value = value,
-                                onValueChange = setter,
-                                onValueChangeFinished = { applyAll() }
-                            )
-                        }
-                    }
-                    if (pair.size == 1) Spacer(modifier = Modifier.weight(1f))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                criteria.forEach { (labelRes, value, setter) ->
+                    val isSelected = value >= 0
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = {
+                            setter(if (isSelected) WEIGHT_DEFAULT else WEIGHT_BOOSTED)
+                            applyAll()
+                        },
+                        label = { Text(text = stringResource(labelRes), style = chipTextStyle) },
+                        colors = chipColors,
+                        shape = chipShape,
+                        border = null
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -480,96 +497,4 @@ private fun CompactSectionHeader(title: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
         modifier = Modifier.padding(bottom = 6.dp)
     )
-}
-
-@Composable
-private fun formatDurationLabel(minutes: Float, noLimitValue: Float): String {
-    return if (minutes <= 0f && noLimitValue == 0f || minutes >= DURATION_SLIDER_MAX && noLimitValue == DURATION_SLIDER_MAX) {
-        stringResource(R.string.filter_duration_no_limit)
-    } else {
-        stringResource(R.string.filter_duration_minutes, minutes.toInt())
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun DurationRangeRow(
-    minMinutes: Float,
-    maxMinutes: Float,
-    onValueChange: (Float, Float) -> Unit,
-    onValueChangeFinished: () -> Unit
-) {
-    val sliderColors = SliderDefaults.colors(
-        thumbColor = colorResource(R.color.tournesol_chip_bg_selected),
-        activeTrackColor = colorResource(R.color.tournesol_chip_bg_selected)
-    )
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = formatDurationLabel(minMinutes, 0f),
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = formatDurationLabel(maxMinutes, DURATION_SLIDER_MAX),
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        RangeSlider(
-            value = minMinutes..maxMinutes,
-            onValueChange = { onValueChange(it.start, it.endInclusive) },
-            onValueChangeFinished = onValueChangeFinished,
-            valueRange = 0f..DURATION_SLIDER_MAX,
-            steps = 23,
-            colors = sliderColors,
-            modifier = Modifier.fillMaxWidth().height(28.dp)
-        )
-    }
-}
-
-@Composable
-private fun CompactWeightSlider(
-    label: String,
-    value: Int,
-    onValueChange: (Int) -> Unit,
-    onValueChangeFinished: () -> Unit
-) {
-    val sliderColors = SliderDefaults.colors(
-        thumbColor = colorResource(R.color.tournesol_chip_bg_selected),
-        activeTrackColor = colorResource(R.color.tournesol_chip_bg_selected)
-    )
-    val displayValue = if (value < 0) 50 else value
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = label,
-                fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                modifier = Modifier.weight(1f, fill = false)
-            )
-            Text(
-                text = if (value < 0) "—" else "$value",
-                fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Slider(
-            value = displayValue.toFloat(),
-            onValueChange = { onValueChange(it.toInt()) },
-            onValueChangeFinished = onValueChangeFinished,
-            valueRange = 0f..100f,
-            steps = 3,
-            colors = sliderColors,
-            modifier = Modifier.fillMaxWidth().height(20.dp)
-        )
-    }
 }

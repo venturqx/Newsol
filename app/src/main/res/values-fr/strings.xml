@@ -882,6 +882,9 @@
     <string name="date_short_3_months">3M</string>
     <string name="date_short_year">1A</string>
     <string name="filter_advanced">Avancé</string>
+    <string name="filter_duration_short">&lt; 4 min</string>
+    <string name="filter_duration_medium">4–20 min</string>
+    <string name="filter_duration_long">&gt; 20 min</string>
     <string name="filter_unsafe_short">Plus</string>
     <string name="language_english">Anglais</string>
     <string name="language_french">Français</string>

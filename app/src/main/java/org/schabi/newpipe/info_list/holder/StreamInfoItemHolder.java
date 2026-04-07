@@ -7,8 +7,11 @@ import android.graphics.drawable.Drawable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextUtils;
+import android.graphics.Typeface;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.ImageSpan;
+import android.text.style.RelativeSizeSpan;
+import android.text.style.StyleSpan;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -98,6 +101,8 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
         final Context context = itemBuilder.getContext();
         final int iconSize = (int) itemAdditionalDetails.getTextSize();
         final int textColor = itemAdditionalDetails.getCurrentTextColor();
+        final int tournesolScoreColor = ContextCompat.getColor(
+                context, R.color.dark_settings_accent_color);
         final SpannableStringBuilder sb = new SpannableStringBuilder();
 
         // Tournesol score: logo icon (or plant emoji if insufficient) + score (accent yellow)
@@ -105,16 +110,22 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
         if (tournesolScore != null) {
             final boolean hasInsufficientReason = TournesolHelper.hasInsufficientReason(
                     item.getTournesolUnsafeReasons());
+            final int textStart;
             if (hasInsufficientReason) {
                 sb.append("\uD83C\uDF31\u2009");
-                final int textStart = sb.length();
+                textStart = sb.length();
                 sb.append(Long.toString(tournesolScore));
-                sb.setSpan(new ForegroundColorSpan(0xFFD1B65C),
+                sb.setSpan(new ForegroundColorSpan(tournesolScoreColor),
                         textStart, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             } else {
                 appendIconAndText(sb, context, R.drawable.logo_small, iconSize,
-                        Long.toString(tournesolScore), null, 0xFFD1B65C);
+                        Long.toString(tournesolScore), null, tournesolScoreColor);
+                textStart = sb.length() - Long.toString(tournesolScore).length();
             }
+            sb.setSpan(new StyleSpan(Typeface.BOLD),
+                    textStart, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            sb.setSpan(new RelativeSizeSpan(1.15f),
+                    textStart, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
 
         // Votes: balance scale emoji + count
