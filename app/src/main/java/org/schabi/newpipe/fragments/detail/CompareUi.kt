@@ -3413,6 +3413,16 @@ private fun LollipopPicker(
                     cap = StrokeCap.Butt
                 )
 
+                // Selected outer ring (drawn first so head circle overdraws inner half,
+                // leaving a halo flush with the border outer edge)
+                if (i == activeIndex.intValue) {
+                    drawCircle(
+                        color = color.copy(alpha = 160f / 255f),
+                        radius = circleRadius + with(density) { 3.dp.toPx() },
+                        center = Offset(cx, cy),
+                        style = Stroke(width = with(density) { 4.dp.toPx() })
+                    )
+                }
                 // Background fill of circle
                 drawCircle(
                     color = Color(0xFF0F0F0F),
@@ -3426,22 +3436,25 @@ private fun LollipopPicker(
                     center = Offset(cx, cy),
                     style = Stroke(width = strokeWidth)
                 )
-                // Selected outer ring
-                if (i == activeIndex.intValue) {
-                    drawCircle(
-                        color = color.copy(alpha = 0.7f),
-                        radius = circleRadius + with(density) { 4.dp.toPx() },
-                        center = Offset(cx, cy),
-                        style = Stroke(width = with(density) { 2.dp.toPx() })
-                    )
-                }
 
-                // Icon
+                // Icon (inset by half the stroke so it sits inside the border)
                 val painter = painters[i]
-                val half = iconSize / 2f
-                translate(left = cx - half, top = cy - half) {
+                val strokeInset = strokeWidth / 2f
+                var halfW = iconSize / 2f - strokeInset
+                var halfH = iconSize / 2f - strokeInset
+                var iconOffsetY = 0f
+                when (dimensions[i].id) {
+                    "layman_friendly" -> {
+                        halfW *= 0.88f
+                        halfH *= 0.88f
+                    }
+                    "backfire_risk" -> {
+                        iconOffsetY = with(density) { 1.dp.toPx() }
+                    }
+                }
+                translate(left = cx - halfW, top = cy - halfH + iconOffsetY) {
                     with(painter) {
-                        draw(size = Size(iconSize, iconSize))
+                        draw(size = Size(halfW * 2f, halfH * 2f))
                     }
                 }
 
