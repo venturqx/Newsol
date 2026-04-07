@@ -33,6 +33,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -41,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
@@ -48,6 +50,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
@@ -335,136 +338,145 @@ private fun TournesolFilterSheet(
         Triple(R.string.filter_criteria_backfire_risk, weightBack, { v -> weightBack = v })
     )
 
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 10.dp)
+    val baseDensity = LocalDensity.current
+    val scaledDensity = remember(baseDensity) {
+        Density(
+            density = baseDensity.density * 0.5f,
+            fontScale = baseDensity.fontScale * 0.5f
+        )
+    }
+    CompositionLocalProvider(LocalDensity provides scaledDensity) {
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 2.dp
         ) {
-            // Header
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
-                Text(
-                    text = stringResource(R.string.filter_tournesol),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f)
-                )
-                IconButton(onClick = onClose, modifier = Modifier.height(32.dp)) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_close),
-                        contentDescription = stringResource(R.string.cancel),
-                        tint = MaterialTheme.colorScheme.onSurface
+                // Header
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = stringResource(R.string.filter_tournesol),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f)
                     )
+                    IconButton(onClick = onClose, modifier = Modifier.height(32.dp)) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_close),
+                            contentDescription = stringResource(R.string.cancel),
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
-            }
 
-            // Languages + low-score chip together under one section
-            CompactSectionHeader(stringResource(R.string.filter_languages))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                languageOptions.forEach { option ->
-                    val isSelected = selectedLanguages.contains(option.key)
+                // Languages + low-score chip together under one section
+                CompactSectionHeader(stringResource(R.string.filter_languages))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    languageOptions.forEach { option ->
+                        val isSelected = selectedLanguages.contains(option.key)
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                if (isSelected) {
+                                    selectedLanguages.remove(option.key)
+                                } else {
+                                    selectedLanguages.add(option.key)
+                                }
+                                applyAll()
+                            },
+                            label = { Text(text = stringResource(option.labelResId), style = chipTextStyle) },
+                            colors = chipColors,
+                            shape = chipShape,
+                            border = null
+                        )
+                    }
                     FilterChip(
-                        selected = isSelected,
+                        selected = includeLowScoreVideos,
                         onClick = {
-                            if (isSelected) {
-                                selectedLanguages.remove(option.key)
-                            } else {
-                                selectedLanguages.add(option.key)
-                            }
+                            includeLowScoreVideos = !includeLowScoreVideos
                             applyAll()
                         },
-                        label = { Text(text = stringResource(option.labelResId), style = chipTextStyle) },
-                        colors = chipColors,
-                        shape = chipShape,
-                        border = null
-                    )
-                }
-                FilterChip(
-                    selected = includeLowScoreVideos,
-                    onClick = {
-                        includeLowScoreVideos = !includeLowScoreVideos
-                        applyAll()
-                    },
-                    label = {
-                        Text(
-                            text = stringResource(R.string.include_low_score_videos_short),
-                            style = chipTextStyle
-                        )
-                    },
-                    colors = chipColors,
-                    shape = chipShape,
-                    border = null
-                )
-            }
-
-            // Date
-            CompactSectionHeader(stringResource(R.string.filter_date))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                dateOptions.forEach { option ->
-                    val isSelected = selectedDateKey == option.key
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = {
-                            if (!isSelected) {
-                                selectedDateKey = option.key
-                                applyAll()
-                            }
-                        },
-                        label = { Text(text = stringResource(option.labelResId), style = chipTextStyle) },
-                        colors = chipColors,
-                        shape = chipShape,
-                        border = null
-                    )
-                }
-            }
-
-            // Duration: single range slider
-            CompactSectionHeader(stringResource(R.string.filter_duration))
-            DurationRangeRow(
-                minMinutes = durationMinMinutes,
-                maxMinutes = durationMaxMinutes,
-                onValueChange = { lo, hi ->
-                    durationMinMinutes = lo
-                    durationMaxMinutes = hi
-                },
-                onValueChangeFinished = { applyAll() }
-            )
-
-            // Criteria weights: 2-column compact grid
-            CompactSectionHeader(stringResource(R.string.filter_criteria))
-            criteria.chunked(2).forEach { pair ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    pair.forEach { (labelRes, value, setter) ->
-                        Box(modifier = Modifier.weight(1f)) {
-                            CompactWeightSlider(
-                                label = stringResource(labelRes),
-                                value = value,
-                                onValueChange = setter,
-                                onValueChangeFinished = { applyAll() }
+                        label = {
+                            Text(
+                                text = stringResource(R.string.include_low_score_videos_short),
+                                style = chipTextStyle
                             )
-                        }
-                    }
-                    if (pair.size == 1) Spacer(modifier = Modifier.weight(1f))
+                        },
+                        colors = chipColors,
+                        shape = chipShape,
+                        border = null
+                    )
                 }
+
+                // Date
+                CompactSectionHeader(stringResource(R.string.filter_date))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    dateOptions.forEach { option ->
+                        val isSelected = selectedDateKey == option.key
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                if (!isSelected) {
+                                    selectedDateKey = option.key
+                                    applyAll()
+                                }
+                            },
+                            label = { Text(text = stringResource(option.labelResId), style = chipTextStyle) },
+                            colors = chipColors,
+                            shape = chipShape,
+                            border = null
+                        )
+                    }
+                }
+
+                // Duration: single range slider
+                CompactSectionHeader(stringResource(R.string.filter_duration))
+                DurationRangeRow(
+                    minMinutes = durationMinMinutes,
+                    maxMinutes = durationMaxMinutes,
+                    onValueChange = { lo, hi ->
+                        durationMinMinutes = lo
+                        durationMaxMinutes = hi
+                    },
+                    onValueChangeFinished = { applyAll() }
+                )
+
+                // Criteria weights: 2-column compact grid
+                CompactSectionHeader(stringResource(R.string.filter_criteria))
+                criteria.chunked(2).forEach { pair ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        pair.forEach { (labelRes, value, setter) ->
+                            Box(modifier = Modifier.weight(1f)) {
+                                CompactWeightSlider(
+                                    label = stringResource(labelRes),
+                                    value = value,
+                                    onValueChange = setter,
+                                    onValueChangeFinished = { applyAll() }
+                                )
+                            }
+                        }
+                        if (pair.size == 1) Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
             }
-            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }

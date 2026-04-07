@@ -66,6 +66,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -663,6 +664,8 @@ internal fun CompareCompactScreen(
     val latestMaxIndex by rememberUpdatedState(maxIndex)
     val miniPlayerHeight = dimensionResource(R.dimen.mini_player_height)
     val bottomContentPadding = if (reserveMiniPlayerSpace) miniPlayerHeight + 12.dp else 0.dp
+    val embedInDetail = !reserveMiniPlayerSpace
+    val pickerActiveIndex = remember { mutableIntStateOf(-1) }
     var showHistoryOverlay by remember { mutableStateOf(false) }
     var hasOpenedHistoryOverlay by rememberSaveable { mutableStateOf(false) }
     val overlayGridColumns = 1
@@ -976,7 +979,9 @@ internal fun CompareCompactScreen(
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .navigationBarsPadding()
+            .then(
+                if (reserveMiniPlayerSpace) Modifier.navigationBarsPadding() else Modifier
+            )
     ) {
         val scale = computeCompareScale(maxWidth.value)
         CompositionLocalProvider(LocalCompareScale provides scale) {
@@ -996,10 +1001,10 @@ internal fun CompareCompactScreen(
                 ) {
                     Column(
                         modifier = Modifier
-                            .weight(1f)
+                            .weight(1f, fill = !embedInDetail)
+                            .padding(bottom = bottomContentPadding)
                             .nestedScroll(compactNestedScrollInterop)
-                            .verticalScroll(rememberScrollState())
-                            .padding(bottom = bottomContentPadding),
+                            .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         if (showGreeting) {
@@ -1018,7 +1023,9 @@ internal fun CompareCompactScreen(
                             onScoreChange = onExtraScoreChange,
                             mainScore = state.score,
                             onMainScoreChange = onScoreChange,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            hoistedActiveIndex = if (embedInDetail) pickerActiveIndex else null,
+                            showDescription = !embedInDetail
                         )
 
                         val showLeftContent = hasSuggestedLeft || selectedHistoryEntryLeft != null
@@ -1329,6 +1336,10 @@ internal fun CompareCompactScreen(
                                 }
                             }
                         }
+                    }
+                    if (embedInDetail) {
+                        Spacer(modifier = Modifier.weight(1f))
+                        LollipopDescriptionRow(activeIndex = pickerActiveIndex.intValue)
                     }
                 }
 
@@ -3288,7 +3299,9 @@ private fun LollipopPicker(
     onScoreChange: (String, Int) -> Unit,
     mainScore: Int,
     onMainScoreChange: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    hoistedActiveIndex: MutableIntState? = null,
+    showDescription: Boolean = true
 ) {
     val density = LocalDensity.current
     val dimensions = remember {
@@ -3321,7 +3334,7 @@ private fun LollipopPicker(
     val topPaddingPx = with(density) { 22.dp.toPx() }
     val bottomPaddingPx = with(density) { 22.dp.toPx() }
     val totalHeight = 160.dp
-    val activeIndex = remember { mutableIntStateOf(-1) }
+    val activeIndex = hoistedActiveIndex ?: remember { mutableIntStateOf(-1) }
     val labelPaint = remember {
         AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
             textAlign = AndroidPaint.Align.CENTER
@@ -3473,40 +3486,55 @@ private fun LollipopPicker(
                 drawContext.canvas.nativeCanvas.drawText(txt, cx, labelY, labelPaint)
             }
         }
-        val sel = activeIndex.intValue
-        if (sel !in dimensions.indices) {
-            CompactInitialPromptHeader(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-            )
+        if (showDescription) {
+            LollipopDescriptionRow(activeIndex = activeIndex.intValue)
         }
-        if (sel in dimensions.indices) {
-            val criterion = dimensions[sel]
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Image(
-                    painter = painterResource(criterion.iconRes),
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(criterion.labelRes),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = stringResource(compactDescriptionRes(criterion.id)),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 4
-                    )
-                }
-            }
+    }
+}
+
+@Composable
+private fun LollipopDescriptionRow(
+    activeIndex: Int,
+    modifier: Modifier = Modifier
+) {
+    val dimensions = remember {
+        EXTRA_CRITERIA + CompareCriterion(
+            id = COMPACT_MAIN_CRITERION_ID,
+            labelRes = R.string.compare_criteria_largely_recommended,
+            iconRes = R.drawable.logo_small
+        )
+    }
+    if (activeIndex !in dimensions.indices) {
+        CompactInitialPromptHeader(
+            modifier = modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+        )
+        return
+    }
+    val criterion = dimensions[activeIndex]
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Image(
+            painter = painterResource(criterion.iconRes),
+            contentDescription = null,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(criterion.labelRes),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = stringResource(compactDescriptionRes(criterion.id)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 4
+            )
         }
     }
 }
