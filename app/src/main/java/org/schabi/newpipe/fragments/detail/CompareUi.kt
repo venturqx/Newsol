@@ -385,12 +385,6 @@ fun CompareScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                ThickScoreSlider(
-                    value = state.score,
-                    onValueChange = onScoreChange,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
                 val submitEnabled = currentEntry != null && !state.submitted && !state.submitInProgress
                 val showChange = state.submittedConfirmed
                 val changeEnabled = showChange &&
@@ -484,16 +478,6 @@ fun CompareScreen(
 
                 if (state.submitted) {
                     Spacer(modifier = Modifier.height(18.dp))
-                    Text(
-                        text = stringResource(R.string.compare_more_criteria_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    AdditionalCriteriaSection(
-                        scores = state.extraScores,
-                        onScoreChange = onExtraScoreChange
-                    )
 
                     val submitMoreEnabled = currentEntry != null &&
                         !state.submitMoreInProgress &&
@@ -822,7 +806,13 @@ internal fun CompareCompactScreen(
     val hasExistingComparison = state.submitted || hasStoredScores
     val isBusy = state.submitInProgress || state.submitMoreInProgress
     val hasValidPairSelection = currentPairSelection != null
-    val canSubmit = hasValidPairSelection && selectedIds.isNotEmpty() && !isBusy
+    val effectiveSelectedIds: Set<String> = buildSet {
+        if (state.score != 0) add(COMPACT_MAIN_CRITERION_ID)
+        EXTRA_CRITERIA.forEach { criterion ->
+            if ((state.extraScores[criterion.id] ?: 0) != 0) add(criterion.id)
+        }
+    }
+    val canSubmit = hasValidPairSelection && effectiveSelectedIds.isNotEmpty() && !isBusy
     val submitButtonLabel = stringResource(
         when {
             isBusy -> R.string.compare_submitting_label
@@ -831,7 +821,7 @@ internal fun CompareCompactScreen(
         }
     )
     val submitOrUpdateAction = {
-        val snapshot = selectedIds.toSet()
+        val snapshot = effectiveSelectedIds.toSet()
         if (hasExistingComparison) {
             onUpdateSelected(snapshot)
         } else {
@@ -1026,36 +1016,6 @@ internal fun CompareCompactScreen(
                             mainScore = state.score,
                             onMainScoreChange = onScoreChange,
                             modifier = Modifier.fillMaxWidth()
-                        )
-
-                        val hasAnyScore = state.score != 0 ||
-                            state.extraScores.values.any { it != 0 }
-                        if (hasAnyScore) {
-                            CompactHeader(
-                                description = activeDescription,
-                                iconRes = activeDimension.iconRes,
-                                modifier = Modifier
-                                    .padding(start = 12.dp, end = 12.dp)
-                            )
-                        } else {
-                            CompactInitialPromptHeader(
-                                modifier = Modifier
-                                    .padding(start = 12.dp, end = 12.dp)
-                            )
-                        }
-
-                        CompactDimensionList(
-                            dimensions = dimensions,
-                            activeIndex = activeIndexSafe,
-                            scores = state,
-                            selectedIds = selectedIds,
-                            onToggleSelected = { id, selected -> onSelectionChange(id, selected) },
-                            onSelect = { index ->
-                                activeIndex = index
-                            },
-                            modifier = Modifier
-                                .then(criteriaTouchLockModifier)
-                                .then(gestureModifier)
                         )
 
                         val showLeftContent = hasSuggestedLeft || selectedHistoryEntryLeft != null
@@ -3306,174 +3266,6 @@ private fun HistoryCard(
     }
 }
 
-@Composable
-private fun ThickScoreSlider(
-    value: Int,
-    onValueChange: (Int) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val scale = LocalCompareScale.current
-    val displayValue = abs(value)
-    val scoreDescription = stringResource(
-        R.string.compare_score_accessibility,
-        displayValue,
-        0,
-        SCORE_MAX
-    )
-    var sliderSize by remember { mutableStateOf(IntSize.Zero) }
-    val trackColor = MaterialTheme.colorScheme.surfaceVariant
-    val leftAccent = Color(0xFFE57373)
-    val rightAccent = Color(0xFF64B5F6)
-    val accentColor = when {
-        value < 0 -> leftAccent
-        value > 0 -> rightAccent
-        else -> Color(0xFF9E9E9E)
-    }
-    val fillColor = accentColor
-    val indicatorColor = accentColor
-    val labelFillColor = MaterialTheme.colorScheme.surface
-    val labelStrokeColor = accentColor
-    val labelShadowColor = accentColor.copy(alpha = 0.18f)
-    val labelTextColor = accentColor
-    val valueText = displayValue.toString()
-    val deadZonePx = with(LocalDensity.current) { 10.dp.toPx() }
-
-    fun updateFromPosition(x: Float, snapToCenter: Boolean) {
-        val width = sliderSize.width.toFloat()
-        if (width <= 0f) {
-            return
-        }
-        val centerX = width / 2f
-        val clamped = x.coerceIn(0f, width)
-        val normalized = ((clamped - centerX) / centerX).coerceIn(-1f, 1f)
-        var newValue = (normalized * SCORE_MAX)
-            .roundToInt()
-            .coerceIn(SCORE_MIN, SCORE_MAX)
-        if (snapToCenter && abs(clamped - centerX) <= deadZonePx) {
-            newValue = 0
-        }
-        if (newValue != value) {
-            onValueChange(newValue)
-        }
-    }
-
-    Canvas(
-        modifier = modifier
-            .height(44.dp * scale)
-            .padding(vertical = 2.dp * scale)
-            .onSizeChanged { sliderSize = it }
-            .semantics { contentDescription = scoreDescription }
-            .pointerInput(Unit) {
-                detectTapGestures { offset ->
-                    updateFromPosition(offset.x, snapToCenter = true)
-                }
-            }
-            .pointerInput(Unit) {
-                var lastDragX = 0f
-                detectDragGestures(
-                    onDragStart = { offset ->
-                        lastDragX = offset.x
-                        updateFromPosition(offset.x, snapToCenter = false)
-                    },
-                    onDrag = { change, _ ->
-                        lastDragX = change.position.x
-                        updateFromPosition(change.position.x, snapToCenter = false)
-                    },
-                    onDragEnd = {
-                        updateFromPosition(lastDragX, snapToCenter = true)
-                    },
-                    onDragCancel = {
-                        updateFromPosition(lastDragX, snapToCenter = true)
-                    }
-                )
-            }
-    ) {
-        val trackHeight = size.height * 0.84f
-        val trackTop = (size.height - trackHeight) / 2f
-        val trackRadius = trackHeight * 0.08f
-        drawRoundRect(
-            color = trackColor,
-            topLeft = androidx.compose.ui.geometry.Offset(0f, trackTop),
-            size = Size(size.width, trackHeight),
-            cornerRadius = CornerRadius(trackRadius, trackRadius)
-        )
-
-        val centerX = size.width / 2f
-        val signedProgress = when {
-            value > 0 -> value.toFloat() / SCORE_MAX.toFloat()
-            value < 0 -> value.toFloat() / -SCORE_MIN.toFloat()
-            else -> 0f
-        }.coerceIn(-1f, 1f)
-        val fillWidth = kotlin.math.abs(signedProgress) * centerX
-        if (fillWidth > 0f) {
-            val fillStartX = if (signedProgress >= 0f) centerX else centerX - fillWidth
-            drawRoundRect(
-                color = fillColor,
-                topLeft = androidx.compose.ui.geometry.Offset(fillStartX, trackTop),
-                size = Size(fillWidth, trackHeight),
-                cornerRadius = CornerRadius(trackRadius, trackRadius)
-            )
-        }
-
-        val indicatorCenterX = centerX + signedProgress * centerX
-        val indicatorHeight = trackHeight * 1.28f
-        val indicatorWidth = trackHeight * 0.14f
-        val indicatorTop = (size.height - indicatorHeight) / 2f
-        drawRect(
-            color = indicatorColor,
-            topLeft = androidx.compose.ui.geometry.Offset(
-                indicatorCenterX - indicatorWidth / 2f,
-                indicatorTop
-            ),
-            size = Size(indicatorWidth, indicatorHeight)
-        )
-
-        val labelHeight = trackHeight * 0.46f
-        val labelRadius = labelHeight / 2f
-        val labelCenterY = size.height / 2f
-        val labelTop = labelCenterY - labelHeight / 2f
-        val labelPaddingX = labelHeight * 0.5f
-        val labelTextSize = labelHeight * 0.6f
-        val labelPaint = AndroidPaint().apply {
-            isAntiAlias = true
-            color = labelTextColor.toArgb()
-            textAlign = AndroidPaint.Align.CENTER
-            textSize = labelTextSize
-            isFakeBoldText = true
-        }
-        val textWidth = labelPaint.measureText(valueText)
-        val labelWidth = kotlin.math.max(labelHeight, textWidth + labelPaddingX * 2f)
-        val labelLeft = indicatorCenterX - labelWidth / 2f
-        drawRoundRect(
-            color = labelShadowColor,
-            topLeft = androidx.compose.ui.geometry.Offset(
-                labelLeft,
-                labelTop + labelHeight * 0.12f
-            ),
-            size = Size(labelWidth, labelHeight),
-            cornerRadius = CornerRadius(labelRadius, labelRadius)
-        )
-        drawRoundRect(
-            color = labelFillColor,
-            topLeft = androidx.compose.ui.geometry.Offset(labelLeft, labelTop),
-            size = Size(labelWidth, labelHeight),
-            cornerRadius = CornerRadius(labelRadius, labelRadius)
-        )
-        drawRoundRect(
-            color = labelStrokeColor,
-            topLeft = androidx.compose.ui.geometry.Offset(labelLeft, labelTop),
-            size = Size(labelWidth, labelHeight),
-            cornerRadius = CornerRadius(labelRadius, labelRadius),
-            style = Stroke(width = labelHeight * 0.08f)
-        )
-        drawContext.canvas.nativeCanvas.apply {
-            val metrics = labelPaint.fontMetrics
-            val textY = labelCenterY - (metrics.ascent + metrics.descent) / 2f
-            drawText(valueText, indicatorCenterX, textY, labelPaint)
-        }
-    }
-}
-
 private val LOLLIPOP_COLORS = mapOf(
     "reliability" to Color(0xFF4F77DD),
     "pedagogy" to Color(0xFFC28BED),
@@ -3699,58 +3491,6 @@ private fun LollipopPicker(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun AdditionalCriteriaSection(
-    scores: Map<String, Int>,
-    onScoreChange: (String, Int) -> Unit
-) {
-    val scale = LocalCompareScale.current
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(2.dp * scale)
-    ) {
-        EXTRA_CRITERIA.forEach { criterion ->
-            CriteriaScoreRow(
-                criterion = criterion,
-                score = scores[criterion.id] ?: 0,
-                onScoreChange = { value -> onScoreChange(criterion.id, value) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun CriteriaScoreRow(
-    criterion: CompareCriterion,
-    score: Int,
-    onScoreChange: (Int) -> Unit
-) {
-    val scale = LocalCompareScale.current
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Image(
-                painter = painterResource(criterion.iconRes),
-                contentDescription = null,
-                modifier = Modifier.size(18.dp * scale)
-            )
-            Spacer(modifier = Modifier.width(8.dp * scale))
-            Text(
-                text = stringResource(criterion.labelRes),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-        ThickScoreSlider(
-            value = score,
-            onValueChange = onScoreChange,
-            modifier = Modifier.fillMaxWidth()
-        )
     }
 }
 
