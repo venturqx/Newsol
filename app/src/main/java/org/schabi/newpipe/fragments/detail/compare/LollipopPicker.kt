@@ -87,6 +87,8 @@ internal fun LollipopPicker(
     val dragScore = hoistedDragScore ?: remember { mutableStateOf<Int?>(null) }
     val lastTapTime = remember { mutableLongStateOf(0L) }
     val lastTapIndex = remember { mutableIntStateOf(-1) }
+    val currentOnScoreChange by rememberUpdatedState(onScoreChange)
+    val currentOnMainScoreChange by rememberUpdatedState(onMainScoreChange)
     val labelPaint = remember {
         AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
             textAlign = AndroidPaint.Align.CENTER
@@ -109,22 +111,12 @@ internal fun LollipopPicker(
                     detectTapGestures(
                         onDoubleTap = { offset ->
                             val n = dimensions.size
-                            val w = size.width.toFloat()
-                            val slot = w / n
-                            val drawTop = topPaddingPx + circleRadius
-                            val drawBottom = size.height - bottomPaddingPx - circleRadius
-                            for (i in 0 until n) {
-                                val cx = slot * (i + 0.5f)
-                                val score = scoreAt(i)
-                                val cy = drawBottom -
-                                    ((score + 100) / 200f) * (drawBottom - drawTop)
-                                val dx = offset.x - cx
-                                val dy = offset.y - cy
-                                val r = circleRadius + with(density) { 12.dp.toPx() }
-                                if (dx * dx + dy * dy <= r * r) {
-                                    setScoreAt(i, 0)
-                                    break
-                                }
+                            val slot = size.width.toFloat() / n
+                            val i = (offset.x / slot).toInt().coerceIn(0, n - 1)
+                            if (dimensions[i].id == COMPACT_MAIN_CRITERION_ID) {
+                                currentOnMainScoreChange(0)
+                            } else {
+                                currentOnScoreChange(dimensions[i].id, 0)
                             }
                         }
                     )
