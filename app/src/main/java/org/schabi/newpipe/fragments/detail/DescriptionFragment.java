@@ -56,6 +56,17 @@ import okhttp3.Response;
 
 public class DescriptionFragment extends BaseDescriptionFragment {
 
+    private static final class DistributionData {
+        final int[] bins;
+        final int[] distribution;
+        DistributionData(final int[] bins, final int[] distribution) {
+            this.bins = bins;
+            this.distribution = distribution;
+        }
+    }
+
+    private final Map<String, DistributionData> criteriaDistributions = new LinkedHashMap<>();
+
     private static final String TOURNESOL_API_BASE = "https://api.tournesol.app";
     private static final int TOURNESOL_SCORE_COLOR = Color.parseColor("#FFCA1D");
     private static final int TOURNESOL_UNSAFE_COLOR = Color.parseColor("#E57373");
@@ -448,8 +459,16 @@ public class DescriptionFragment extends BaseDescriptionFragment {
         descText.setTextColor(Color.parseColor("#B8FFFFFF"));
         descText.setMaxLines(4);
 
+        // Mini distribution chart for the selected criterion (aligned right)
+        final LinearLayout miniChartContainer = new LinearLayout(requireContext());
+        final LinearLayout.LayoutParams miniParams = new LinearLayout.LayoutParams(
+                dpToPx(72), LinearLayout.LayoutParams.WRAP_CONTENT);
+        miniParams.setMarginStart(dpToPx(8));
+        miniChartContainer.setLayoutParams(miniParams);
+
         descRow.addView(descIcon);
         descRow.addView(descText);
+        descRow.addView(miniChartContainer);
 
         wrapper.addView(lollipopView);
         wrapper.addView(descRow);
@@ -469,6 +488,18 @@ public class DescriptionFragment extends BaseDescriptionFragment {
                         0, title.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 descText.setText(spannable);
                 descRow.setVisibility(View.VISIBLE);
+
+                miniChartContainer.removeAllViews();
+                final DistributionData data = criteriaDistributions.get(entry.id);
+                if (data != null) {
+                    final View chart = createDistributionChart(data.bins, data.distribution);
+                    chart.setLayoutParams(new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT, dpToPx(CHART_HEIGHT_DP)));
+                    miniChartContainer.addView(chart);
+                    miniChartContainer.setVisibility(View.VISIBLE);
+                } else {
+                    miniChartContainer.setVisibility(View.GONE);
+                }
             }
         });
 
@@ -532,34 +563,37 @@ public class DescriptionFragment extends BaseDescriptionFragment {
             return;
         }
 
-        JSONArray binsJson = null;
-        JSONArray distributionJson = null;
+        criteriaDistributions.clear();
         for (int i = 0; i < distributions.length(); i++) {
             final JSONObject entry = distributions.optJSONObject(i);
             if (entry == null) {
                 continue;
             }
-            if ("largely_recommended".equals(entry.optString("criteria"))) {
-                binsJson = entry.optJSONArray("bins");
-                distributionJson = entry.optJSONArray("distribution");
-                break;
+            final String name = entry.optString("criteria");
+            final JSONArray binsJson = entry.optJSONArray("bins");
+            final JSONArray distributionJson = entry.optJSONArray("distribution");
+            if (name == null || name.isEmpty()
+                    || binsJson == null || distributionJson == null
+                    || distributionJson.length() == 0) {
+                continue;
             }
+            final int[] bins = new int[binsJson.length()];
+            for (int j = 0; j < binsJson.length(); j++) {
+                bins[j] = binsJson.optInt(j);
+            }
+            final int[] distribution = new int[distributionJson.length()];
+            for (int j = 0; j < distributionJson.length(); j++) {
+                distribution[j] = distributionJson.optInt(j);
+            }
+            criteriaDistributions.put(name, new DistributionData(bins, distribution));
         }
 
-        if (binsJson == null || distributionJson == null || distributionJson.length() == 0) {
+        final DistributionData lr = criteriaDistributions.get("largely_recommended");
+        if (lr == null) {
             return;
         }
-
-        final int[] bins = new int[binsJson.length()];
-        for (int i = 0; i < binsJson.length(); i++) {
-            bins[i] = binsJson.optInt(i);
-        }
-        final int[] distribution = new int[distributionJson.length()];
-        for (int i = 0; i < distributionJson.length(); i++) {
-            distribution[i] = distributionJson.optInt(i);
-        }
-
-        binding.tournesolDistributionContainer.addView(createDistributionChart(bins, distribution));
+        binding.tournesolDistributionContainer.addView(
+                createDistributionChart(lr.bins, lr.distribution));
         binding.tournesolDistributionContainer.setVisibility(View.VISIBLE);
     }
 
