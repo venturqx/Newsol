@@ -12,6 +12,7 @@ import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.schabi.newpipe.R
+import org.schabi.newpipe.fragments.detail.compare.CompareComparisonsFullScreen
 import org.schabi.newpipe.ui.theme.AppTheme
 import org.schabi.newpipe.util.TournesolAuthManager
 

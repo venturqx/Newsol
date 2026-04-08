@@ -29,6 +29,8 @@ import org.schabi.newpipe.R
 import org.schabi.newpipe.database.history.model.StreamHistoryEntry
 import org.schabi.newpipe.database.stream.model.StreamEntity
 import org.schabi.newpipe.extractor.stream.StreamInfo
+import org.schabi.newpipe.fragments.detail.compare.CompareCompactScreen
+import org.schabi.newpipe.fragments.detail.compare.CompareScreen
 import org.schabi.newpipe.ktx.serializable
 import org.schabi.newpipe.local.history.HistoryRecordManager
 import org.schabi.newpipe.ui.theme.AppTheme

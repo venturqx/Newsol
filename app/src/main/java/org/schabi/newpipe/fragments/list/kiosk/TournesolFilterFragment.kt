@@ -398,25 +398,10 @@ private fun TournesolFilterSheet(
                             label = { Text(text = stringResource(option.labelResId), style = chipTextStyle) },
                             colors = chipColors,
                             shape = chipShape,
-                            border = null
+                            border = null,
+                            modifier = Modifier.height(38.dp)
                         )
                     }
-                    FilterChip(
-                        selected = includeLowScoreVideos,
-                        onClick = {
-                            includeLowScoreVideos = !includeLowScoreVideos
-                            applyAll()
-                        },
-                        label = {
-                            Text(
-                                text = stringResource(R.string.include_low_score_videos_short),
-                                style = chipTextStyle
-                            )
-                        },
-                        colors = chipColors,
-                        shape = chipShape,
-                        border = null
-                    )
                 }
 
                 // Date
@@ -438,7 +423,8 @@ private fun TournesolFilterSheet(
                             label = { Text(text = stringResource(option.labelResId), style = chipTextStyle) },
                             colors = chipColors,
                             shape = chipShape,
-                            border = null
+                            border = null,
+                            modifier = Modifier.height(38.dp)
                         )
                     }
                 }
@@ -475,6 +461,24 @@ private fun TournesolFilterSheet(
                         if (pair.size == 1) Spacer(modifier = Modifier.weight(1f))
                     }
                 }
+                Spacer(modifier = Modifier.height(10.dp))
+                FilterChip(
+                    selected = includeLowScoreVideos,
+                    onClick = {
+                        includeLowScoreVideos = !includeLowScoreVideos
+                        applyAll()
+                    },
+                    label = {
+                        Text(
+                            text = stringResource(R.string.include_low_score_videos_short),
+                            style = chipTextStyle
+                        )
+                    },
+                    colors = chipColors,
+                    shape = chipShape,
+                    border = null,
+                    modifier = Modifier.height(38.dp)
+                )
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
