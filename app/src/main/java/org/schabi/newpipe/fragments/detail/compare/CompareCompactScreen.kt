@@ -25,8 +25,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -94,6 +96,7 @@ import org.schabi.newpipe.fragments.detail.CompareSideLabel
 import org.schabi.newpipe.fragments.detail.CompareUiState
 import org.schabi.newpipe.fragments.detail.CompareVideoThumbnailCard
 import org.schabi.newpipe.fragments.detail.EXTRA_CRITERIA
+import org.schabi.newpipe.fragments.detail.LollipopDescriptionRow
 import org.schabi.newpipe.fragments.detail.SCORE_MAX
 import org.schabi.newpipe.fragments.detail.SCORE_MIN
 import org.schabi.newpipe.fragments.detail.SuggestedVideoThumbnail
@@ -185,6 +188,7 @@ internal fun CompareCompactScreen(
     val bottomContentPadding = if (reserveMiniPlayerSpace) miniPlayerHeight + 12.dp else 0.dp
     val embedInDetail = !reserveMiniPlayerSpace
     val pickerActiveIndex = remember { mutableIntStateOf(-1) }
+    val pickerDragScore = remember { mutableStateOf<Int?>(null) }
     var showHistoryOverlay by remember { mutableStateOf(false) }
     var hasOpenedHistoryOverlay by rememberSaveable { mutableStateOf(false) }
     val overlayGridColumns = 1
@@ -221,8 +225,8 @@ internal fun CompareCompactScreen(
     val suggestedRightTitle = state.suggestedRight?.title.orEmpty()
     val suggestedRightUploader = state.suggestedRight?.uploader.orEmpty()
     val currentPairSelection = if (hasSuggestedLeft && hasSuggestedRight) {
-        val leftUrl = state.suggestedLeft!!.videoUrl
-        val rightUrl = state.suggestedRight!!.videoUrl
+        val leftUrl = state.suggestedLeft.videoUrl
+        val rightUrl = state.suggestedRight.videoUrl
         if (leftUrl != null && rightUrl != null && state.suggestedLeft.uid != state.suggestedRight.uid) {
             ComparePairSelection(
                 leftServiceId = CompareRepository.uidToServiceId(state.suggestedLeft.uid),
@@ -439,7 +443,7 @@ internal fun CompareCompactScreen(
                     DragAxis.HORIZONTAL -> {
                         // Horizontal drags belong to the criteria slider — consume them
                         // so the parent pager/scroll never steals them.
-                        change.consumeAllChanges()
+                        change.consume()
                         accumulatedX += dragAmount.x * horizontalSensitivity
                         val steps = (accumulatedX / pxPerScore).toInt()
                         if (steps != 0) {
@@ -472,11 +476,11 @@ internal fun CompareCompactScreen(
                         // Otherwise leave the change unconsumed so the page's
                         // verticalScroll / nested scroll can take over.
                         if (consumedStep) {
-                            change.consumeAllChanges()
+                            change.consume()
                         }
                     }
 
-                    null -> Unit
+                    else -> { /* dragAxis was assigned above — this branch is unreachable */ }
                 }
             }
         )
@@ -520,7 +524,7 @@ internal fun CompareCompactScreen(
                 ) {
                     Column(
                         modifier = Modifier
-                            .weight(1f)
+                            .weight(1f, fill = true)
                             .padding(bottom = bottomContentPadding)
                             .nestedScroll(compactNestedScrollInterop)
                             .verticalScroll(rememberScrollState()),
@@ -544,6 +548,7 @@ internal fun CompareCompactScreen(
                             onMainScoreChange = onScoreChange,
                             modifier = Modifier.fillMaxWidth(),
                             hoistedActiveIndex = if (embedInDetail) pickerActiveIndex else null,
+                            hoistedDragScore = pickerDragScore,
                             showDescription = !embedInDetail
                         )
 
@@ -585,7 +590,7 @@ internal fun CompareCompactScreen(
                                             onLongClick = {
                                                 if (hasSuggestedLeft) {
                                                     val sl = state.suggestedLeft
-                                                    if (sl?.videoUrl != null) {
+                                                    if (sl.videoUrl != null) {
                                                         onNavigateToVideo?.invoke(
                                                             CompareRepository.uidToServiceId(sl.uid),
                                                             sl.videoUrl,
@@ -622,6 +627,19 @@ internal fun CompareCompactScreen(
                                                     modifier = Modifier.weight(1f),
                                                     contentAlignment = Alignment.Center
                                                 ) {
+                                                    val leftDragScore = pickerDragScore.value
+                                                    if (leftDragScore != null && leftDragScore < 0) {
+                                                        Image(
+                                                            painter = painterResource(R.drawable.ic_arrow_drop_down),
+                                                            contentDescription = null,
+                                                            colorFilter = ColorFilter.tint(Color(0xFF64B5F6)),
+                                                            modifier = Modifier
+                                                                .align(Alignment.TopCenter)
+                                                                .offset(y = (-18).dp)
+                                                                .size(28.dp)
+                                                                .zIndex(2f)
+                                                        )
+                                                    }
                                                     Surface(
                                                         modifier = Modifier
                                                             .then(
@@ -638,7 +656,7 @@ internal fun CompareCompactScreen(
                                                                 onLongClick = {
                                                                     if (hasSuggestedLeft) {
                                                                         val sl = state.suggestedLeft
-                                                                        if (sl?.videoUrl != null) {
+                                                                        if (sl.videoUrl != null) {
                                                                             onNavigateToVideo?.invoke(
                                                                                 CompareRepository.uidToServiceId(sl.uid),
                                                                                 sl.videoUrl,
@@ -661,7 +679,7 @@ internal fun CompareCompactScreen(
                                                         ) {
                                                             if (hasSuggestedLeft) {
                                                                 SuggestedVideoThumbnail(
-                                                                    thumbnailUrl = state.suggestedLeft?.thumbnailUrl,
+                                                                    thumbnailUrl = state.suggestedLeft.thumbnailUrl,
                                                                     thumbnailHeight = 52.dp * scale
                                                                 )
                                                             } else {
@@ -684,6 +702,19 @@ internal fun CompareCompactScreen(
                                                     modifier = Modifier.weight(1f),
                                                     contentAlignment = Alignment.Center
                                                 ) {
+                                                    val rightDragScore = pickerDragScore.value
+                                                    if (rightDragScore != null && rightDragScore > 0) {
+                                                        Image(
+                                                            painter = painterResource(R.drawable.ic_arrow_drop_down),
+                                                            contentDescription = null,
+                                                            colorFilter = ColorFilter.tint(Color(0xFFE57373)),
+                                                            modifier = Modifier
+                                                                .align(Alignment.TopCenter)
+                                                                .offset(y = (-18).dp)
+                                                                .size(28.dp)
+                                                                .zIndex(2f)
+                                                        )
+                                                    }
                                                     Surface(
                                                         modifier = Modifier
                                                             .then(
@@ -700,7 +731,7 @@ internal fun CompareCompactScreen(
                                                                 onLongClick = {
                                                                     if (hasSuggestedRight) {
                                                                         val sr = state.suggestedRight
-                                                                        if (sr?.videoUrl != null) {
+                                                                        if (sr.videoUrl != null) {
                                                                             onNavigateToVideo?.invoke(
                                                                                 CompareRepository.uidToServiceId(sr.uid),
                                                                                 sr.videoUrl,
@@ -723,7 +754,7 @@ internal fun CompareCompactScreen(
                                                         ) {
                                                             if (hasSuggestedRight) {
                                                                 SuggestedVideoThumbnail(
-                                                                    thumbnailUrl = state.suggestedRight?.thumbnailUrl,
+                                                                    thumbnailUrl = state.suggestedRight.thumbnailUrl,
                                                                     thumbnailHeight = 52.dp * scale
                                                                 )
                                                             } else {
@@ -769,7 +800,7 @@ internal fun CompareCompactScreen(
                                             onLongClick = {
                                                 if (hasSuggestedRight) {
                                                     val sr = state.suggestedRight
-                                                    if (sr?.videoUrl != null) {
+                                                    if (sr.videoUrl != null) {
                                                         onNavigateToVideo?.invoke(
                                                             CompareRepository.uidToServiceId(sr.uid),
                                                             sr.videoUrl,
@@ -809,16 +840,6 @@ internal fun CompareCompactScreen(
                                     fontSize = 14.sp,
                                     letterSpacing = TextUnit(0.04f, TextUnitType.Em)
                                 )
-                                FilterChip(
-                                    selected = true,
-                                    onClick = submitOrUpdateAction,
-                                    enabled = canSubmit,
-                                    label = { Text(text = submitButtonLabel, style = chipTextStyle) },
-                                    colors = chipColors,
-                                    shape = chipShape,
-                                    border = null
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
                                 val diceEnabled = !state.suggestionsLoading
                                 Surface(
                                     modifier = Modifier
@@ -853,6 +874,16 @@ internal fun CompareCompactScreen(
                                         )
                                     }
                                 }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                FilterChip(
+                                    selected = true,
+                                    onClick = submitOrUpdateAction,
+                                    enabled = canSubmit,
+                                    label = { Text(text = submitButtonLabel, style = chipTextStyle) },
+                                    colors = chipColors,
+                                    shape = chipShape,
+                                    border = null
+                                )
                             }
                         }
                     }
@@ -1092,7 +1123,7 @@ internal fun CompareCompactScreen(
                                                 }
                                                 overlayDragPreviewIndex = null
                                                 if (releasedOnIndex != null) {
-                                                    val absoluteIndex = releasedOnIndex!!
+                                                    val absoluteIndex = releasedOnIndex
                                                     when (activeOverlayTarget) {
                                                         OverlayTarget.LEFT -> leftHistoryIndex = absoluteIndex
                                                         OverlayTarget.RIGHT -> rightHistoryIndex = absoluteIndex

@@ -4,13 +4,19 @@ import android.graphics.Paint as AndroidPaint
 import android.graphics.Typeface
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableIntState
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -43,6 +49,7 @@ internal fun LollipopPicker(
     onMainScoreChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
     hoistedActiveIndex: MutableIntState? = null,
+    hoistedDragScore: MutableState<Int?>? = null,
     showDescription: Boolean = true
 ) {
     val density = LocalDensity.current
@@ -77,6 +84,9 @@ internal fun LollipopPicker(
     val bottomPaddingPx = with(density) { 22.dp.toPx() }
     val totalHeight = 160.dp
     val activeIndex = hoistedActiveIndex ?: remember { mutableIntStateOf(-1) }
+    val dragScore = hoistedDragScore ?: remember { mutableStateOf<Int?>(null) }
+    val lastTapTime = remember { mutableLongStateOf(0L) }
+    val lastTapIndex = remember { mutableIntStateOf(-1) }
     val labelPaint = remember {
         AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
             textAlign = AndroidPaint.Align.CENTER
@@ -95,6 +105,30 @@ internal fun LollipopPicker(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(totalHeight)
+                .pointerInput("doubleTap") {
+                    detectTapGestures(
+                        onDoubleTap = { offset ->
+                            val n = dimensions.size
+                            val w = size.width.toFloat()
+                            val slot = w / n
+                            val drawTop = topPaddingPx + circleRadius
+                            val drawBottom = size.height - bottomPaddingPx - circleRadius
+                            for (i in 0 until n) {
+                                val cx = slot * (i + 0.5f)
+                                val score = scoreAt(i)
+                                val cy = drawBottom -
+                                    ((score + 100) / 200f) * (drawBottom - drawTop)
+                                val dx = offset.x - cx
+                                val dy = offset.y - cy
+                                val r = circleRadius + with(density) { 12.dp.toPx() }
+                                if (dx * dx + dy * dy <= r * r) {
+                                    setScoreAt(i, 0)
+                                    break
+                                }
+                            }
+                        }
+                    )
+                }
                 .pointerInput(Unit) {
                     val n = dimensions.size
                     detectDragGestures(
@@ -117,13 +151,30 @@ internal fun LollipopPicker(
                                     break
                                 }
                             }
+                            val hitHead = found >= 0
                             if (found < 0) {
                                 // Fall back to nearest column horizontally
                                 found = (offset.x / slot).toInt().coerceIn(0, n - 1)
                             }
-                            activeIndex.intValue = found
-                            val newScore = yToScore(offset.y, drawTop, drawBottom)
-                            setScoreAt(found, newScore)
+                            val now = System.currentTimeMillis()
+                            val isDoubleTap = hitHead &&
+                                found == lastTapIndex.intValue &&
+                                now - lastTapTime.longValue < 300L
+                            if (isDoubleTap) {
+                                setScoreAt(found, 0)
+                                lastTapTime.longValue = 0L
+                                lastTapIndex.intValue = -1
+                                // Prevent subsequent onDrag from overwriting
+                                activeIndex.intValue = -1
+                                dragScore.value = null
+                            } else {
+                                lastTapTime.longValue = if (hitHead) now else 0L
+                                lastTapIndex.intValue = if (hitHead) found else -1
+                                activeIndex.intValue = found
+                                val newScore = yToScore(offset.y, drawTop, drawBottom)
+                                setScoreAt(found, newScore)
+                                dragScore.value = newScore
+                            }
                         },
                         onDrag = { change, _ ->
                             change.consumeAllChanges()
@@ -133,10 +184,11 @@ internal fun LollipopPicker(
                                 val drawBottom = size.height - bottomPaddingPx - circleRadius
                                 val newScore = yToScore(change.position.y, drawTop, drawBottom)
                                 setScoreAt(i, newScore)
+                                dragScore.value = newScore
                             }
                         },
-                        onDragEnd = { },
-                        onDragCancel = { }
+                        onDragEnd = { dragScore.value = null },
+                        onDragCancel = { dragScore.value = null }
                     )
                 }
         ) {

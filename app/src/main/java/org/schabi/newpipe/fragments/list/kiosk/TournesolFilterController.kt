@@ -7,6 +7,8 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
+import com.google.android.material.badge.BadgeDrawable
+import com.google.android.material.badge.BadgeUtils
 import com.google.android.material.chip.Chip
 import org.schabi.newpipe.R
 import org.schabi.newpipe.util.TournesolHelper
@@ -52,6 +54,7 @@ class TournesolFilterController(
     private var currentWeightBetterHabits: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
     private var currentWeightBackfireRisk: Int = TournesolHelper.DEFAULT_TOURNESOL_FILTER_WEIGHT
     private var tournesolHeaderView: View? = null
+    private var advancedBadge: BadgeDrawable? = null
 
     private val quickDateChips = linkedMapOf(
         "day" to R.id.chip_day,
@@ -105,6 +108,12 @@ class TournesolFilterController(
     }
 
     fun onDestroyView() {
+        val chip = tournesolHeaderView?.findViewById<Chip>(R.id.chip_advanced)
+        val badge = advancedBadge
+        if (chip != null && badge != null) {
+            BadgeUtils.detachBadgeDrawable(badge, chip)
+        }
+        advancedBadge = null
         tournesolHeaderView = null
     }
 
@@ -158,9 +167,27 @@ class TournesolFilterController(
                 onUnsafeToggled()
             }
 
-            // Wire up Advanced button
-            tournesolHeaderView?.findViewById<View>(R.id.chip_advanced)?.setOnClickListener {
-                openFilterSheet()
+            // Wire up Advanced button (action, not a toggle) + dot badge
+            tournesolHeaderView?.findViewById<Chip>(R.id.chip_advanced)?.let { advancedChip ->
+                advancedChip.isCheckable = false
+                advancedChip.setOnClickListener { openFilterSheet() }
+                val badge = BadgeDrawable.create(advancedChip.context).apply {
+                    isVisible = false
+                    horizontalOffset = (advancedChip.resources.displayMetrics.density * 4).toInt()
+                    verticalOffset = (advancedChip.resources.displayMetrics.density * 4).toInt()
+                    backgroundColor = androidx.core.content.ContextCompat.getColor(
+                        advancedChip.context,
+                        R.color.tournesol_filter_accent
+                    )
+                    badgeTextColor = androidx.core.content.ContextCompat.getColor(
+                        advancedChip.context,
+                        R.color.tournesol_chip_text_selected
+                    )
+                }
+                advancedBadge = badge
+                advancedChip.post {
+                    BadgeUtils.attachBadgeDrawable(badge, advancedChip)
+                }
             }
 
             updateQuickChipSelection()
@@ -227,14 +254,7 @@ class TournesolFilterController(
             currentWeightLaymanFriendly >= 0 || currentWeightEntertainingRelaxing >= 0 ||
             currentWeightEngaging >= 0 || currentWeightDiversityInclusion >= 0 ||
             currentWeightBetterHabits >= 0 || currentWeightBackfireRisk >= 0
-        val advancedChip = headerView.findViewById<Chip>(R.id.chip_advanced) ?: return
-        if (hasAdvancedFilters) {
-            advancedChip.isCheckable = true
-            advancedChip.isChecked = true
-        } else {
-            advancedChip.isChecked = false
-            advancedChip.isCheckable = false
-        }
+        advancedBadge?.isVisible = hasAdvancedFilters
     }
 
     private fun openFilterSheet() {

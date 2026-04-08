@@ -158,6 +158,8 @@ import org.schabi.newpipe.fragments.detail.compare.formatScoreMagnitude
 import org.schabi.newpipe.fragments.detail.compare.requestDisallowParentIntercept
 import org.schabi.newpipe.ui.components.items.stream.StreamThumbnail
 
+internal const val COMPACT_MAIN_CRITERION_ID = "largely_recommended"
+
 internal fun dimensionScore(state: CompareUiState, criterion: CompareCriterion): Int {
     return if (criterion.id == COMPACT_MAIN_CRITERION_ID) {
         state.score

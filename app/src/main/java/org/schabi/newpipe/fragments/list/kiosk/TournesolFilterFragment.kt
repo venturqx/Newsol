@@ -377,7 +377,27 @@ private fun TournesolFilterSheet(
                     }
                 }
 
-                // Languages + low-score chip together under one section
+                // Advanced
+                CompactSectionHeader(stringResource(R.string.filter_advanced))
+                FilterChip(
+                    selected = includeLowScoreVideos,
+                    onClick = {
+                        includeLowScoreVideos = !includeLowScoreVideos
+                        applyAll()
+                    },
+                    label = {
+                        Text(
+                            text = stringResource(R.string.include_low_score_videos_short),
+                            style = chipTextStyle
+                        )
+                    },
+                    colors = chipColors,
+                    shape = chipShape,
+                    border = null,
+                    modifier = Modifier.height(38.dp)
+                )
+
+                // Languages
                 CompactSectionHeader(stringResource(R.string.filter_languages))
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -461,24 +481,6 @@ private fun TournesolFilterSheet(
                         if (pair.size == 1) Spacer(modifier = Modifier.weight(1f))
                     }
                 }
-                Spacer(modifier = Modifier.height(10.dp))
-                FilterChip(
-                    selected = includeLowScoreVideos,
-                    onClick = {
-                        includeLowScoreVideos = !includeLowScoreVideos
-                        applyAll()
-                    },
-                    label = {
-                        Text(
-                            text = stringResource(R.string.include_low_score_videos_short),
-                            style = chipTextStyle
-                        )
-                    },
-                    colors = chipColors,
-                    shape = chipShape,
-                    border = null,
-                    modifier = Modifier.height(38.dp)
-                )
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }

@@ -1206,11 +1206,9 @@ class CompareFragment : Fragment() {
                     suggestionPool.addAll(videos)
                     action(suggestionPool)
                 },
-                { throwable ->
+                { _ ->
                     suggestionsLoading = false
-                    if (throwable is MissingTokenException) {
-                        showLoginDialog()
-                    }
+                    // MissingTokenException expected when not logged in; other errors ignored here too
                 }
             )
         suggestionsDisposable?.let { disposables.add(it) }

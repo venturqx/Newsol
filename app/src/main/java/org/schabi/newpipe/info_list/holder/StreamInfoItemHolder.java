@@ -128,16 +128,6 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
                     textStart, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
 
-        // Votes: balance scale emoji + count
-        final int nComparisons = item.getTournesolNComparisons();
-        if (nComparisons >= 0) {
-            if (sb.length() > 0) {
-                sb.append("  ");
-            }
-            sb.append("\u2696\uFE0F\u2009");
-            sb.append(String.valueOf(nComparisons));
-        }
-
         // Date: clock emoji + compact relative time (natural color)
         final String uploadDate = Localization.compactRelativeTimeOrTextual(
                 item.getUploadDate(), item.getTextualUploadDate());
@@ -164,6 +154,16 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
             }
             sb.append("\uD83D\uDC41\uFE0F\u2009");
             sb.append(viewText);
+        }
+
+        // Votes: balance scale emoji + count
+        final int nComparisons = item.getTournesolNComparisons();
+        if (nComparisons >= 0) {
+            if (sb.length() > 0) {
+                sb.append("  ");
+            }
+            sb.append("\u2696\uFE0F\u2009");
+            sb.append(String.valueOf(nComparisons));
         }
 
         return sb;
