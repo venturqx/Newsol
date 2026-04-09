@@ -5,7 +5,8 @@ import android.graphics.Typeface
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -27,7 +28,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.input.pointer.consumeAllChanges
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -113,86 +113,53 @@ internal fun LollipopPicker(
                         val down = awaitFirstDown(requireUnconsumed = false)
                         val n = dimensions.size
                         val slot = size.width.toFloat() / n
+                        val drawTop = topPaddingPx + circleRadius
+                        val drawBottom = size.height - bottomPaddingPx - circleRadius
                         val i = (down.position.x / slot).toInt().coerceIn(0, n - 1)
                         activeIndex.intValue = i
-                        val now = System.currentTimeMillis()
-                        if (i == lastTapIndex.intValue &&
-                            now - lastTapTime.longValue < 300L
-                        ) {
-                            if (dimensions[i].id == COMPACT_MAIN_CRITERION_ID) {
-                                currentOnMainScoreChange(0)
-                            } else {
-                                currentOnScoreChange(dimensions[i].id, 0)
-                            }
+
+                        // Wait for either touch slop (→ drag) or release (→ tap).
+                        val slopChange = awaitTouchSlopOrCancellation(down.id) { c, _ ->
+                            c.consume()
+                        }
+                        if (slopChange != null) {
+                            // Drag: clear any pending single-tap so a subsequent
+                            // tap on same bar isn't misread as double-tap.
                             lastTapTime.longValue = 0L
                             lastTapIndex.intValue = -1
+                            val initial = yToScore(
+                                slopChange.position.y,
+                                drawTop,
+                                drawBottom
+                            )
+                            setScoreAt(i, initial)
+                            dragScore.value = initial
+                            drag(slopChange.id) { change ->
+                                val s = yToScore(
+                                    change.position.y,
+                                    drawTop,
+                                    drawBottom
+                                )
+                                setScoreAt(i, s)
+                                dragScore.value = s
+                                change.consume()
+                            }
+                            dragScore.value = null
                         } else {
-                            lastTapTime.longValue = now
-                            lastTapIndex.intValue = i
-                        }
-                    }
-                }
-                .pointerInput(Unit) {
-                    val n = dimensions.size
-                    detectDragGestures(
-                        onDragStart = { offset ->
-                            val w = size.width.toFloat()
-                            val slot = w / n
-                            val drawTop = topPaddingPx + circleRadius
-                            val drawBottom = size.height - bottomPaddingPx - circleRadius
-                            var found = -1
-                            for (i in 0 until n) {
-                                val cx = slot * (i + 0.5f)
-                                val score = scoreAt(i)
-                                val cy = drawBottom -
-                                    ((score + 100) / 200f) * (drawBottom - drawTop)
-                                val dx = offset.x - cx
-                                val dy = offset.y - cy
-                                val r = circleRadius + with(density) { 12.dp.toPx() }
-                                if (dx * dx + dy * dy <= r * r) {
-                                    found = i
-                                    break
-                                }
-                            }
-                            val hitHead = found >= 0
-                            if (found < 0) {
-                                // Fall back to nearest column horizontally
-                                found = (offset.x / slot).toInt().coerceIn(0, n - 1)
-                            }
+                            // Tap: handle single/double-tap reset.
                             val now = System.currentTimeMillis()
-                            val isDoubleTap = hitHead &&
-                                found == lastTapIndex.intValue &&
+                            if (i == lastTapIndex.intValue &&
                                 now - lastTapTime.longValue < 300L
-                            if (isDoubleTap) {
-                                setScoreAt(found, 0)
+                            ) {
+                                setScoreAt(i, 0)
                                 lastTapTime.longValue = 0L
                                 lastTapIndex.intValue = -1
-                                // Prevent subsequent onDrag from overwriting
-                                activeIndex.intValue = -1
-                                dragScore.value = null
                             } else {
-                                lastTapTime.longValue = if (hitHead) now else 0L
-                                lastTapIndex.intValue = if (hitHead) found else -1
-                                activeIndex.intValue = found
-                                val newScore = yToScore(offset.y, drawTop, drawBottom)
-                                setScoreAt(found, newScore)
-                                dragScore.value = newScore
+                                lastTapTime.longValue = now
+                                lastTapIndex.intValue = i
                             }
-                        },
-                        onDrag = { change, _ ->
-                            change.consumeAllChanges()
-                            val i = activeIndex.intValue
-                            if (i >= 0) {
-                                val drawTop = topPaddingPx + circleRadius
-                                val drawBottom = size.height - bottomPaddingPx - circleRadius
-                                val newScore = yToScore(change.position.y, drawTop, drawBottom)
-                                setScoreAt(i, newScore)
-                                dragScore.value = newScore
-                            }
-                        },
-                        onDragEnd = { dragScore.value = null },
-                        onDragCancel = { dragScore.value = null }
-                    )
+                        }
+                    }
                 }
         ) {
             val n = dimensions.size
