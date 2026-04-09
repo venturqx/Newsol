@@ -846,26 +846,36 @@ internal fun CompareCompactScreen(
                                 .layout { measurable, constraints ->
                                     val extraPx = (horizontalPadding * 2)
                                         .roundToPx()
-                                    val expanded = constraints.copy(
-                                        maxWidth = constraints.maxWidth + extraPx
+                                    val expandedWidth = constraints.maxWidth + extraPx
+                                    val placeable = measurable.measure(
+                                        constraints.copy(
+                                            minWidth = expandedWidth,
+                                            maxWidth = expandedWidth
+                                        )
                                     )
-                                    val placeable = measurable.measure(expanded)
-                                    layout(placeable.width, placeable.height) {
+                                    layout(constraints.maxWidth, placeable.height) {
                                         placeable.place(-horizontalPadding.roundToPx(), 0)
                                     }
                                 }
-                                .background(Color(0xFF181818))
                         ) {
-                            LollipopPicker(
-                                scores = state.extraScores,
-                                onScoreChange = onExtraScoreChange,
-                                mainScore = state.score,
-                                onMainScoreChange = onScoreChange,
-                                modifier = Modifier.fillMaxWidth(),
-                                hoistedActiveIndex = if (embedInDetail) pickerActiveIndex else null,
-                                hoistedDragScore = pickerDragScore,
-                                showDescription = !embedInDetail
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFF181818))
+                            ) {
+                                LollipopPicker(
+                                    scores = state.extraScores,
+                                    onScoreChange = onExtraScoreChange,
+                                    mainScore = state.score,
+                                    onMainScoreChange = onScoreChange,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = horizontalPadding),
+                                    hoistedActiveIndex = if (embedInDetail) pickerActiveIndex else null,
+                                    hoistedDragScore = pickerDragScore,
+                                    showDescription = !embedInDetail
+                                )
+                            }
                         }
 
                         Row(
