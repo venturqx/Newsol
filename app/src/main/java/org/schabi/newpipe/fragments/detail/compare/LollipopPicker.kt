@@ -109,6 +109,12 @@ internal fun LollipopPicker(
                 .height(totalHeight)
                 .pointerInput("doubleTap") {
                     detectTapGestures(
+                        onPress = { offset ->
+                            val n = dimensions.size
+                            val slot = size.width.toFloat() / n
+                            val i = (offset.x / slot).toInt().coerceIn(0, n - 1)
+                            activeIndex.intValue = i
+                        },
                         onDoubleTap = { offset ->
                             val n = dimensions.size
                             val slot = size.width.toFloat() / n

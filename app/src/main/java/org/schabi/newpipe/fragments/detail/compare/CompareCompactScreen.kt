@@ -63,6 +63,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -556,17 +557,6 @@ internal fun CompareCompactScreen(
                             )
                         }
 
-                        LollipopPicker(
-                            scores = state.extraScores,
-                            onScoreChange = onExtraScoreChange,
-                            mainScore = state.score,
-                            onMainScoreChange = onScoreChange,
-                            modifier = Modifier.fillMaxWidth(),
-                            hoistedActiveIndex = if (embedInDetail) pickerActiveIndex else null,
-                            hoistedDragScore = pickerDragScore,
-                            showDescription = !embedInDetail
-                        )
-
                         val showLeftContent = hasSuggestedLeft || selectedHistoryEntryLeft != null
                         val showRightContent = hasSuggestedRight || selectedHistoryEntryRight != null
                         if (showLeftContent || showRightContent) {
@@ -848,71 +838,101 @@ internal fun CompareCompactScreen(
                                     )
                                 }
                             }
-                            Row(
+                        }
+
+                        val horizontalPadding = 16.dp * scale
+                        Box(
+                            modifier = Modifier
+                                .layout { measurable, constraints ->
+                                    val extraPx = (horizontalPadding * 2)
+                                        .roundToPx()
+                                    val expanded = constraints.copy(
+                                        maxWidth = constraints.maxWidth + extraPx
+                                    )
+                                    val placeable = measurable.measure(expanded)
+                                    layout(placeable.width, placeable.height) {
+                                        placeable.place(-horizontalPadding.roundToPx(), 0)
+                                    }
+                                }
+                                .background(Color(0xFF181818))
+                        ) {
+                            LollipopPicker(
+                                scores = state.extraScores,
+                                onScoreChange = onExtraScoreChange,
+                                mainScore = state.score,
+                                onMainScoreChange = onScoreChange,
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
+                                hoistedActiveIndex = if (embedInDetail) pickerActiveIndex else null,
+                                hoistedDragScore = pickerDragScore,
+                                showDescription = !embedInDetail
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val chipColors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = colorResource(R.color.tournesol_chip_bg_selected),
+                                containerColor = colorResource(R.color.tournesol_chip_bg_unselected),
+                                selectedLabelColor = colorResource(R.color.tournesol_chip_text_selected),
+                                labelColor = MaterialTheme.colorScheme.onSurface
+                            )
+                            val chipShape = RoundedCornerShape(8.dp)
+                            val chipTextStyle = TextStyle(
+                                fontFamily = FontFamily(Typeface.create("sans-serif-medium", Typeface.NORMAL)),
+                                fontSize = 14.sp,
+                                letterSpacing = TextUnit(0.04f, TextUnitType.Em)
+                            )
+                            val diceEnabled = !state.suggestionsLoading
+                            Surface(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clickable(enabled = diceEnabled) { onRandomizeLeft() },
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFF42A5F5).copy(alpha = 0.15f)
                             ) {
-                                val chipColors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = colorResource(R.color.tournesol_chip_bg_selected),
-                                    containerColor = colorResource(R.color.tournesol_chip_bg_unselected),
-                                    selectedLabelColor = colorResource(R.color.tournesol_chip_text_selected),
-                                    labelColor = MaterialTheme.colorScheme.onSurface
-                                )
-                                val chipShape = RoundedCornerShape(8.dp)
-                                val chipTextStyle = TextStyle(
-                                    fontFamily = FontFamily(Typeface.create("sans-serif-medium", Typeface.NORMAL)),
-                                    fontSize = 14.sp,
-                                    letterSpacing = TextUnit(0.04f, TextUnitType.Em)
-                                )
-                                val diceEnabled = !state.suggestionsLoading
-                                Surface(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clickable(enabled = diceEnabled) { onRandomizeLeft() },
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = Color(0xFF42A5F5).copy(alpha = 0.15f)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Image(
-                                            painter = painterResource(R.drawable.ic_casino),
-                                            contentDescription = stringResource(R.string.compare_randomize_left),
-                                            colorFilter = ColorFilter.tint(Color(0xFF42A5F5)),
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
+                                Box(contentAlignment = Alignment.Center) {
+                                    Image(
+                                        painter = painterResource(R.drawable.ic_casino),
+                                        contentDescription = stringResource(R.string.compare_randomize_left),
+                                        colorFilter = ColorFilter.tint(Color(0xFF42A5F5)),
+                                        modifier = Modifier.size(20.dp)
+                                    )
                                 }
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Surface(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clickable(enabled = diceEnabled) { onRandomizeRight() },
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = Color(0xFFE57373).copy(alpha = 0.15f)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Image(
-                                            painter = painterResource(R.drawable.ic_casino),
-                                            contentDescription = stringResource(R.string.compare_randomize_right),
-                                            colorFilter = ColorFilter.tint(Color(0xFFE57373)),
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clickable(enabled = diceEnabled) { onRandomizeRight() },
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFE57373).copy(alpha = 0.15f)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Image(
+                                        painter = painterResource(R.drawable.ic_casino),
+                                        contentDescription = stringResource(R.string.compare_randomize_right),
+                                        colorFilter = ColorFilter.tint(Color(0xFFE57373)),
+                                        modifier = Modifier.size(20.dp)
+                                    )
                                 }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                FilterChip(
-                                    selected = true,
-                                    onClick = submitOrUpdateAction,
-                                    enabled = canSubmit,
-                                    label = { Text(text = submitButtonLabel, style = chipTextStyle) },
-                                    colors = chipColors,
-                                    shape = chipShape,
-                                    border = null
-                                )
                             }
-                            if (embedInDetail) {
-                                LollipopDescriptionRow(activeIndex = pickerActiveIndex.intValue)
-                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            FilterChip(
+                                selected = true,
+                                onClick = submitOrUpdateAction,
+                                enabled = canSubmit,
+                                label = { Text(text = submitButtonLabel, style = chipTextStyle) },
+                                colors = chipColors,
+                                shape = chipShape,
+                                border = null
+                            )
+                        }
+
+                        if (embedInDetail) {
+                            LollipopDescriptionRow(activeIndex = pickerActiveIndex.intValue)
                         }
                     }
                 }
