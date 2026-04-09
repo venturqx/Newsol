@@ -78,15 +78,15 @@ private fun GoalRing(
         animationSpec = tween(durationMillis = 600, easing = LinearOutSlowInEasing),
         label = "goalRing"
     )
-    val trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+    val trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
+        modifier = modifier.width(80.dp * scale)
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Canvas(modifier = Modifier.size(44.dp * scale)) {
-                val stroke = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+            Canvas(modifier = Modifier.size(56.dp * scale)) {
+                val stroke = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
                 drawArc(
                     color = trackColor,
                     startAngle = -90f,
@@ -104,23 +104,26 @@ private fun GoalRing(
             }
             Text(
                 text = emoji,
-                fontSize = 16.sp * scale
+                fontSize = 20.sp * scale
             )
         }
-        Spacer(modifier = Modifier.height(2.dp * scale))
+        Spacer(modifier = Modifier.height(4.dp * scale))
         Text(
             text = "$current / $goal",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-            fontSize = 12.sp * scale,
-            lineHeight = 14.sp * scale
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.SemiBold
+            ),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            fontSize = 13.sp * scale,
+            lineHeight = 16.sp * scale
         )
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
             fontSize = 11.sp * scale,
-            lineHeight = 13.sp * scale
+            lineHeight = 14.sp * scale,
+            textAlign = TextAlign.Center
         )
     }
 }
@@ -139,7 +142,7 @@ internal fun UserGreetingBanner(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp * scale),
+                .padding(vertical = 8.dp * scale),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -158,7 +161,7 @@ internal fun UserGreetingBanner(
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp * scale)
             ) {
                 if (dailyComparisons != null) {
                     GoalRing(
