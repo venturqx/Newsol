@@ -114,15 +114,20 @@ internal fun LollipopPicker(
                             val slot = size.width.toFloat() / n
                             val i = (offset.x / slot).toInt().coerceIn(0, n - 1)
                             activeIndex.intValue = i
-                        },
-                        onDoubleTap = { offset ->
-                            val n = dimensions.size
-                            val slot = size.width.toFloat() / n
-                            val i = (offset.x / slot).toInt().coerceIn(0, n - 1)
-                            if (dimensions[i].id == COMPACT_MAIN_CRITERION_ID) {
-                                currentOnMainScoreChange(0)
+                            val now = System.currentTimeMillis()
+                            if (i == lastTapIndex.intValue &&
+                                now - lastTapTime.longValue < 300L
+                            ) {
+                                if (dimensions[i].id == COMPACT_MAIN_CRITERION_ID) {
+                                    currentOnMainScoreChange(0)
+                                } else {
+                                    currentOnScoreChange(dimensions[i].id, 0)
+                                }
+                                lastTapTime.longValue = 0L
+                                lastTapIndex.intValue = -1
                             } else {
-                                currentOnScoreChange(dimensions[i].id, 0)
+                                lastTapTime.longValue = now
+                                lastTapIndex.intValue = i
                             }
                         }
                     )
