@@ -82,11 +82,11 @@ private fun GoalRing(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier.width(80.dp * scale)
+        modifier = modifier.width(104.dp * scale)
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Canvas(modifier = Modifier.size(56.dp * scale)) {
-                val stroke = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
+            Canvas(modifier = Modifier.size(72.dp * scale)) {
+                val stroke = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round)
                 drawArc(
                     color = trackColor,
                     startAngle = -90f,
@@ -104,26 +104,28 @@ private fun GoalRing(
             }
             Text(
                 text = emoji,
-                fontSize = 20.sp * scale
+                fontSize = 26.sp * scale
             )
         }
-        Spacer(modifier = Modifier.height(4.dp * scale))
+        Spacer(modifier = Modifier.height(6.dp * scale))
         Text(
             text = "$current / $goal",
-            style = MaterialTheme.typography.labelMedium.copy(
-                fontWeight = FontWeight.SemiBold
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontWeight = FontWeight.Bold
             ),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-            fontSize = 13.sp * scale,
-            lineHeight = 16.sp * scale
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+            fontSize = 15.sp * scale,
+            lineHeight = 18.sp * scale
         )
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
-            fontSize = 11.sp * scale,
-            lineHeight = 14.sp * scale,
-            textAlign = TextAlign.Center
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+            fontSize = 12.sp * scale,
+            lineHeight = 15.sp * scale,
+            textAlign = TextAlign.Center,
+            minLines = 2,
+            maxLines = 2
         )
     }
 }
@@ -160,7 +162,7 @@ internal fun UserGreetingBanner(
                 }
             }
             Row(
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.spacedBy(12.dp * scale)
             ) {
                 if (dailyComparisons != null) {
