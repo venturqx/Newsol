@@ -3,8 +3,9 @@ package org.schabi.newpipe.fragments.detail.compare
 import android.graphics.Paint as AndroidPaint
 import android.graphics.Typeface
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -107,30 +108,29 @@ internal fun LollipopPicker(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(totalHeight)
-                .pointerInput("doubleTap") {
-                    detectTapGestures(
-                        onPress = { offset ->
-                            val n = dimensions.size
-                            val slot = size.width.toFloat() / n
-                            val i = (offset.x / slot).toInt().coerceIn(0, n - 1)
-                            activeIndex.intValue = i
-                            val now = System.currentTimeMillis()
-                            if (i == lastTapIndex.intValue &&
-                                now - lastTapTime.longValue < 300L
-                            ) {
-                                if (dimensions[i].id == COMPACT_MAIN_CRITERION_ID) {
-                                    currentOnMainScoreChange(0)
-                                } else {
-                                    currentOnScoreChange(dimensions[i].id, 0)
-                                }
-                                lastTapTime.longValue = 0L
-                                lastTapIndex.intValue = -1
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        val n = dimensions.size
+                        val slot = size.width.toFloat() / n
+                        val i = (down.position.x / slot).toInt().coerceIn(0, n - 1)
+                        activeIndex.intValue = i
+                        val now = System.currentTimeMillis()
+                        if (i == lastTapIndex.intValue &&
+                            now - lastTapTime.longValue < 300L
+                        ) {
+                            if (dimensions[i].id == COMPACT_MAIN_CRITERION_ID) {
+                                currentOnMainScoreChange(0)
                             } else {
-                                lastTapTime.longValue = now
-                                lastTapIndex.intValue = i
+                                currentOnScoreChange(dimensions[i].id, 0)
                             }
+                            lastTapTime.longValue = 0L
+                            lastTapIndex.intValue = -1
+                        } else {
+                            lastTapTime.longValue = now
+                            lastTapIndex.intValue = i
                         }
-                    )
+                    }
                 }
                 .pointerInput(Unit) {
                     val n = dimensions.size
