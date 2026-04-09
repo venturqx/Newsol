@@ -1,6 +1,7 @@
 package org.schabi.newpipe.fragments.list.kiosk
 
 import android.app.Dialog
+import android.content.Context
 import android.graphics.Typeface
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -31,6 +32,8 @@ import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -55,6 +58,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.preference.PreferenceManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import org.schabi.newpipe.R
@@ -163,11 +167,13 @@ class TournesolFilterFragment : BottomSheetDialogFragment() {
         val seedDateKey = initialDateKey ?: TournesolHelper.DEFAULT_TOURNESOL_FILTER_DATE_KEY
         val seedIncludeLowScoreVideos = initialIncludeLowScoreVideos
 
+        val appContext = requireContext().applicationContext
         return ComposeView(requireContext()).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 AppTheme {
                     TournesolFilterSheet(
+                        appContext = appContext,
                         initialLanguages = seedLanguages,
                         initialDateKey = seedDateKey,
                         initialIncludeLowScoreVideos = seedIncludeLowScoreVideos,
@@ -222,9 +228,28 @@ private data class FilterOption(val key: String, @StringRes val labelResId: Int)
 
 private const val DURATION_SLIDER_MAX = 120f
 
+private const val PREF_TOURNESOL_FILTER_WEIGHTS_ENABLED = "tournesol_filter_weights_enabled"
+private const val PREF_WEIGHT_LEVEL_PREFIX = "tournesol_filter_weight_level_"
+
+private val WEIGHT_LEVELS = intArrayOf(0, 25, 50, 75, 100)
+
+private fun weightLevelLabel(value: Int): String = when (value) {
+    0 -> "Ignore"
+    25 -> "Not important"
+    50 -> "Neutral"
+    75 -> "Important"
+    else -> "Crucial"
+}
+
+private fun quantizeToLevel(value: Int): Int {
+    if (value < 0) return 50
+    return WEIGHT_LEVELS.minByOrNull { kotlin.math.abs(it - value) } ?: 50
+}
+
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun TournesolFilterSheet(
+    appContext: Context,
     initialLanguages: List<String>,
     initialDateKey: String,
     initialIncludeLowScoreVideos: Boolean,
@@ -269,38 +294,65 @@ private fun TournesolFilterSheet(
         mutableStateOf(if (initialDurationMaxSeconds >= 0) initialDurationMaxSeconds / 60f else DURATION_SLIDER_MAX)
     }
 
-    // Weights: -1 means default (not set), 0-100 are explicit values
-    var weightLR by remember { mutableStateOf(initialWeightLargelyRecommended) }
-    var weightRel by remember { mutableStateOf(initialWeightReliability) }
-    var weightImp by remember { mutableStateOf(initialWeightImportance) }
-    var weightPed by remember { mutableStateOf(initialWeightPedagogy) }
-    var weightLay by remember { mutableStateOf(initialWeightLaymanFriendly) }
-    var weightEnt by remember { mutableStateOf(initialWeightEntertainingRelaxing) }
-    var weightEng by remember { mutableStateOf(initialWeightEngaging) }
-    var weightDiv by remember { mutableStateOf(initialWeightDiversityInclusion) }
-    var weightBet by remember { mutableStateOf(initialWeightBetterHabits) }
-    var weightBack by remember { mutableStateOf(initialWeightBackfireRisk) }
+    // Weights: always a level in WEIGHT_LEVELS. Persisted via fragment-local prefs so the
+    // user's chosen levels survive even when the master toggle is disabled.
+    val prefs = remember { PreferenceManager.getDefaultSharedPreferences(appContext) }
+    fun loadLevel(key: String, fallback: Int): Int {
+        val stored = prefs.getInt(PREF_WEIGHT_LEVEL_PREFIX + key, Int.MIN_VALUE)
+        return if (stored == Int.MIN_VALUE) quantizeToLevel(fallback) else quantizeToLevel(stored)
+    }
+    var weightsEnabled by remember {
+        mutableStateOf(prefs.getBoolean(PREF_TOURNESOL_FILTER_WEIGHTS_ENABLED, false))
+    }
+    var weightLR by remember { mutableStateOf(loadLevel("largely_recommended", initialWeightLargelyRecommended)) }
+    var weightRel by remember { mutableStateOf(loadLevel("reliability", initialWeightReliability)) }
+    var weightImp by remember { mutableStateOf(loadLevel("importance", initialWeightImportance)) }
+    var weightPed by remember { mutableStateOf(loadLevel("pedagogy", initialWeightPedagogy)) }
+    var weightLay by remember { mutableStateOf(loadLevel("layman_friendly", initialWeightLaymanFriendly)) }
+    var weightEnt by remember { mutableStateOf(loadLevel("entertaining_relaxing", initialWeightEntertainingRelaxing)) }
+    var weightEng by remember { mutableStateOf(loadLevel("engaging", initialWeightEngaging)) }
+    var weightDiv by remember { mutableStateOf(loadLevel("diversity_inclusion", initialWeightDiversityInclusion)) }
+    var weightBet by remember { mutableStateOf(loadLevel("better_habits", initialWeightBetterHabits)) }
+    var weightBack by remember { mutableStateOf(loadLevel("backfire_risk", initialWeightBackfireRisk)) }
 
     fun currentDurationMinSeconds(): Int = if (durationMinMinutes <= 0f) -1 else (durationMinMinutes * 60).toInt()
     fun currentDurationMaxSeconds(): Int = if (durationMaxMinutes >= DURATION_SLIDER_MAX) -1 else (durationMaxMinutes * 60).toInt()
 
+    fun persistLevels() {
+        prefs.edit()
+            .putBoolean(PREF_TOURNESOL_FILTER_WEIGHTS_ENABLED, weightsEnabled)
+            .putInt(PREF_WEIGHT_LEVEL_PREFIX + "largely_recommended", weightLR)
+            .putInt(PREF_WEIGHT_LEVEL_PREFIX + "reliability", weightRel)
+            .putInt(PREF_WEIGHT_LEVEL_PREFIX + "importance", weightImp)
+            .putInt(PREF_WEIGHT_LEVEL_PREFIX + "pedagogy", weightPed)
+            .putInt(PREF_WEIGHT_LEVEL_PREFIX + "layman_friendly", weightLay)
+            .putInt(PREF_WEIGHT_LEVEL_PREFIX + "entertaining_relaxing", weightEnt)
+            .putInt(PREF_WEIGHT_LEVEL_PREFIX + "engaging", weightEng)
+            .putInt(PREF_WEIGHT_LEVEL_PREFIX + "diversity_inclusion", weightDiv)
+            .putInt(PREF_WEIGHT_LEVEL_PREFIX + "better_habits", weightBet)
+            .putInt(PREF_WEIGHT_LEVEL_PREFIX + "backfire_risk", weightBack)
+            .apply()
+    }
+
     fun applyAll() {
+        persistLevels()
+        val sentinel = -1
         onApply(
             selectedLanguages.toList(),
             selectedDateKey,
             includeLowScoreVideos,
             currentDurationMinSeconds(),
             currentDurationMaxSeconds(),
-            weightLR,
-            weightRel,
-            weightImp,
-            weightPed,
-            weightLay,
-            weightEnt,
-            weightEng,
-            weightDiv,
-            weightBet,
-            weightBack
+            if (weightsEnabled) weightLR else sentinel,
+            if (weightsEnabled) weightRel else sentinel,
+            if (weightsEnabled) weightImp else sentinel,
+            if (weightsEnabled) weightPed else sentinel,
+            if (weightsEnabled) weightLay else sentinel,
+            if (weightsEnabled) weightEnt else sentinel,
+            if (weightsEnabled) weightEng else sentinel,
+            if (weightsEnabled) weightDiv else sentinel,
+            if (weightsEnabled) weightBet else sentinel,
+            if (weightsEnabled) weightBack else sentinel
         )
     }
 
@@ -463,6 +515,28 @@ private fun TournesolFilterSheet(
 
                 // Criteria weights: 2-column compact grid
                 CompactSectionHeader(stringResource(R.string.filter_criteria))
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Enable weighting",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Switch(
+                        checked = weightsEnabled,
+                        onCheckedChange = {
+                            weightsEnabled = it
+                            applyAll()
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = colorResource(R.color.tournesol_chip_bg_selected),
+                            checkedTrackColor = colorResource(R.color.tournesol_chip_bg_selected).copy(alpha = 0.4f)
+                        )
+                    )
+                }
                 criteria.chunked(2).forEach { pair ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -473,8 +547,9 @@ private fun TournesolFilterSheet(
                                 CompactWeightSlider(
                                     label = stringResource(labelRes),
                                     value = value,
+                                    enabled = weightsEnabled,
                                     onValueChange = setter,
-                                    onValueChangeFinished = { applyAll() }
+                                    onValueChangeFinished = { if (weightsEnabled) applyAll() }
                                 )
                             }
                         }
@@ -553,6 +628,7 @@ private fun DurationRangeRow(
 private fun CompactWeightSlider(
     label: String,
     value: Int,
+    enabled: Boolean = true,
     onValueChange: (Int) -> Unit,
     onValueChangeFinished: () -> Unit
 ) {
@@ -560,7 +636,7 @@ private fun CompactWeightSlider(
         thumbColor = colorResource(R.color.tournesol_chip_bg_selected),
         activeTrackColor = colorResource(R.color.tournesol_chip_bg_selected)
     )
-    val displayValue = if (value < 0) 50 else value
+    val level = quantizeToLevel(value)
     Column {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -575,15 +651,16 @@ private fun CompactWeightSlider(
                 modifier = Modifier.weight(1f, fill = false)
             )
             Text(
-                text = if (value < 0) "—" else "$value",
+                text = weightLevelLabel(level),
                 fontSize = 11.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         Slider(
-            value = displayValue.toFloat(),
-            onValueChange = { onValueChange(it.toInt()) },
+            value = level.toFloat(),
+            onValueChange = { if (enabled) onValueChange(quantizeToLevel(it.toInt())) },
             onValueChangeFinished = onValueChangeFinished,
+            enabled = enabled,
             valueRange = 0f..100f,
             steps = 3,
             colors = sliderColors,

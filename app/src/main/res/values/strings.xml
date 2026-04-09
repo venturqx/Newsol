@@ -282,6 +282,7 @@
     <string name="comments_tab_description">Comments</string>
     <string name="related_items_tab_description">Related items</string>
     <string name="compare_tab_description">Compare</string>
+    <string name="tournesol_tab_description">Tournesol</string>
     <string name="description_tab_description">Description</string>
     <string name="search_no_results">No results</string>
     <string name="empty_list_subtitle">Nothing here but crickets</string>

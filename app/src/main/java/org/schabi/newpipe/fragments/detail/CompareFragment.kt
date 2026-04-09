@@ -132,7 +132,7 @@ class CompareFragment : Fragment() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
-            ViewCompat.setNestedScrollingEnabled(this, true)
+            ViewCompat.setNestedScrollingEnabled(this, embedInDetail)
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 AppTheme {
@@ -192,7 +192,15 @@ class CompareFragment : Fragment() {
                             onRandomizeLeft = { randomizeLeft() },
                             onRandomizeRight = { randomizeRight() },
                             showGreeting = currentInfo == null,
-                            reserveMiniPlayerSpace = !embedInDetail
+                            reserveMiniPlayerSpace = !embedInDetail,
+                            onContentMeasured = if (embedInDetail) {
+                                { heightPx ->
+                                    (parentFragment as? VideoDetailFragment)
+                                        ?.onCompareContentMeasured(heightPx)
+                                }
+                            } else {
+                                null
+                            }
                         )
                     } else {
                         CompareScreen(

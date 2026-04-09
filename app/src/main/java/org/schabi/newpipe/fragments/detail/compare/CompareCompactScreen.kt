@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -130,7 +131,8 @@ internal fun CompareCompactScreen(
     onRandomizeLeft: () -> Unit = {},
     onRandomizeRight: () -> Unit = {},
     showGreeting: Boolean = true,
-    reserveMiniPlayerSpace: Boolean = true
+    reserveMiniPlayerSpace: Boolean = true,
+    onContentMeasured: ((Int) -> Unit)? = null
 ) {
     val dimensions = remember { COMPACT_DIMENSIONS }
     var activeIndex by rememberSaveable { mutableIntStateOf(0) }
@@ -510,7 +512,7 @@ internal fun CompareCompactScreen(
         CompositionLocalProvider(LocalCompareScale provides scale) {
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .then(if (embedInDetail) Modifier.fillMaxWidth() else Modifier.fillMaxSize())
                     .padding(
                         start = 16.dp * scale,
                         end = 16.dp * scale,
@@ -519,15 +521,28 @@ internal fun CompareCompactScreen(
             ) {
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .then(if (embedInDetail) Modifier.fillMaxWidth() else Modifier.fillMaxSize())
                         .zIndex(1f)
                 ) {
                     Column(
                         modifier = Modifier
-                            .weight(1f, fill = true)
-                            .padding(bottom = bottomContentPadding)
-                            .nestedScroll(compactNestedScrollInterop)
-                            .verticalScroll(rememberScrollState()),
+                            .fillMaxWidth()
+                            .then(
+                                if (embedInDetail) {
+                                    Modifier
+                                        .nestedScroll(compactNestedScrollInterop)
+                                        .verticalScroll(rememberScrollState())
+                                        .onGloballyPositioned { coords ->
+                                            onContentMeasured?.invoke(coords.size.height)
+                                        }
+                                } else {
+                                    Modifier
+                                        .weight(1f, fill = false)
+                                        .nestedScroll(compactNestedScrollInterop)
+                                        .verticalScroll(rememberScrollState())
+                                }
+                            )
+                            .padding(bottom = bottomContentPadding),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         if (showGreeting) {
@@ -642,13 +657,6 @@ internal fun CompareCompactScreen(
                                                     }
                                                     Surface(
                                                         modifier = Modifier
-                                                            .then(
-                                                                if (isLeftCurrent) {
-                                                                    Modifier.tightBorderGlow(Color(0xFF42A5F5), 6.dp)
-                                                                } else {
-                                                                    Modifier
-                                                                }
-                                                            )
                                                             .combinedClickable(
                                                                 onClick = {
                                                                     openHistoryOverlay(OverlayTarget.LEFT)
@@ -671,7 +679,7 @@ internal fun CompareCompactScreen(
                                                                 }
                                                             ),
                                                         shape = RoundedCornerShape(6.dp),
-                                                        border = BorderStroke(if (isLeftCurrent) 3.dp else 2.dp, Color(0xFF42A5F5)),
+                                                        border = BorderStroke(2.dp, Color(0xFF42A5F5)),
                                                         color = MaterialTheme.colorScheme.surface
                                                     ) {
                                                         Box(
@@ -691,6 +699,18 @@ internal fun CompareCompactScreen(
                                                                 )
                                                             }
                                                         }
+                                                    }
+                                                    if (isLeftCurrent) {
+                                                        Text(
+                                                            text = "playing..",
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = Color(0xFF42A5F5),
+                                                            modifier = Modifier
+                                                                .align(Alignment.BottomCenter)
+                                                                .offset(y = 10.dp)
+                                                                .height(0.dp)
+                                                                .wrapContentHeight(unbounded = true)
+                                                        )
                                                     }
                                                 }
                                             } else {
@@ -717,13 +737,6 @@ internal fun CompareCompactScreen(
                                                     }
                                                     Surface(
                                                         modifier = Modifier
-                                                            .then(
-                                                                if (isRightCurrent) {
-                                                                    Modifier.tightBorderGlow(Color(0xFFE57373), 6.dp)
-                                                                } else {
-                                                                    Modifier
-                                                                }
-                                                            )
                                                             .combinedClickable(
                                                                 onClick = {
                                                                     openHistoryOverlay(OverlayTarget.RIGHT)
@@ -746,7 +759,7 @@ internal fun CompareCompactScreen(
                                                                 }
                                                             ),
                                                         shape = RoundedCornerShape(6.dp),
-                                                        border = BorderStroke(if (isRightCurrent) 3.dp else 2.dp, Color(0xFFE57373)),
+                                                        border = BorderStroke(2.dp, Color(0xFFE57373)),
                                                         color = MaterialTheme.colorScheme.surface
                                                     ) {
                                                         Box(
@@ -766,6 +779,18 @@ internal fun CompareCompactScreen(
                                                                 )
                                                             }
                                                         }
+                                                    }
+                                                    if (isRightCurrent) {
+                                                        Text(
+                                                            text = "playing..",
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = Color(0xFFE57373),
+                                                            modifier = Modifier
+                                                                .align(Alignment.BottomCenter)
+                                                                .offset(y = 10.dp)
+                                                                .height(0.dp)
+                                                                .wrapContentHeight(unbounded = true)
+                                                        )
                                                     }
                                                 }
                                             } else {
@@ -885,10 +910,10 @@ internal fun CompareCompactScreen(
                                     border = null
                                 )
                             }
+                            if (embedInDetail) {
+                                LollipopDescriptionRow(activeIndex = pickerActiveIndex.intValue)
+                            }
                         }
-                    }
-                    if (embedInDetail) {
-                        LollipopDescriptionRow(activeIndex = pickerActiveIndex.intValue)
                     }
                 }
 

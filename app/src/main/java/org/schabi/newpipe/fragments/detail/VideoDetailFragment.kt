@@ -45,6 +45,7 @@ import androidx.core.os.postDelayed
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.preference.PreferenceManager
+import androidx.viewpager.widget.ViewPager
 import coil3.util.CoilUtils
 import com.evernote.android.state.State
 import com.google.android.exoplayer2.PlaybackException
@@ -641,6 +642,25 @@ class VideoDetailFragment :
             }
         }
 
+        // Lock the AppBar (player + criteria header) from collapsing while the
+        // compare tab is selected. The compare tab's content is short, so a
+        // collapsing AppBar would otherwise expose a large empty area below it
+        // (the ViewPager always sizes its page child to the full coordinator
+        // height). Restore normal scroll behavior on every other tab.
+        binding.viewPager.addOnPageChangeListener(object : ViewPager.OnPageChangeListener {
+            override fun onPageScrolled(
+                position: Int,
+                positionOffset: Float,
+                positionOffsetPixels: Int
+            ) = Unit
+
+            override fun onPageSelected(position: Int) {
+                applyAppBarLockForTab(position)
+            }
+
+            override fun onPageScrollStateChanged(state: Int) = Unit
+        })
+
         setupBottomPlayer()
         if (!PlayerHolder.isBound) {
             setHeightThumbnail()
@@ -854,6 +874,10 @@ class VideoDetailFragment :
             }
         }
 
+        pageAdapter.addFragment(TournesolFragment(), TOURNESOL_TAB_TAG)
+        tabIcons.add(R.drawable.ic_stars)
+        tabContentDescriptions.add(R.string.tournesol_tab_description)
+
         if (showDescription) {
             // temp empty fragment. will be updated in handleResult
             pageAdapter.addFragment(EmptyFragment.newInstance(false), DESCRIPTION_TAB_TAG)
@@ -875,6 +899,92 @@ class VideoDetailFragment :
         }
         // the page adapter now contains tabs: show the tab layout
         updateTabLayoutVisibility()
+        // OnPageChangeListener does not fire when the current item is unchanged,
+        // so make sure the lock state matches the now-current tab.
+        applyAppBarLockForTab(binding.viewPager.currentItem)
+    }
+
+    private var compareContentHeightPx = 0
+
+    /**
+     * Called by [CompareFragment] when the Compose content has been measured.
+     * Triggers a recalculation of the AppBar collapse limits so the player
+     * can collapse with parallax only as far as the content needs.
+     */
+    fun onCompareContentMeasured(contentHeightPx: Int) {
+        compareContentHeightPx = contentHeightPx
+        if (nullableBinding == null || !::pageAdapter.isInitialized) return
+        val pos = binding.viewPager.currentItem
+        if (pos in 0 until pageAdapter.count &&
+            pageAdapter.getItemTitle(pos) == COMPARE_TAB_TAG
+        ) {
+            applyCompareAppBarLimits()
+        }
+    }
+
+    /**
+     * Adjust the AppBar's collapse range when the compare tab is active.
+     * The allowed collapse equals the content overflow (content height minus
+     * the visible area when the AppBar is fully expanded). Each AppBar child
+     * is given [AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED]
+     * with a `minHeight` that limits how far it can collapse, consuming the
+     * overflow budget in order. If there is no overflow the child is pinned.
+     */
+    private fun applyCompareAppBarLimits() {
+        val appBar = binding.appBarLayout
+        val coordinator = binding.detailMainContent
+        val visibleHeight = coordinator.height - appBar.height
+        if (visibleHeight <= 0) return
+
+        var remainingOverflow = max(0, compareContentHeightPx - visibleHeight)
+        for (i in 0 until appBar.childCount) {
+            val child = appBar.getChildAt(i)
+            val lp = child.layoutParams as? AppBarLayout.LayoutParams ?: continue
+            val childHeight = child.height
+            if (remainingOverflow <= 0 || childHeight <= 0) {
+                lp.scrollFlags = 0
+                child.minimumHeight = 0
+            } else {
+                val collapse = min(remainingOverflow, childHeight)
+                lp.scrollFlags = AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or
+                    AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
+                child.minimumHeight = childHeight - collapse
+                remainingOverflow -= collapse
+            }
+            child.layoutParams = lp
+        }
+    }
+
+    /**
+     * Restore standard scroll flags on all AppBar children (used when
+     * leaving the compare tab).
+     */
+    private fun restoreAppBarScrollFlags() {
+        for (i in 0 until binding.appBarLayout.childCount) {
+            val child = binding.appBarLayout.getChildAt(i)
+            val lp = child.layoutParams as? AppBarLayout.LayoutParams ?: continue
+            lp.scrollFlags = AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL
+            child.minimumHeight = 0
+            child.layoutParams = lp
+        }
+    }
+
+    /**
+     * Toggle AppBar behaviour when switching tabs. On the compare tab the
+     * collapse range is limited to the content overflow so no empty space
+     * appears below the short Compose content. On every other tab the
+     * normal fully-collapsible behaviour is restored.
+     */
+    private fun applyAppBarLockForTab(position: Int) {
+        if (nullableBinding == null || !::pageAdapter.isInitialized) return
+        if (position < 0 || position >= pageAdapter.count) return
+        val tag = pageAdapter.getItemTitle(position)
+        if (tag == COMPARE_TAB_TAG) {
+            binding.appBarLayout.setExpanded(true, true)
+            applyCompareAppBarLimits()
+        } else {
+            restoreAppBarScrollFlags()
+        }
     }
 
     /**
@@ -2409,6 +2519,7 @@ class VideoDetailFragment :
         private const val COMMENTS_TAB_TAG = "COMMENTS"
         private const val RELATED_TAB_TAG = "NEXT VIDEO"
         private const val COMPARE_TAB_TAG = "COMPARE"
+        private const val TOURNESOL_TAB_TAG = "TOURNESOL TAB"
         private const val DESCRIPTION_TAB_TAG = "DESCRIPTION TAB"
         private const val EMPTY_TAB_TAG = "EMPTY TAB"
 
