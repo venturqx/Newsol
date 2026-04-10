@@ -133,6 +133,7 @@ internal fun CompareCompactScreen(
     onRandomizeRight: () -> Unit = {},
     showGreeting: Boolean = true,
     reserveMiniPlayerSpace: Boolean = true,
+    externalScroll: Boolean = false,
     onContentMeasured: ((Int) -> Unit)? = null
 ) {
     val dimensions = remember { COMPACT_DIMENSIONS }
@@ -504,7 +505,7 @@ internal fun CompareCompactScreen(
     val compactNestedScrollInterop = rememberNestedScrollInteropConnection()
     BoxWithConstraints(
         modifier = Modifier
-            .fillMaxSize()
+            .then(if (externalScroll) Modifier.fillMaxWidth().wrapContentHeight() else Modifier.fillMaxSize())
             .then(
                 if (reserveMiniPlayerSpace) Modifier.navigationBarsPadding() else Modifier
             )
@@ -513,7 +514,7 @@ internal fun CompareCompactScreen(
         CompositionLocalProvider(LocalCompareScale provides scale) {
             Box(
                 modifier = Modifier
-                    .then(if (embedInDetail) Modifier.fillMaxWidth() else Modifier.fillMaxSize())
+                    .then(if (embedInDetail || externalScroll) Modifier.fillMaxWidth() else Modifier.fillMaxSize())
                     .padding(
                         start = 16.dp * scale,
                         end = 16.dp * scale,
@@ -522,14 +523,20 @@ internal fun CompareCompactScreen(
             ) {
                 Column(
                     modifier = Modifier
-                        .then(if (embedInDetail) Modifier.fillMaxWidth() else Modifier.fillMaxSize())
+                        .then(if (embedInDetail || externalScroll) Modifier.fillMaxWidth() else Modifier.fillMaxSize())
                         .zIndex(1f)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .then(
-                                if (embedInDetail) {
+                                if (externalScroll) {
+                                    Modifier
+                                        .nestedScroll(compactNestedScrollInterop)
+                                        .onGloballyPositioned { coords ->
+                                            onContentMeasured?.invoke(coords.size.height)
+                                        }
+                                } else if (embedInDetail) {
                                     Modifier
                                         .nestedScroll(compactNestedScrollInterop)
                                         .verticalScroll(rememberScrollState())

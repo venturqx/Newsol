@@ -42,6 +42,7 @@ class CompareFragment : Fragment() {
     private var currentInfo: StreamInfo? = null
     private var useCompactUi = false
     private var embedInDetail = false
+    private var externalScroll = false
     private val disposables = CompositeDisposable()
 
     private var currentHistoryEntry: StreamHistoryEntry? = null
@@ -90,6 +91,7 @@ class CompareFragment : Fragment() {
         currentInfo = arguments?.serializable<StreamInfo>(KEY_INFO)
         useCompactUi = arguments?.getBoolean(KEY_COMPACT_UI) == true
         embedInDetail = arguments?.getBoolean(KEY_EMBED_IN_DETAIL) == true
+        externalScroll = arguments?.getBoolean(KEY_EXTERNAL_SCROLL) == true
         currentHistoryEntry = currentInfo?.let { buildCurrentEntry(it) }
         loadSubmittedComparisons()
         loadStoredScores()
@@ -130,9 +132,9 @@ class CompareFragment : Fragment() {
         return ComposeView(requireContext()).apply {
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
+                if (externalScroll) ViewGroup.LayoutParams.WRAP_CONTENT else ViewGroup.LayoutParams.MATCH_PARENT
             )
-            ViewCompat.setNestedScrollingEnabled(this, embedInDetail)
+            ViewCompat.setNestedScrollingEnabled(this, embedInDetail || externalScroll)
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 AppTheme {
@@ -193,6 +195,7 @@ class CompareFragment : Fragment() {
                             onRandomizeRight = { randomizeRight() },
                             showGreeting = currentInfo == null,
                             reserveMiniPlayerSpace = !embedInDetail,
+                            externalScroll = externalScroll,
                             onContentMeasured = if (embedInDetail) {
                                 { heightPx ->
                                     (parentFragment as? VideoDetailFragment)
@@ -1259,6 +1262,7 @@ class CompareFragment : Fragment() {
         private const val PREF_COMPARISON_SCORES = "compare_submitted_scores_v1"
         private const val KEY_COMPACT_UI = "compare_compact_ui"
         private const val KEY_EMBED_IN_DETAIL = "compare_embed_in_detail"
+        private const val KEY_EXTERNAL_SCROLL = "compare_external_scroll"
         private const val COMPARISONS_USERNAME = "me"
         private const val COMPARISONS_LIMIT = 20
 
@@ -1267,13 +1271,15 @@ class CompareFragment : Fragment() {
         fun getInstance(
             info: StreamInfo?,
             useCompactUi: Boolean = false,
-            embedInDetail: Boolean = false
+            embedInDetail: Boolean = false,
+            externalScroll: Boolean = false
         ): CompareFragment {
             return CompareFragment().apply {
                 arguments = bundleOf(
                     KEY_INFO to info,
                     KEY_COMPACT_UI to useCompactUi,
-                    KEY_EMBED_IN_DETAIL to embedInDetail
+                    KEY_EMBED_IN_DETAIL to embedInDetail,
+                    KEY_EXTERNAL_SCROLL to externalScroll
                 )
             }
         }

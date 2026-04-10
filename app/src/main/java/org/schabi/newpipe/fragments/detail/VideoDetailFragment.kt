@@ -1037,6 +1037,8 @@ class VideoDetailFragment :
             }
         }
 
+        pageAdapter.updateItem(TOURNESOL_TAB_TAG, TournesolFragment.getInstance(info))
+
         if (showDescription) {
             pageAdapter.updateItem(DESCRIPTION_TAB_TAG, DescriptionFragment(info))
         }
