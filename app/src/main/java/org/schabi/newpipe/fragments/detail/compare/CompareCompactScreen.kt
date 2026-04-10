@@ -909,6 +909,27 @@ internal fun CompareCompactScreen(
                             Surface(
                                 modifier = Modifier
                                     .size(36.dp)
+                                    .clickable {
+                                        pickerPhase.intValue =
+                                            if (pickerPhase.intValue == 1) 2 else 1
+                                    },
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFFFD54F).copy(alpha = 0.15f)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = if (pickerPhase.intValue == 1) "9" else "1",
+                                        style = chipTextStyle.copy(
+                                            color = Color(0xFFFFD54F),
+                                            fontSize = 16.sp
+                                        )
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                modifier = Modifier
+                                    .size(36.dp)
                                     .clickable(enabled = diceEnabled) { onRandomizeLeft() },
                                 shape = RoundedCornerShape(8.dp),
                                 color = Color(0xFF42A5F5).copy(alpha = 0.15f)
