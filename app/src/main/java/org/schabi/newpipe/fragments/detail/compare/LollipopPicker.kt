@@ -11,6 +11,7 @@ import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -518,7 +519,8 @@ private fun DrawScope.drawLollipopHead(
     iconSize: Float,
     textSizePx: Float,
     textGap: Float,
-    labelPaint: AndroidPaint
+    labelPaint: AndroidPaint,
+    scale: Float = 1f
 ) {
     val cx = center.x
     val cy = center.y
@@ -527,9 +529,9 @@ private fun DrawScope.drawLollipopHead(
     if (selected) {
         drawCircle(
             color = color.copy(alpha = 160f / 255f),
-            radius = circleRadius + 3.dp.toPx(),
+            radius = circleRadius + (3.dp * scale).toPx(),
             center = Offset(cx, cy),
-            style = Stroke(width = 4.dp.toPx())
+            style = Stroke(width = (4.dp * scale).toPx())
         )
     }
     drawCircle(
@@ -555,7 +557,7 @@ private fun DrawScope.drawLollipopHead(
         }
 
         "backfire_risk" -> {
-            iconOffsetY = 1.dp.toPx()
+            iconOffsetY = (1.dp * scale).toPx()
         }
     }
     translate(left = cx - halfW, top = cy - halfH + iconOffsetY) {
@@ -582,14 +584,15 @@ private fun LollipopHead(
     dimensionId: String,
     selected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    scale: Float = 1f
 ) {
     val density = LocalDensity.current
-    val circleRadius = with(density) { 14.dp.toPx() }
-    val strokeWidth = with(density) { 3.5.dp.toPx() }
-    val iconSize = with(density) { 18.dp.toPx() }
-    val textSizePx = with(density) { 10.dp.toPx() }
-    val textGap = with(density) { 6.dp.toPx() }
+    val circleRadius = with(density) { (14.dp * scale).toPx() }
+    val strokeWidth = with(density) { (3.5.dp * scale).toPx() }
+    val iconSize = with(density) { (18.dp * scale).toPx() }
+    val textSizePx = with(density) { (10.dp * scale).toPx() }
+    val textGap = with(density) { (6.dp * scale).toPx() }
     val labelPaint = remember {
         AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
             textAlign = AndroidPaint.Align.CENTER
@@ -600,7 +603,7 @@ private fun LollipopHead(
     val interactionSource = remember { MutableInteractionSource() }
     Canvas(
         modifier = modifier
-            .size(width = 36.dp, height = 54.dp)
+            .size(width = 36.dp * scale, height = 54.dp * scale)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -619,7 +622,8 @@ private fun LollipopHead(
             iconSize = iconSize,
             textSizePx = textSizePx,
             textGap = textGap,
-            labelPaint = labelPaint
+            labelPaint = labelPaint,
+            scale = scale
         )
     }
 }
@@ -644,26 +648,34 @@ private fun LollipopHeadsRow(
     val rowDimensions = remember(mainCriterion) { listOf(mainCriterion) + EXTRA_CRITERIA }
     val mainDescIndex = EXTRA_CRITERIA.size
     val painters = rowDimensions.map { painterResource(it.iconRes) }
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        rowDimensions.forEachIndexed { rowIdx, dim ->
-            val descIdx = if (rowIdx == 0) mainDescIndex else rowIdx - 1
-            val score = if (dim.id == COMPACT_MAIN_CRITERION_ID) {
-                mainScore
-            } else {
-                scores[dim.id] ?: 0
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        // Each head is 36.dp wide by design. If the screen can't fit that many
+        // heads side-by-side, scale them down so they all fit on one line.
+        val count = rowDimensions.size
+        val slotWidth = maxWidth / count
+        val scale = (slotWidth / 36.dp).coerceAtMost(1f)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            rowDimensions.forEachIndexed { rowIdx, dim ->
+                val descIdx = if (rowIdx == 0) mainDescIndex else rowIdx - 1
+                val score = if (dim.id == COMPACT_MAIN_CRITERION_ID) {
+                    mainScore
+                } else {
+                    scores[dim.id] ?: 0
+                }
+                LollipopHead(
+                    painter = painters[rowIdx],
+                    color = LOLLIPOP_COLORS[dim.id] ?: Color.White,
+                    score = score,
+                    dimensionId = dim.id,
+                    selected = activeIndex.intValue == descIdx,
+                    onClick = { activeIndex.intValue = descIdx },
+                    scale = scale
+                )
             }
-            LollipopHead(
-                painter = painters[rowIdx],
-                color = LOLLIPOP_COLORS[dim.id] ?: Color.White,
-                score = score,
-                dimensionId = dim.id,
-                selected = activeIndex.intValue == descIdx,
-                onClick = { activeIndex.intValue = descIdx }
-            )
         }
     }
 }
