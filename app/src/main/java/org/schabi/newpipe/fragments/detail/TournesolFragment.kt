@@ -10,6 +10,7 @@ import org.schabi.newpipe.R
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import org.schabi.newpipe.ktx.serializable
 import org.schabi.newpipe.util.KEY_INFO
+import org.schabi.newpipe.views.TournesolScoreCard
 
 class TournesolFragment : Fragment() {
 
@@ -30,6 +31,8 @@ class TournesolFragment : Fragment() {
                 .replace(R.id.compare_container, compareFragment, TAG_COMPARE)
                 .commitAllowingStateLoss()
         }
+        val scoreCard = view.findViewById<TournesolScoreCard>(R.id.tournesol_score_card)
+        scoreCard.bind(info, parentFragment as? VideoDetailFragment)
     }
 
     companion object {

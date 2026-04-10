@@ -121,8 +121,8 @@ private fun GoalRing(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-            fontSize = 12.sp * scale,
-            lineHeight = 15.sp * scale,
+            fontSize = 13.sp * scale,
+            lineHeight = 16.sp * scale,
             textAlign = TextAlign.Center,
             minLines = 2,
             maxLines = 2

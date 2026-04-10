@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Tournesol info section (shown when data is available) -->
+    <LinearLayout
+        android:id="@+id/tournesol_info_section"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_tournesol_section"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="12dp"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <org.schabi.newpipe.views.NewPipeTextView
+            android:id="@+id/tournesol_section_header"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="SCORES"
+            android:textAllCaps="true"
+            android:textColor="#DBB222"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/tournesol_logo"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/logo_small" />
+
+            <org.schabi.newpipe.views.NewPipeTextView
+                android:id="@+id/tournesol_unsafe_emoji"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🌱"
+                android:textSize="18sp"
+                android:visibility="gone" />
+
+            <org.schabi.newpipe.views.NewPipeTextView
+                android:id="@+id/tournesol_score_value"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:textColor="#FFCA1D"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                tools:text="56.7" />
+
+            <LinearLayout
+                android:id="@+id/tournesol_distribution_container"
+                android:layout_width="56dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:gravity="end"
+                android:orientation="vertical">
+
+                <org.schabi.newpipe.views.NewPipeTextView
+                    android:id="@+id/tournesol_contributors"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/video_item_detail_description_text_size"
+                    tools:text="30 contributors" />
+
+                <org.schabi.newpipe.views.NewPipeTextView
+                    android:id="@+id/tournesol_comparisons"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/video_item_detail_description_text_size"
+                    tools:text="113 comparisons" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <org.schabi.newpipe.views.NewPipeTextView
+            android:id="@+id/tournesol_unsafe_warning"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="@dimen/video_item_detail_description_text_size"
+            android:visibility="gone"
+            tools:text="⚠ Flagged as unsafe" />
+
+    </LinearLayout>
+
+    <!-- Tournesol criteria section (lollipop chart) -->
+    <LinearLayout
+        android:id="@+id/tournesol_criteria_section"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_tournesol_section"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="12dp"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <org.schabi.newpipe.views.NewPipeTextView
+            android:id="@+id/tournesol_criteria_header"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:text="CRITERIA"
+            android:textAllCaps="true"
+            android:textColor="#DBB222"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <FrameLayout
+            android:id="@+id/tournesol_lollipop_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+</merge>
