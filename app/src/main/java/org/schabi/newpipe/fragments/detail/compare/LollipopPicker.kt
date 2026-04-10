@@ -8,6 +8,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
 import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,6 +28,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -42,10 +44,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
@@ -439,33 +438,61 @@ private fun LargelyRecommendedSlider(
                 labelPaint
             )
         }
-        val blueSpan = SpanStyle(color = blue)
-        val redSpan = SpanStyle(color = red)
         val qualifier = when {
             mainScore >= 70 -> "much more"
             mainScore >= 16 -> "slightly more"
-            mainScore >= -15 -> "equally"
+            mainScore >= -15 -> "as much"
             mainScore >= -69 -> "slightly less"
             else -> "much less"
         }
-        val connector = if (mainScore in -15..15) "as" else "over"
-        val descriptionText = buildAnnotatedString {
-            withStyle(blueSpan) { append("Video A") }
-            append(" should be ")
-            append(qualifier)
-            append(" recommended ")
-            append(connector)
-            append(" ")
-            withStyle(redSpan) { append("Video B") }
+        val leftArrow = when {
+            mainScore <= -70 -> "<<"
+            mainScore <= -16 -> "<"
+            else -> ""
+        }
+        val rightArrow = when {
+            mainScore >= 70 -> ">>"
+            mainScore >= 16 -> ">"
+            else -> ""
         }
         Text(
-            text = descriptionText,
+            text = "Should be recommended..?",
+            color = Color.White.copy(alpha = 0.75f),
             fontSize = 13.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 6.dp)
+                .padding(horizontal = 16.dp)
+                .padding(top = 6.dp)
         )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp)
+                .padding(bottom = 6.dp)
+        ) {
+            Text(
+                text = leftArrow,
+                color = Color.White.copy(alpha = 0.9f),
+                fontSize = 13.sp,
+                modifier = Modifier.align(Alignment.CenterStart)
+            )
+            Text(
+                text = "$qualifier recommended",
+                color = Color.White.copy(alpha = 0.9f),
+                fontSize = 13.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.Center)
+            )
+            Text(
+                text = rightArrow,
+                color = Color.White.copy(alpha = 0.9f),
+                fontSize = 13.sp,
+                modifier = Modifier.align(Alignment.CenterEnd)
+            )
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
