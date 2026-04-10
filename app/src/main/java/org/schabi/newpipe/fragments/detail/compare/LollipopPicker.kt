@@ -3,10 +3,12 @@ package org.schabi.newpipe.fragments.detail.compare
 import android.graphics.Paint as AndroidPaint
 import android.graphics.Typeface
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
 import androidx.compose.foundation.gestures.drag
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
@@ -36,10 +39,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -215,61 +220,20 @@ internal fun LollipopPicker(
                     cap = StrokeCap.Butt
                 )
 
-                // Selected outer ring (drawn first so head circle overdraws inner half,
-                // leaving a halo flush with the border outer edge)
-                if (i == activeIndex.intValue) {
-                    drawCircle(
-                        color = color.copy(alpha = 160f / 255f),
-                        radius = circleRadius + with(density) { 3.dp.toPx() },
-                        center = Offset(cx, cy),
-                        style = Stroke(width = with(density) { 4.dp.toPx() })
-                    )
-                }
-                // Background fill of circle
-                drawCircle(
-                    color = Color(0xFF0F0F0F),
-                    radius = circleRadius,
-                    center = Offset(cx, cy)
-                )
-                // Stroke
-                drawCircle(
-                    color = color,
-                    radius = circleRadius,
+                drawLollipopHead(
                     center = Offset(cx, cy),
-                    style = Stroke(width = strokeWidth)
+                    color = color,
+                    score = score,
+                    painter = painters[i],
+                    dimensionId = dimensions[i].id,
+                    selected = i == activeIndex.intValue,
+                    circleRadius = circleRadius,
+                    strokeWidth = strokeWidth,
+                    iconSize = iconSize,
+                    textSizePx = textSizePx,
+                    textGap = textGap,
+                    labelPaint = labelPaint
                 )
-
-                // Icon (inset by half the stroke so it sits inside the border)
-                val painter = painters[i]
-                val strokeInset = strokeWidth / 2f
-                var halfW = iconSize / 2f - strokeInset
-                var halfH = iconSize / 2f - strokeInset
-                var iconOffsetY = 0f
-                when (dimensions[i].id) {
-                    "layman_friendly" -> {
-                        halfW *= 0.88f
-                        halfH *= 0.88f
-                    }
-
-                    "backfire_risk" -> {
-                        iconOffsetY = with(density) { 1.dp.toPx() }
-                    }
-                }
-                translate(left = cx - halfW, top = cy - halfH + iconOffsetY) {
-                    with(painter) {
-                        draw(size = Size(halfW * 2f, halfH * 2f))
-                    }
-                }
-
-                // Score label
-                labelPaint.color = color.toArgb()
-                val txt = score.toString()
-                val labelY = if (score >= 0) {
-                    cy - circleRadius - textGap
-                } else {
-                    cy + circleRadius + textSizePx + textGap * 0.3f
-                }
-                drawContext.canvas.nativeCanvas.drawText(txt, cx, labelY, labelPaint)
             }
         }
         if (showDescription) {
@@ -289,16 +253,26 @@ internal fun LollipopPickerWithIntro(
     hoistedActiveIndex: MutableIntState? = null,
     hoistedDragScore: MutableState<Int?>? = null,
     hoistedPhase: MutableIntState? = null,
-    showDescription: Boolean = true
+    showDescription: Boolean = true,
+    onSubmit1Request: ((Int, () -> Unit) -> Unit)? = null
 ) {
     val phase = hoistedPhase ?: remember { mutableIntStateOf(1) }
     LaunchedEffect(pairKey) { phase.intValue = 1 }
 
+    val phase1ActiveIndex = hoistedActiveIndex ?: remember { mutableIntStateOf(-1) }
     if (phase.intValue == 1) {
         LargelyRecommendedSlider(
             mainScore = mainScore,
             onMainScoreChange = onMainScoreChange,
-            onSubmit1 = { phase.intValue = 2 },
+            scores = scores,
+            activeIndex = phase1ActiveIndex,
+            onSubmit1 = {
+                if (onSubmit1Request != null) {
+                    onSubmit1Request(mainScore) { phase.intValue = 2 }
+                } else {
+                    phase.intValue = 2
+                }
+            },
             modifier = modifier
         )
     } else {
@@ -319,6 +293,8 @@ internal fun LollipopPickerWithIntro(
 private fun LargelyRecommendedSlider(
     mainScore: Int,
     onMainScoreChange: (Int) -> Unit,
+    scores: Map<String, Int>,
+    activeIndex: MutableIntState,
     onSubmit1: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -518,6 +494,175 @@ private fun LargelyRecommendedSlider(
                 colors = FilterChipDefaults.filterChipColors(),
                 shape = RoundedCornerShape(8.dp),
                 border = null
+            )
+        }
+        LollipopHeadsRow(
+            scores = scores,
+            mainScore = mainScore,
+            activeIndex = activeIndex,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+        LollipopDescriptionRow(activeIndex = activeIndex.intValue)
+    }
+}
+
+private fun DrawScope.drawLollipopHead(
+    center: Offset,
+    color: Color,
+    score: Int,
+    painter: Painter,
+    dimensionId: String,
+    selected: Boolean,
+    circleRadius: Float,
+    strokeWidth: Float,
+    iconSize: Float,
+    textSizePx: Float,
+    textGap: Float,
+    labelPaint: AndroidPaint
+) {
+    val cx = center.x
+    val cy = center.y
+    // Selected outer ring (drawn first so head circle overdraws inner half,
+    // leaving a halo flush with the border outer edge)
+    if (selected) {
+        drawCircle(
+            color = color.copy(alpha = 160f / 255f),
+            radius = circleRadius + 3.dp.toPx(),
+            center = Offset(cx, cy),
+            style = Stroke(width = 4.dp.toPx())
+        )
+    }
+    drawCircle(
+        color = Color(0xFF0F0F0F),
+        radius = circleRadius,
+        center = Offset(cx, cy)
+    )
+    drawCircle(
+        color = color,
+        radius = circleRadius,
+        center = Offset(cx, cy),
+        style = Stroke(width = strokeWidth)
+    )
+
+    val strokeInset = strokeWidth / 2f
+    var halfW = iconSize / 2f - strokeInset
+    var halfH = iconSize / 2f - strokeInset
+    var iconOffsetY = 0f
+    when (dimensionId) {
+        "layman_friendly" -> {
+            halfW *= 0.88f
+            halfH *= 0.88f
+        }
+
+        "backfire_risk" -> {
+            iconOffsetY = 1.dp.toPx()
+        }
+    }
+    translate(left = cx - halfW, top = cy - halfH + iconOffsetY) {
+        with(painter) {
+            draw(size = Size(halfW * 2f, halfH * 2f))
+        }
+    }
+
+    labelPaint.color = color.toArgb()
+    val txt = score.toString()
+    val labelY = if (score >= 0) {
+        cy - circleRadius - textGap
+    } else {
+        cy + circleRadius + textSizePx + textGap * 0.3f
+    }
+    drawContext.canvas.nativeCanvas.drawText(txt, cx, labelY, labelPaint)
+}
+
+@Composable
+private fun LollipopHead(
+    painter: Painter,
+    color: Color,
+    score: Int,
+    dimensionId: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current
+    val circleRadius = with(density) { 14.dp.toPx() }
+    val strokeWidth = with(density) { 3.5.dp.toPx() }
+    val iconSize = with(density) { 18.dp.toPx() }
+    val textSizePx = with(density) { 10.dp.toPx() }
+    val textGap = with(density) { 6.dp.toPx() }
+    val labelPaint = remember {
+        AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
+            textAlign = AndroidPaint.Align.CENTER
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        }
+    }
+    labelPaint.textSize = textSizePx
+    val interactionSource = remember { MutableInteractionSource() }
+    Canvas(
+        modifier = modifier
+            .size(width = 36.dp, height = 54.dp)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+    ) {
+        drawLollipopHead(
+            center = Offset(size.width / 2f, size.height / 2f),
+            color = color,
+            score = score,
+            painter = painter,
+            dimensionId = dimensionId,
+            selected = selected,
+            circleRadius = circleRadius,
+            strokeWidth = strokeWidth,
+            iconSize = iconSize,
+            textSizePx = textSizePx,
+            textGap = textGap,
+            labelPaint = labelPaint
+        )
+    }
+}
+
+@Composable
+private fun LollipopHeadsRow(
+    scores: Map<String, Int>,
+    mainScore: Int,
+    activeIndex: MutableIntState,
+    modifier: Modifier = Modifier
+) {
+    val mainCriterion = remember {
+        CompareCriterion(
+            id = COMPACT_MAIN_CRITERION_ID,
+            labelRes = R.string.compare_criteria_largely_recommended,
+            iconRes = R.drawable.logo_small
+        )
+    }
+    // Row order: largely_recommended first, then the 10 extra criteria.
+    // LollipopDescriptionRow indexes into (EXTRA_CRITERIA + main), so the
+    // main head at row position 0 maps to description index EXTRA_CRITERIA.size.
+    val rowDimensions = remember(mainCriterion) { listOf(mainCriterion) + EXTRA_CRITERIA }
+    val mainDescIndex = EXTRA_CRITERIA.size
+    val painters = rowDimensions.map { painterResource(it.iconRes) }
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        rowDimensions.forEachIndexed { rowIdx, dim ->
+            val descIdx = if (rowIdx == 0) mainDescIndex else rowIdx - 1
+            val score = if (dim.id == COMPACT_MAIN_CRITERION_ID) {
+                mainScore
+            } else {
+                scores[dim.id] ?: 0
+            }
+            LollipopHead(
+                painter = painters[rowIdx],
+                color = LOLLIPOP_COLORS[dim.id] ?: Color.White,
+                score = score,
+                dimensionId = dim.id,
+                selected = activeIndex.intValue == descIdx,
+                onClick = { activeIndex.intValue = descIdx }
             )
         }
     }
