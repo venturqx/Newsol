@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -329,18 +330,8 @@ private fun LargelyRecommendedSlider(
     val thumbHeightPx = with(density) { 22.dp.toPx() }
     val fillThumbGapPx = with(density) { 5.dp.toPx() }
     val sidePaddingPx = with(density) { 28.dp.toPx() }
-    val bigLabelSizePx = with(density) { 13.dp.toPx() }
-    val bigLabelGapPx = with(density) { 10.dp.toPx() }
-    val canvasHeight = 80.dp
+    val canvasHeight = 48.dp
     val currentOnChange by rememberUpdatedState(onMainScoreChange)
-    val labelPaint = remember {
-        AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
-            textAlign = AndroidPaint.Align.CENTER
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            letterSpacing = -0.02f
-        }
-    }
-    labelPaint.textSize = bigLabelSizePx
 
     Column(modifier = modifier.fillMaxWidth()) {
         Canvas(
@@ -372,8 +363,7 @@ private fun LargelyRecommendedSlider(
             val left = sidePaddingPx
             val right = w - sidePaddingPx
             val centerX = (left + right) / 2f
-            // Push the track down a bit so the big number has breathing room above.
-            val cy = h / 2f + with(density) { 10.dp.toPx() }
+            val cy = h / 2f
             val trackTop = cy - trackHeightPx / 2f
             val trackRadius = CornerRadius(trackHeightPx / 2f, trackHeightPx / 2f)
 
@@ -423,20 +413,6 @@ private fun LargelyRecommendedSlider(
                 size = Size(thumbWidthPx, thumbHeightPx),
                 cornerRadius = CornerRadius(thumbWidthPx / 2f, thumbWidthPx / 2f)
             )
-
-            // Big floating score number, color follows the sign
-            val labelColor = when {
-                mainScore < 0 -> blue
-                mainScore > 0 -> red
-                else -> neutralLabel
-            }
-            labelPaint.color = labelColor.toArgb()
-            drawContext.canvas.nativeCanvas.drawText(
-                mainScore.toString(),
-                centerX,
-                trackTop - bigLabelGapPx,
-                labelPaint
-            )
         }
         val qualifier = when {
             mainScore >= 70 -> "much more"
@@ -455,16 +431,34 @@ private fun LargelyRecommendedSlider(
             mainScore >= 16 -> ">"
             else -> ""
         }
-        Text(
-            text = "Should be recommended..?",
-            color = Color.White.copy(alpha = 0.75f),
-            fontSize = 13.sp,
-            textAlign = TextAlign.Center,
+        val scoreColor = when {
+            mainScore < 0 -> blue
+            mainScore > 0 -> red
+            else -> neutralLabel
+        }
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
-                .padding(top = 6.dp)
-        )
+                .padding(top = 6.dp),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "Should be recommended..?",
+                color = Color.White.copy(alpha = 0.75f),
+                fontSize = 13.sp
+            )
+            Box(modifier = Modifier.width(36.dp)) {
+                Text(
+                    text = mainScore.toString(),
+                    color = scoreColor,
+                    fontSize = 13.sp,
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .padding(start = 6.dp)
+                )
+            }
+        }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -473,7 +467,7 @@ private fun LargelyRecommendedSlider(
         ) {
             Text(
                 text = leftArrow,
-                color = Color.White.copy(alpha = 0.9f),
+                color = blue,
                 fontSize = 13.sp,
                 modifier = Modifier.align(Alignment.CenterStart)
             )
@@ -488,7 +482,7 @@ private fun LargelyRecommendedSlider(
             )
             Text(
                 text = rightArrow,
-                color = Color.White.copy(alpha = 0.9f),
+                color = red,
                 fontSize = 13.sp,
                 modifier = Modifier.align(Alignment.CenterEnd)
             )
