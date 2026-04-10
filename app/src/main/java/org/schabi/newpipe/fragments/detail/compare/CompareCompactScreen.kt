@@ -121,7 +121,7 @@ internal fun CompareCompactScreen(
     onScoreChange: (Int) -> Unit,
     onExtraScoreChange: (String, Int) -> Unit,
     onSubmitSelected: (Set<String>) -> Unit,
-    onSubmitMainOnly: (Int, () -> Unit) -> Unit,
+    onSubmitCriterion: (String, Int, () -> Unit) -> Unit,
     onUpdateSelected: (Set<String>) -> Unit,
     onPairSelectionChange: (ComparePairSelection?) -> Unit,
     onDismissRecommendations: () -> Unit,
@@ -885,7 +885,7 @@ internal fun CompareCompactScreen(
                                     hoistedDragScore = pickerDragScore,
                                     hoistedPhase = pickerPhase,
                                     showDescription = !embedInDetail,
-                                    onSubmit1Request = onSubmitMainOnly
+                                    onSubmit1Request = onSubmitCriterion
                                 )
                             }
                         }

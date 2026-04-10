@@ -179,8 +179,12 @@ class CompareFragment : Fragment() {
                             onScoreChange = { score = it },
                             onExtraScoreChange = onExtraScoreChange,
                             onSubmitSelected = { selected -> sendCompactSubmit(selected) },
-                            onSubmitMainOnly = { mainScore, onSuccess ->
-                                sendCompactMainComparison(mainScore, onSuccess)
+                            onSubmitCriterion = { criterionId, value, onSuccess ->
+                                if (criterionId == COMPACT_MAIN_CRITERION_ID) {
+                                    sendCompactMainComparison(value, onSuccess)
+                                } else {
+                                    sendCompactSingleCriterion(criterionId, value, onSuccess)
+                                }
                             },
                             onUpdateSelected = { selected -> sendCompactUpdate(selected) },
                             onPairSelectionChange = { selection ->
@@ -660,6 +664,82 @@ class CompareFragment : Fragment() {
                         storeSubmittedScores(key, mainScore = score)
                         TournesolAuthManager.incrementComparisonCount(requireContext())
                         refreshUserInfo()
+                        Toast.makeText(
+                            requireContext(),
+                            getString(messageRes),
+                            Toast.LENGTH_LONG
+                        ).show()
+                        onSuccess()
+                    },
+                    { throwable ->
+                        submitInProgress = false
+                        if (throwable is MissingTokenException) {
+                            Toast.makeText(
+                                requireContext(),
+                                getString(R.string.compare_login_required),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            showLoginDialog()
+                            return@subscribe
+                        }
+                        val message = throwable.message
+                        val errorText = if (message.isNullOrBlank()) {
+                            getString(R.string.compare_failed)
+                        } else {
+                            getString(R.string.compare_failed_with_message, message)
+                        }
+                        Toast.makeText(requireContext(), errorText, Toast.LENGTH_LONG).show()
+                    }
+                )
+        )
+    }
+
+    private fun sendCompactSingleCriterion(
+        criterionId: String,
+        value: Int,
+        onSuccess: () -> Unit
+    ) {
+        if (submitInProgress) {
+            return
+        }
+        val key = resolveCompactCompareKey() ?: return
+        val criteriaScores = listOf(CriteriaScore(criterionId, value))
+
+        submitInProgress = true
+        disposables.add(
+            TournesolAuthManager.getValidAccessToken(requireContext())
+                .subscribeOn(Schedulers.io())
+                .switchIfEmpty(
+                    io.reactivex.rxjava3.core.Maybe.error(MissingTokenException())
+                )
+                .flatMapSingle { token ->
+                    CompareRepository.submitComparisonWithCriteria(
+                        token,
+                        key.lastUid,
+                        key.currentUid,
+                        criteriaScores
+                    ).flatMap { messageRes ->
+                        if (messageRes == R.string.compare_already_submitted) {
+                            CompareRepository.patchComparison(
+                                token,
+                                key.lastUid,
+                                key.currentUid,
+                                criteriaScores
+                            )
+                        } else {
+                            io.reactivex.rxjava3.core.Single.just(messageRes)
+                        }
+                    }
+                }
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                    { messageRes ->
+                        submitInProgress = false
+                        storeSubmittedScores(
+                            key,
+                            extraScores = (storedScores[key.toStorage()]?.extraScores.orEmpty()) +
+                                (criterionId to value)
+                        )
                         Toast.makeText(
                             requireContext(),
                             getString(messageRes),

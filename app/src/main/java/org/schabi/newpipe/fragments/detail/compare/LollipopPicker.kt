@@ -255,24 +255,24 @@ internal fun LollipopPickerWithIntro(
     hoistedDragScore: MutableState<Int?>? = null,
     hoistedPhase: MutableIntState? = null,
     showDescription: Boolean = true,
-    onSubmit1Request: ((Int, () -> Unit) -> Unit)? = null
+    onSubmit1Request: ((String, Int, () -> Unit) -> Unit)? = null
 ) {
     val phase = hoistedPhase ?: remember { mutableIntStateOf(1) }
-    LaunchedEffect(pairKey) { phase.intValue = 1 }
-
     val phase1ActiveIndex = hoistedActiveIndex ?: remember { mutableIntStateOf(-1) }
+    LaunchedEffect(pairKey) {
+        phase.intValue = 1
+        phase1ActiveIndex.intValue = EXTRA_CRITERIA.size
+    }
+
     if (phase.intValue == 1) {
         LargelyRecommendedSlider(
             mainScore = mainScore,
             onMainScoreChange = onMainScoreChange,
             scores = scores,
+            onScoreChange = onScoreChange,
             activeIndex = phase1ActiveIndex,
-            onSubmit1 = {
-                if (onSubmit1Request != null) {
-                    onSubmit1Request(mainScore) { phase.intValue = 2 }
-                } else {
-                    phase.intValue = 2
-                }
+            onSubmit1 = { criterionId, value ->
+                onSubmit1Request?.invoke(criterionId, value) { /* stay in phase 1 */ }
             },
             modifier = modifier
         )
@@ -295,8 +295,9 @@ private fun LargelyRecommendedSlider(
     mainScore: Int,
     onMainScoreChange: (Int) -> Unit,
     scores: Map<String, Int>,
+    onScoreChange: (String, Int) -> Unit,
     activeIndex: MutableIntState,
-    onSubmit1: () -> Unit,
+    onSubmit1: (String, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
@@ -312,28 +313,28 @@ private fun LargelyRecommendedSlider(
     val fillThumbGapPx = with(density) { 5.dp.toPx() }
     val sidePaddingPx = with(density) { 28.dp.toPx() }
     val canvasHeight = 32.dp
-    val currentOnChange by rememberUpdatedState(onMainScoreChange)
 
-    val qualifier = when {
-        mainScore >= 70 -> "much more"
-        mainScore >= 16 -> "slightly more"
-        mainScore >= -15 -> "just as"
-        mainScore >= -69 -> "slightly more"
-        else -> "much more"
+    val mainDescIndex = EXTRA_CRITERIA.size
+    val activeIdx = activeIndex.intValue
+    val selectedCriterionId = if (activeIdx < 0 || activeIdx == mainDescIndex) {
+        COMPACT_MAIN_CRITERION_ID
+    } else {
+        EXTRA_CRITERIA[activeIdx].id
     }
-    val leftArrow = when {
-        mainScore <= -70 -> "<<"
-        mainScore <= -16 -> "<"
-        else -> ""
+    val isMain = selectedCriterionId == COMPACT_MAIN_CRITERION_ID
+    val currentScore = if (isMain) mainScore else (scores[selectedCriterionId] ?: 0)
+
+    val currentOnMainChange by rememberUpdatedState(onMainScoreChange)
+    val currentOnExtraChange by rememberUpdatedState(onScoreChange)
+    val dispatchChange: (Int) -> Unit = { v ->
+        if (isMain) currentOnMainChange(v) else currentOnExtraChange(selectedCriterionId, v)
     }
-    val rightArrow = when {
-        mainScore >= 70 -> ">>"
-        mainScore >= 16 -> ">"
-        else -> ""
-    }
+
+    val title = criterionQuestion(selectedCriterionId)
+    val qLine = buildQualifierLine(selectedCriterionId, currentScore)
     val scoreColor = when {
-        mainScore < 0 -> blue
-        mainScore > 0 -> red
+        currentScore < 0 -> blue
+        currentScore > 0 -> red
         else -> neutralLabel
     }
 
@@ -345,13 +346,13 @@ private fun LargelyRecommendedSlider(
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Should be recommended..?",
+                text = title,
                 color = Color.White.copy(alpha = 0.75f),
                 fontSize = 13.sp
             )
             Box(modifier = Modifier.width(48.dp)) {
                 Text(
-                    text = mainScore.toString(),
+                    text = currentScore.toString(),
                     color = scoreColor,
                     fontSize = 13.sp,
                     maxLines = 1,
@@ -366,7 +367,7 @@ private fun LargelyRecommendedSlider(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(canvasHeight)
-                .pointerInput(Unit) {
+                .pointerInput(selectedCriterionId) {
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
                         hostView.parent?.requestDisallowInterceptTouchEvent(true)
@@ -378,9 +379,9 @@ private fun LargelyRecommendedSlider(
                                 .roundToInt()
                                 .coerceIn(SCORE_MIN, SCORE_MAX)
                         }
-                        currentOnChange(xToScore(down.position.x))
+                        dispatchChange(xToScore(down.position.x))
                         drag(down.id) { change ->
-                            currentOnChange(xToScore(change.position.x))
+                            dispatchChange(xToScore(change.position.x))
                             change.consume()
                         }
                     }
@@ -404,13 +405,13 @@ private fun LargelyRecommendedSlider(
             )
 
             // Fill from center toward thumb, stopping short to leave a gap
-            val ratio = (mainScore + 100) / 200f
+            val ratio = (currentScore + 100) / 200f
             val thumbX = left + ratio * (right - left)
-            if (mainScore != 0) {
-                val fillColor = if (mainScore < 0) blue else red
+            if (currentScore != 0) {
+                val fillColor = if (currentScore < 0) blue else red
                 val rawFillLeft: Float
                 val rawFillRight: Float
-                if (mainScore < 0) {
+                if (currentScore < 0) {
                     rawFillLeft = thumbX + fillThumbGapPx
                     rawFillRight = centerX
                 } else {
@@ -448,7 +449,7 @@ private fun LargelyRecommendedSlider(
                 .padding(horizontal = 32.dp)
         ) {
             Text(
-                text = leftArrow,
+                text = qLine.leftArrow,
                 color = blue,
                 fontSize = 13.sp,
                 modifier = Modifier.align(Alignment.CenterStart)
@@ -456,9 +457,9 @@ private fun LargelyRecommendedSlider(
             Text(
                 text = buildAnnotatedString {
                     withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                        append(qualifier)
+                        append(qLine.qualifier)
                     }
-                    append(" recommended")
+                    append(qLine.tail)
                 },
                 color = Color.White.copy(alpha = 0.9f),
                 fontSize = 13.sp,
@@ -468,7 +469,7 @@ private fun LargelyRecommendedSlider(
                     .align(Alignment.Center)
             )
             Text(
-                text = rightArrow,
+                text = qLine.rightArrow,
                 color = red,
                 fontSize = 13.sp,
                 modifier = Modifier.align(Alignment.CenterEnd)
@@ -482,7 +483,7 @@ private fun LargelyRecommendedSlider(
         ) {
             FilterChip(
                 selected = false,
-                onClick = { currentOnChange(0) },
+                onClick = { dispatchChange(0) },
                 label = { Text(text = "Reset1") },
                 colors = FilterChipDefaults.filterChipColors(),
                 shape = RoundedCornerShape(8.dp),
@@ -490,7 +491,7 @@ private fun LargelyRecommendedSlider(
             )
             FilterChip(
                 selected = true,
-                onClick = onSubmit1,
+                onClick = { onSubmit1(selectedCriterionId, currentScore) },
                 label = { Text(text = "Submit1") },
                 colors = FilterChipDefaults.filterChipColors(),
                 shape = RoundedCornerShape(8.dp),
@@ -505,6 +506,70 @@ private fun LargelyRecommendedSlider(
         )
         LollipopDescriptionRow(activeIndex = activeIndex.intValue)
     }
+}
+
+private fun criterionQuestion(criterionId: String): String = when (criterionId) {
+    "largely_recommended" -> "Should be recommended..?"
+    "reliability" -> "Is more reliable..?"
+    "pedagogy" -> "Is more pedagological..?"
+    "importance" -> "Is more important..?"
+    "layman_friendly" -> "Is more accessible..?"
+    "entertaining_relaxing" -> "Is more entertaining..?"
+    "engaging" -> "Is more engaging..?"
+    "diversity_inclusion" -> "Is more inclusive..?"
+    "better_habits" -> "Encourages better habits..?"
+    "backfire_risk" -> "Does not backfire..?"
+    else -> "Should be recommended..?"
+}
+
+private data class QualifierLine(
+    val leftArrow: String,
+    val rightArrow: String,
+    val qualifier: String,
+    val tail: String
+)
+
+private fun buildQualifierLine(criterionId: String, score: Int): QualifierLine {
+    val leftArrow = when {
+        score <= -70 -> "<<"
+        score <= -16 -> "<"
+        else -> ""
+    }
+    val rightArrow = when {
+        score >= 70 -> ">>"
+        score >= 16 -> ">"
+        else -> ""
+    }
+    val goodnessLike = criterionId == "better_habits" || criterionId == "backfire_risk"
+    if (goodnessLike) {
+        val qualifier = when {
+            score >= 70 -> "much better"
+            score >= 16 -> "slightly better"
+            score >= -15 -> "as good"
+            score >= -69 -> "slightly better"
+            else -> "much better"
+        }
+        return QualifierLine(leftArrow, rightArrow, qualifier, "")
+    }
+    val qualifier = when {
+        score >= 70 -> "much more"
+        score >= 16 -> "slightly more"
+        score >= -15 -> "just as"
+        score >= -69 -> "slightly more"
+        else -> "much more"
+    }
+    val tail = when (criterionId) {
+        "largely_recommended" -> " recommended"
+        "reliability" -> " reliable"
+        "pedagogy" -> " pedagogical"
+        "importance" -> " important"
+        "layman_friendly" -> " accessible"
+        "entertaining_relaxing" -> " entertaining"
+        "engaging" -> " engaging"
+        "diversity_inclusion" -> " inclusive"
+        else -> " recommended"
+    }
+    return QualifierLine(leftArrow, rightArrow, qualifier, tail)
 }
 
 private fun DrawScope.drawLollipopHead(
