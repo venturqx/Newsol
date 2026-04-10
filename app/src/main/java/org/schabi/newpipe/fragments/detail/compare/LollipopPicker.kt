@@ -28,21 +28,26 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 import org.schabi.newpipe.R
 import org.schabi.newpipe.fragments.detail.COMPACT_MAIN_CRITERION_ID
@@ -315,24 +320,28 @@ private fun LargelyRecommendedSlider(
 ) {
     val density = LocalDensity.current
     val hostView = LocalView.current
-    val blue = Color(0xFF64B5F6)
-    val red = Color(0xFFE57373)
-    val trackHeightPx = with(density) { 18.dp.toPx() }
-    val handleRadiusPx = with(density) { 20.dp.toPx() }
-    val handleStrokePx = with(density) { 4.dp.toPx() }
+    val blue = Color(0xFF4F9EFF)
+    val red = Color(0xFFFF5A5F)
+    val trackBg = Color.White.copy(alpha = 0.10f)
+    val thumbColor = Color.White
+    val neutralLabel = Color.White.copy(alpha = 0.55f)
+    val trackHeightPx = with(density) { 6.dp.toPx() }
+    val thumbWidthPx = with(density) { 4.dp.toPx() }
+    val thumbHeightPx = with(density) { 22.dp.toPx() }
+    val fillThumbGapPx = with(density) { 5.dp.toPx() }
     val sidePaddingPx = with(density) { 28.dp.toPx() }
-    val labelSizePx = with(density) { 14.dp.toPx() }
-    val labelGapPx = with(density) { 10.dp.toPx() }
-    val canvasHeight = 110.dp
+    val bigLabelSizePx = with(density) { 13.dp.toPx() }
+    val bigLabelGapPx = with(density) { 10.dp.toPx() }
+    val canvasHeight = 80.dp
     val currentOnChange by rememberUpdatedState(onMainScoreChange)
     val labelPaint = remember {
         AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
             textAlign = AndroidPaint.Align.CENTER
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            color = Color.White.toArgb()
+            letterSpacing = -0.02f
         }
     }
-    labelPaint.textSize = labelSizePx
+    labelPaint.textSize = bigLabelSizePx
 
     Column(modifier = modifier.fillMaxWidth()) {
         Canvas(
@@ -361,41 +370,102 @@ private fun LargelyRecommendedSlider(
         ) {
             val w = size.width
             val h = size.height
-            val cy = h / 2f
             val left = sidePaddingPx
             val right = w - sidePaddingPx
+            val centerX = (left + right) / 2f
+            // Push the track down a bit so the big number has breathing room above.
+            val cy = h / 2f + with(density) { 10.dp.toPx() }
             val trackTop = cy - trackHeightPx / 2f
-            drawRect(
-                brush = Brush.horizontalGradient(
-                    colors = listOf(blue, red),
-                    startX = left,
-                    endX = right
-                ),
+            val trackRadius = CornerRadius(trackHeightPx / 2f, trackHeightPx / 2f)
+
+            // Background track
+            drawRoundRect(
+                color = trackBg,
                 topLeft = Offset(left, trackTop),
-                size = Size(right - left, trackHeightPx)
+                size = Size(right - left, trackHeightPx),
+                cornerRadius = trackRadius
             )
+
+            // Fill from center toward thumb, stopping short to leave a gap
             val ratio = (mainScore + 100) / 200f
-            val hx = left + ratio * (right - left)
-            drawCircle(
-                color = Color(0xFF0F0F0F),
-                radius = handleRadiusPx,
-                center = Offset(hx, cy)
+            val thumbX = left + ratio * (right - left)
+            if (mainScore != 0) {
+                val fillColor = if (mainScore < 0) blue else red
+                val rawFillLeft: Float
+                val rawFillRight: Float
+                if (mainScore < 0) {
+                    rawFillLeft = thumbX + fillThumbGapPx
+                    rawFillRight = centerX
+                } else {
+                    rawFillLeft = centerX
+                    rawFillRight = thumbX - fillThumbGapPx
+                }
+                if (rawFillRight > rawFillLeft) {
+                    clipRect(
+                        left = rawFillLeft,
+                        top = trackTop,
+                        right = rawFillRight,
+                        bottom = trackTop + trackHeightPx
+                    ) {
+                        drawRoundRect(
+                            color = fillColor,
+                            topLeft = Offset(left, trackTop),
+                            size = Size(right - left, trackHeightPx),
+                            cornerRadius = trackRadius
+                        )
+                    }
+                }
+            }
+
+            // Thumb: tall white pill
+            drawRoundRect(
+                color = thumbColor,
+                topLeft = Offset(thumbX - thumbWidthPx / 2f, cy - thumbHeightPx / 2f),
+                size = Size(thumbWidthPx, thumbHeightPx),
+                cornerRadius = CornerRadius(thumbWidthPx / 2f, thumbWidthPx / 2f)
             )
-            val handleColor = lerp(blue, red, ratio)
-            drawCircle(
-                color = handleColor,
-                radius = handleRadiusPx,
-                center = Offset(hx, cy),
-                style = Stroke(width = handleStrokePx)
-            )
-            labelPaint.color = handleColor.toArgb()
+
+            // Big floating score number, color follows the sign
+            val labelColor = when {
+                mainScore < 0 -> blue
+                mainScore > 0 -> red
+                else -> neutralLabel
+            }
+            labelPaint.color = labelColor.toArgb()
             drawContext.canvas.nativeCanvas.drawText(
                 mainScore.toString(),
-                hx,
-                cy - handleRadiusPx - labelGapPx,
+                centerX,
+                trackTop - bigLabelGapPx,
                 labelPaint
             )
         }
+        val blueSpan = SpanStyle(color = blue)
+        val redSpan = SpanStyle(color = red)
+        val qualifier = when {
+            mainScore >= 70 -> "much more"
+            mainScore >= 16 -> "slightly more"
+            mainScore >= -15 -> "equally"
+            mainScore >= -69 -> "slightly less"
+            else -> "much less"
+        }
+        val connector = if (mainScore in -15..15) "as" else "over"
+        val descriptionText = buildAnnotatedString {
+            withStyle(blueSpan) { append("Video A") }
+            append(" should be ")
+            append(qualifier)
+            append(" recommended ")
+            append(connector)
+            append(" ")
+            withStyle(redSpan) { append("Video B") }
+        }
+        Text(
+            text = descriptionText,
+            fontSize = 13.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 6.dp)
+        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
