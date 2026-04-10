@@ -45,7 +45,11 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
@@ -330,10 +334,57 @@ private fun LargelyRecommendedSlider(
     val thumbHeightPx = with(density) { 22.dp.toPx() }
     val fillThumbGapPx = with(density) { 5.dp.toPx() }
     val sidePaddingPx = with(density) { 28.dp.toPx() }
-    val canvasHeight = 48.dp
+    val canvasHeight = 32.dp
     val currentOnChange by rememberUpdatedState(onMainScoreChange)
 
+    val qualifier = when {
+        mainScore >= 70 -> "much more"
+        mainScore >= 16 -> "slightly more"
+        mainScore >= -15 -> "just as"
+        mainScore >= -69 -> "slightly less"
+        else -> "much less"
+    }
+    val leftArrow = when {
+        mainScore <= -70 -> "<<"
+        mainScore <= -16 -> "<"
+        else -> ""
+    }
+    val rightArrow = when {
+        mainScore >= 70 -> ">>"
+        mainScore >= 16 -> ">"
+        else -> ""
+    }
+    val scoreColor = when {
+        mainScore < 0 -> blue
+        mainScore > 0 -> red
+        else -> neutralLabel
+    }
+
     Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp, start = 16.dp, end = 16.dp),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "Should be recommended..?",
+                color = Color.White.copy(alpha = 0.75f),
+                fontSize = 13.sp
+            )
+            Box(modifier = Modifier.width(48.dp)) {
+                Text(
+                    text = mainScore.toString(),
+                    color = scoreColor,
+                    fontSize = 13.sp,
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .padding(start = 6.dp)
+                )
+            }
+        }
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
@@ -414,56 +465,10 @@ private fun LargelyRecommendedSlider(
                 cornerRadius = CornerRadius(thumbWidthPx / 2f, thumbWidthPx / 2f)
             )
         }
-        val qualifier = when {
-            mainScore >= 70 -> "much more"
-            mainScore >= 16 -> "slightly more"
-            mainScore >= -15 -> "as much"
-            mainScore >= -69 -> "slightly less"
-            else -> "much less"
-        }
-        val leftArrow = when {
-            mainScore <= -70 -> "<<"
-            mainScore <= -16 -> "<"
-            else -> ""
-        }
-        val rightArrow = when {
-            mainScore >= 70 -> ">>"
-            mainScore >= 16 -> ">"
-            else -> ""
-        }
-        val scoreColor = when {
-            mainScore < 0 -> blue
-            mainScore > 0 -> red
-            else -> neutralLabel
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .padding(top = 6.dp),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Should be recommended..?",
-                color = Color.White.copy(alpha = 0.75f),
-                fontSize = 13.sp
-            )
-            Box(modifier = Modifier.width(36.dp)) {
-                Text(
-                    text = mainScore.toString(),
-                    color = scoreColor,
-                    fontSize = 13.sp,
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .padding(start = 6.dp)
-                )
-            }
-        }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 32.dp)
-                .padding(bottom = 6.dp)
         ) {
             Text(
                 text = leftArrow,
@@ -472,7 +477,12 @@ private fun LargelyRecommendedSlider(
                 modifier = Modifier.align(Alignment.CenterStart)
             )
             Text(
-                text = "$qualifier recommended",
+                text = buildAnnotatedString {
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                        append(qualifier)
+                    }
+                    append(" recommended")
+                },
                 color = Color.White.copy(alpha = 0.9f),
                 fontSize = 13.sp,
                 textAlign = TextAlign.Center,
