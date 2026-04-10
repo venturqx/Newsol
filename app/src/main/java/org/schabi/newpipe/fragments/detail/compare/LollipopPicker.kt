@@ -341,8 +341,8 @@ private fun LargelyRecommendedSlider(
         mainScore >= 70 -> "much more"
         mainScore >= 16 -> "slightly more"
         mainScore >= -15 -> "just as"
-        mainScore >= -69 -> "slightly less"
-        else -> "much less"
+        mainScore >= -69 -> "slightly more"
+        else -> "much more"
     }
     val leftArrow = when {
         mainScore <= -70 -> "<<"
@@ -501,8 +501,16 @@ private fun LargelyRecommendedSlider(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 4.dp, bottom = 8.dp),
-            horizontalArrangement = Arrangement.Center
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
         ) {
+            FilterChip(
+                selected = false,
+                onClick = { currentOnChange(0) },
+                label = { Text(text = "Reset1") },
+                colors = FilterChipDefaults.filterChipColors(),
+                shape = RoundedCornerShape(8.dp),
+                border = null
+            )
             FilterChip(
                 selected = true,
                 onClick = onSubmit1,
