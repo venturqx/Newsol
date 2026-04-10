@@ -7,10 +7,18 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
 import androidx.compose.foundation.gestures.drag
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -22,10 +30,12 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
@@ -255,6 +265,151 @@ internal fun LollipopPicker(
         }
         if (showDescription) {
             LollipopDescriptionRow(activeIndex = activeIndex.intValue)
+        }
+    }
+}
+
+@Composable
+internal fun LollipopPickerWithIntro(
+    pairKey: Any?,
+    scores: Map<String, Int>,
+    onScoreChange: (String, Int) -> Unit,
+    mainScore: Int,
+    onMainScoreChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    hoistedActiveIndex: MutableIntState? = null,
+    hoistedDragScore: MutableState<Int?>? = null,
+    hoistedPhase: MutableIntState? = null,
+    showDescription: Boolean = true
+) {
+    val phase = hoistedPhase ?: remember { mutableIntStateOf(1) }
+    LaunchedEffect(pairKey) { phase.intValue = 1 }
+
+    if (phase.intValue == 1) {
+        LargelyRecommendedSlider(
+            mainScore = mainScore,
+            onMainScoreChange = onMainScoreChange,
+            onSubmit1 = { phase.intValue = 2 },
+            modifier = modifier
+        )
+    } else {
+        LollipopPicker(
+            scores = scores,
+            onScoreChange = onScoreChange,
+            mainScore = mainScore,
+            onMainScoreChange = onMainScoreChange,
+            modifier = modifier,
+            hoistedActiveIndex = hoistedActiveIndex,
+            hoistedDragScore = hoistedDragScore,
+            showDescription = showDescription
+        )
+    }
+}
+
+@Composable
+private fun LargelyRecommendedSlider(
+    mainScore: Int,
+    onMainScoreChange: (Int) -> Unit,
+    onSubmit1: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current
+    val hostView = LocalView.current
+    val blue = Color(0xFF64B5F6)
+    val red = Color(0xFFE57373)
+    val trackHeightPx = with(density) { 18.dp.toPx() }
+    val handleRadiusPx = with(density) { 20.dp.toPx() }
+    val handleStrokePx = with(density) { 4.dp.toPx() }
+    val sidePaddingPx = with(density) { 28.dp.toPx() }
+    val labelSizePx = with(density) { 14.dp.toPx() }
+    val labelGapPx = with(density) { 10.dp.toPx() }
+    val canvasHeight = 110.dp
+    val currentOnChange by rememberUpdatedState(onMainScoreChange)
+    val labelPaint = remember {
+        AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG).apply {
+            textAlign = AndroidPaint.Align.CENTER
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            color = Color.White.toArgb()
+        }
+    }
+    labelPaint.textSize = labelSizePx
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(canvasHeight)
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        hostView.parent?.requestDisallowInterceptTouchEvent(true)
+                        val left = sidePaddingPx
+                        val right = size.width - sidePaddingPx
+                        fun xToScore(x: Float): Int {
+                            val ratio = ((x - left) / (right - left)).coerceIn(0f, 1f)
+                            return (ratio * 200f - 100f)
+                                .roundToInt()
+                                .coerceIn(SCORE_MIN, SCORE_MAX)
+                        }
+                        currentOnChange(xToScore(down.position.x))
+                        drag(down.id) { change ->
+                            currentOnChange(xToScore(change.position.x))
+                            change.consume()
+                        }
+                    }
+                }
+        ) {
+            val w = size.width
+            val h = size.height
+            val cy = h / 2f
+            val left = sidePaddingPx
+            val right = w - sidePaddingPx
+            val trackTop = cy - trackHeightPx / 2f
+            drawRect(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(blue, red),
+                    startX = left,
+                    endX = right
+                ),
+                topLeft = Offset(left, trackTop),
+                size = Size(right - left, trackHeightPx)
+            )
+            val ratio = (mainScore + 100) / 200f
+            val hx = left + ratio * (right - left)
+            drawCircle(
+                color = Color(0xFF0F0F0F),
+                radius = handleRadiusPx,
+                center = Offset(hx, cy)
+            )
+            val handleColor = lerp(blue, red, ratio)
+            drawCircle(
+                color = handleColor,
+                radius = handleRadiusPx,
+                center = Offset(hx, cy),
+                style = Stroke(width = handleStrokePx)
+            )
+            labelPaint.color = handleColor.toArgb()
+            drawContext.canvas.nativeCanvas.drawText(
+                mainScore.toString(),
+                hx,
+                cy - handleRadiusPx - labelGapPx,
+                labelPaint
+            )
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp, bottom = 8.dp),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            FilterChip(
+                selected = true,
+                onClick = onSubmit1,
+                label = { Text(text = "Submit1") },
+                colors = FilterChipDefaults.filterChipColors(),
+                shape = RoundedCornerShape(8.dp),
+                border = null
+            )
         }
     }
 }

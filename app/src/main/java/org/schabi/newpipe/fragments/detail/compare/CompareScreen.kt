@@ -115,7 +115,11 @@ fun CompareScreen(
                     )
                 }
 
-                LollipopPicker(
+                LollipopPickerWithIntro(
+                    pairKey = Pair(
+                        state.currentEntry?.streamEntity?.url,
+                        currentEntry?.streamEntity?.url
+                    ),
                     scores = state.extraScores,
                     onScoreChange = onExtraScoreChange,
                     mainScore = state.score,

@@ -193,6 +193,7 @@ internal fun CompareCompactScreen(
     val embedInDetail = !reserveMiniPlayerSpace
     val pickerActiveIndex = remember { mutableIntStateOf(-1) }
     val pickerDragScore = remember { mutableStateOf<Int?>(null) }
+    val pickerPhase = remember { mutableIntStateOf(1) }
     var showHistoryOverlay by remember { mutableStateOf(false) }
     var hasOpenedHistoryOverlay by rememberSaveable { mutableStateOf(false) }
     val overlayGridColumns = 1
@@ -870,7 +871,8 @@ internal fun CompareCompactScreen(
                                     .fillMaxWidth()
                                     .background(Color(0xFF181818))
                             ) {
-                                LollipopPicker(
+                                LollipopPickerWithIntro(
+                                    pairKey = currentPairSelection,
                                     scores = state.extraScores,
                                     onScoreChange = onExtraScoreChange,
                                     mainScore = state.score,
@@ -880,6 +882,7 @@ internal fun CompareCompactScreen(
                                         .padding(horizontal = horizontalPadding),
                                     hoistedActiveIndex = if (embedInDetail) pickerActiveIndex else null,
                                     hoistedDragScore = pickerDragScore,
+                                    hoistedPhase = pickerPhase,
                                     showDescription = !embedInDetail
                                 )
                             }
@@ -948,7 +951,7 @@ internal fun CompareCompactScreen(
                             )
                         }
 
-                        if (embedInDetail) {
+                        if (embedInDetail && pickerPhase.intValue == 2) {
                             LollipopDescriptionRow(activeIndex = pickerActiveIndex.intValue)
                         }
                     }
