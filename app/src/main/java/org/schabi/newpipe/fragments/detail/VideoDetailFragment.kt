@@ -861,21 +861,15 @@ class VideoDetailFragment :
             tabContentDescriptions.add(R.string.comments_tab_description)
         }
 
-        if (showRelatedItems && binding.relatedItemsLayout == null) {
+        if (showRelatedItems && binding.relatedItemsLayout == null && !isTournesolTab) {
             // temp empty fragment. will be updated in handleResult
-            if (isTournesolTab) {
-                pageAdapter.addFragment(EmptyFragment.newInstance(false), COMPARE_TAB_TAG)
-                tabIcons.add(R.drawable.logo_small)
-                tabContentDescriptions.add(R.string.compare_tab_description)
-            } else {
-                pageAdapter.addFragment(EmptyFragment.newInstance(false), RELATED_TAB_TAG)
-                tabIcons.add(R.drawable.ic_art_track)
-                tabContentDescriptions.add(R.string.related_items_tab_description)
-            }
+            pageAdapter.addFragment(EmptyFragment.newInstance(false), RELATED_TAB_TAG)
+            tabIcons.add(R.drawable.ic_art_track)
+            tabContentDescriptions.add(R.string.related_items_tab_description)
         }
 
         pageAdapter.addFragment(TournesolFragment(), TOURNESOL_TAB_TAG)
-        tabIcons.add(R.drawable.ic_stars)
+        tabIcons.add(R.drawable.logo_small)
         tabContentDescriptions.add(R.string.tournesol_tab_description)
 
         if (showDescription) {
@@ -1013,24 +1007,15 @@ class VideoDetailFragment :
     }
 
     private fun updateTabs(info: StreamInfo) {
-        if (showRelatedItems) {
+        if (showRelatedItems && !isTournesolTab) {
             when (val relatedItemsLayout = binding.relatedItemsLayout) {
                 null -> {
-                    if (isTournesolTab) {
-                        pageAdapter.updateItem(COMPARE_TAB_TAG, CompareFragment.getInstance(info, true, true))
-                    } else {
-                        pageAdapter.updateItem(RELATED_TAB_TAG, getInstance(info))
-                    }
+                    pageAdapter.updateItem(RELATED_TAB_TAG, getInstance(info))
                 }
 
                 else -> { // tablet + TV
-                    val fragment = if (isTournesolTab) {
-                        CompareFragment.getInstance(info, true, true)
-                    } else {
-                        getInstance(info)
-                    }
                     getChildFragmentManager().beginTransaction()
-                        .replace(R.id.relatedItemsLayout, fragment)
+                        .replace(R.id.relatedItemsLayout, getInstance(info))
                         .commitAllowingStateLoss()
                     relatedItemsLayout.isVisible = !this.isFullscreen
                 }

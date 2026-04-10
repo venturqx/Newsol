@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
@@ -54,6 +55,7 @@ internal fun LollipopPicker(
     showDescription: Boolean = true
 ) {
     val density = LocalDensity.current
+    val hostView = LocalView.current
     val dimensions = remember {
         EXTRA_CRITERIA + CompareCriterion(
             id = COMPACT_MAIN_CRITERION_ID,
@@ -111,6 +113,7 @@ internal fun LollipopPicker(
                 .pointerInput(Unit) {
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
+                        hostView.parent?.requestDisallowInterceptTouchEvent(true)
                         val n = dimensions.size
                         val slot = size.width.toFloat() / n
                         val drawTop = topPaddingPx + circleRadius
