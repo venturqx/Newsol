@@ -186,6 +186,9 @@ class CompareFragment : Fragment() {
                                     sendCompactSingleCriterion(criterionId, value, onSuccess)
                                 }
                             },
+                            onSubmitExtrasBatch = { criteriaScores, onSuccess ->
+                                sendCompactExtrasBatch(criteriaScores, onSuccess)
+                            },
                             onUpdateSelected = { selected -> sendCompactUpdate(selected) },
                             onPairSelectionChange = { selection ->
                                 updateCompactPairSelection(selection)
@@ -740,6 +743,78 @@ class CompareFragment : Fragment() {
                             extraScores = (storedScores[key.toStorage()]?.extraScores.orEmpty()) +
                                 (criterionId to value)
                         )
+                        Toast.makeText(
+                            requireContext(),
+                            getString(messageRes),
+                            Toast.LENGTH_LONG
+                        ).show()
+                        onSuccess()
+                    },
+                    { throwable ->
+                        submitInProgress = false
+                        if (throwable is MissingTokenException) {
+                            Toast.makeText(
+                                requireContext(),
+                                getString(R.string.compare_login_required),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            showLoginDialog()
+                            return@subscribe
+                        }
+                        val message = throwable.message
+                        val errorText = if (message.isNullOrBlank()) {
+                            getString(R.string.compare_failed)
+                        } else {
+                            getString(R.string.compare_failed_with_message, message)
+                        }
+                        Toast.makeText(requireContext(), errorText, Toast.LENGTH_LONG).show()
+                    }
+                )
+        )
+    }
+
+    private fun sendCompactExtrasBatch(
+        criteriaScores: List<CriteriaScore>,
+        onSuccess: () -> Unit
+    ) {
+        if (submitInProgress || criteriaScores.isEmpty()) {
+            return
+        }
+        val key = resolveCompactCompareKey() ?: return
+
+        submitInProgress = true
+        disposables.add(
+            TournesolAuthManager.getValidAccessToken(requireContext())
+                .subscribeOn(Schedulers.io())
+                .switchIfEmpty(
+                    io.reactivex.rxjava3.core.Maybe.error(MissingTokenException())
+                )
+                .flatMapSingle { token ->
+                    CompareRepository.submitComparisonWithCriteria(
+                        token,
+                        key.lastUid,
+                        key.currentUid,
+                        criteriaScores
+                    ).flatMap { messageRes ->
+                        if (messageRes == R.string.compare_already_submitted) {
+                            CompareRepository.patchComparison(
+                                token,
+                                key.lastUid,
+                                key.currentUid,
+                                criteriaScores
+                            )
+                        } else {
+                            io.reactivex.rxjava3.core.Single.just(messageRes)
+                        }
+                    }
+                }
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                    { messageRes ->
+                        submitInProgress = false
+                        val merged = (storedScores[key.toStorage()]?.extraScores.orEmpty()) +
+                            criteriaScores.associate { it.criteria to it.score }
+                        storeSubmittedScores(key, extraScores = merged)
                         Toast.makeText(
                             requireContext(),
                             getString(messageRes),

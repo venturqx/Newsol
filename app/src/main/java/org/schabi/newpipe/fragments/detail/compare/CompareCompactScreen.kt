@@ -97,6 +97,7 @@ import org.schabi.newpipe.fragments.detail.CompareRepository
 import org.schabi.newpipe.fragments.detail.CompareSideLabel
 import org.schabi.newpipe.fragments.detail.CompareUiState
 import org.schabi.newpipe.fragments.detail.CompareVideoThumbnailCard
+import org.schabi.newpipe.fragments.detail.CriteriaScore
 import org.schabi.newpipe.fragments.detail.EXTRA_CRITERIA
 import org.schabi.newpipe.fragments.detail.LollipopDescriptionRow
 import org.schabi.newpipe.fragments.detail.SCORE_MAX
@@ -122,6 +123,7 @@ internal fun CompareCompactScreen(
     onExtraScoreChange: (String, Int) -> Unit,
     onSubmitSelected: (Set<String>) -> Unit,
     onSubmitCriterion: (String, Int, () -> Unit) -> Unit,
+    onSubmitExtrasBatch: (List<CriteriaScore>, () -> Unit) -> Unit,
     onUpdateSelected: (Set<String>) -> Unit,
     onPairSelectionChange: (ComparePairSelection?) -> Unit,
     onDismissRecommendations: () -> Unit,
@@ -885,7 +887,8 @@ internal fun CompareCompactScreen(
                                     hoistedDragScore = pickerDragScore,
                                     hoistedPhase = pickerPhase,
                                     showDescription = !embedInDetail,
-                                    onSubmit1Request = onSubmitCriterion
+                                    onSubmit1Request = onSubmitCriterion,
+                                    onSubmitExtrasBatch = onSubmitExtrasBatch
                                 )
                             }
                         }

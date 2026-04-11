@@ -62,6 +62,7 @@ import kotlin.math.roundToInt
 import org.schabi.newpipe.R
 import org.schabi.newpipe.fragments.detail.COMPACT_MAIN_CRITERION_ID
 import org.schabi.newpipe.fragments.detail.CompareCriterion
+import org.schabi.newpipe.fragments.detail.CriteriaScore
 import org.schabi.newpipe.fragments.detail.EXTRA_CRITERIA
 import org.schabi.newpipe.fragments.detail.LOLLIPOP_COLORS
 import org.schabi.newpipe.fragments.detail.LollipopDescriptionRow
@@ -255,13 +256,18 @@ internal fun LollipopPickerWithIntro(
     hoistedDragScore: MutableState<Int?>? = null,
     hoistedPhase: MutableIntState? = null,
     showDescription: Boolean = true,
-    onSubmit1Request: ((String, Int, () -> Unit) -> Unit)? = null
+    onSubmit1Request: ((String, Int, () -> Unit) -> Unit)? = null,
+    onSubmitExtrasBatch: ((List<CriteriaScore>, () -> Unit) -> Unit)? = null
 ) {
     val phase = hoistedPhase ?: remember { mutableIntStateOf(1) }
     val phase1ActiveIndex = hoistedActiveIndex ?: remember { mutableIntStateOf(-1) }
+    val touchedExtras = remember { mutableStateOf(setOf<String>()) }
+    val allExtrasDone = remember { mutableStateOf(false) }
     LaunchedEffect(pairKey) {
         phase.intValue = 1
         phase1ActiveIndex.intValue = EXTRA_CRITERIA.size
+        touchedExtras.value = emptySet()
+        allExtrasDone.value = false
     }
 
     if (phase.intValue == 1) {
@@ -271,8 +277,24 @@ internal fun LollipopPickerWithIntro(
             scores = scores,
             onScoreChange = onScoreChange,
             activeIndex = phase1ActiveIndex,
+            touchedExtras = touchedExtras,
+            allExtrasDone = allExtrasDone,
             onSubmit1 = { criterionId, value ->
-                onSubmit1Request?.invoke(criterionId, value) { /* stay in phase 1 */ }
+                onSubmit1Request?.invoke(criterionId, value) {
+                    if (criterionId == COMPACT_MAIN_CRITERION_ID) {
+                        val firstUntouched = EXTRA_CRITERIA.indexOfFirst {
+                            it.id !in touchedExtras.value
+                        }
+                        if (firstUntouched >= 0) {
+                            phase1ActiveIndex.intValue = firstUntouched
+                        } else {
+                            allExtrasDone.value = true
+                        }
+                    }
+                }
+            },
+            onSubmitExtrasBatch = { batch ->
+                onSubmitExtrasBatch?.invoke(batch) { /* stay on completion screen */ }
             },
             modifier = modifier
         )
@@ -297,7 +319,10 @@ private fun LargelyRecommendedSlider(
     scores: Map<String, Int>,
     onScoreChange: (String, Int) -> Unit,
     activeIndex: MutableIntState,
+    touchedExtras: MutableState<Set<String>>,
+    allExtrasDone: MutableState<Boolean>,
     onSubmit1: (String, Int) -> Unit,
+    onSubmitExtrasBatch: (List<CriteriaScore>) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
@@ -339,6 +364,53 @@ private fun LargelyRecommendedSlider(
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
+        if (allExtrasDone.value) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp, start = 16.dp, end = 16.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "You scored every criteria! Good job. Submit it now?",
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center
+                )
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp, bottom = 8.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                FilterChip(
+                    selected = true,
+                    onClick = {
+                        val batch = EXTRA_CRITERIA.mapNotNull { c ->
+                            if (c.id in touchedExtras.value) {
+                                CriteriaScore(c.id, scores[c.id] ?: 0)
+                            } else {
+                                null
+                            }
+                        }
+                        onSubmitExtrasBatch(batch)
+                    },
+                    label = { Text(text = "Submit1") },
+                    colors = FilterChipDefaults.filterChipColors(),
+                    shape = RoundedCornerShape(8.dp),
+                    border = null
+                )
+            }
+            LollipopHeadsRow(
+                scores = scores,
+                mainScore = mainScore,
+                activeIndex = activeIndex,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+            LollipopDescriptionRow(activeIndex = activeIndex.intValue)
+            return@Column
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -383,6 +455,18 @@ private fun LargelyRecommendedSlider(
                         drag(down.id) { change ->
                             dispatchChange(xToScore(change.position.x))
                             change.consume()
+                        }
+                        if (!isMain) {
+                            val newTouched = touchedExtras.value + selectedCriterionId
+                            touchedExtras.value = newTouched
+                            val nextIdx = EXTRA_CRITERIA.indexOfFirst {
+                                it.id !in newTouched
+                            }
+                            if (nextIdx >= 0) {
+                                activeIndex.intValue = nextIdx
+                            } else {
+                                allExtrasDone.value = true
+                            }
                         }
                     }
                 }
@@ -489,14 +573,16 @@ private fun LargelyRecommendedSlider(
                 shape = RoundedCornerShape(8.dp),
                 border = null
             )
-            FilterChip(
-                selected = true,
-                onClick = { onSubmit1(selectedCriterionId, currentScore) },
-                label = { Text(text = "Submit1") },
-                colors = FilterChipDefaults.filterChipColors(),
-                shape = RoundedCornerShape(8.dp),
-                border = null
-            )
+            if (isMain) {
+                FilterChip(
+                    selected = true,
+                    onClick = { onSubmit1(selectedCriterionId, currentScore) },
+                    label = { Text(text = "Submit1") },
+                    colors = FilterChipDefaults.filterChipColors(),
+                    shape = RoundedCornerShape(8.dp),
+                    border = null
+                )
+            }
         }
         LollipopHeadsRow(
             scores = scores,
