@@ -406,7 +406,11 @@ private fun LargelyRecommendedSlider(
                 scores = scores,
                 mainScore = mainScore,
                 activeIndex = activeIndex,
-                modifier = Modifier.padding(top = 4.dp)
+                modifier = Modifier.padding(top = 4.dp),
+                onHeadClick = { idx ->
+                    allExtrasDone.value = false
+                    activeIndex.intValue = idx
+                }
             )
             LollipopDescriptionRow(activeIndex = activeIndex.intValue)
             return@Column
@@ -784,7 +788,8 @@ private fun LollipopHeadsRow(
     scores: Map<String, Int>,
     mainScore: Int,
     activeIndex: MutableIntState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onHeadClick: ((Int) -> Unit)? = null
 ) {
     val mainCriterion = remember {
         CompareCriterion(
@@ -823,7 +828,13 @@ private fun LollipopHeadsRow(
                     score = score,
                     dimensionId = dim.id,
                     selected = activeIndex.intValue == descIdx,
-                    onClick = { activeIndex.intValue = descIdx },
+                    onClick = {
+                        if (onHeadClick != null) {
+                            onHeadClick(descIdx)
+                        } else {
+                            activeIndex.intValue = descIdx
+                        }
+                    },
                     scale = scale
                 )
             }
