@@ -790,23 +790,12 @@ class CompareFragment : Fragment() {
                     io.reactivex.rxjava3.core.Maybe.error(MissingTokenException())
                 )
                 .flatMapSingle { token ->
-                    CompareRepository.submitComparisonWithCriteria(
+                    CompareRepository.patchComparison(
                         token,
                         key.lastUid,
                         key.currentUid,
                         criteriaScores
-                    ).flatMap { messageRes ->
-                        if (messageRes == R.string.compare_already_submitted) {
-                            CompareRepository.patchComparison(
-                                token,
-                                key.lastUid,
-                                key.currentUid,
-                                criteriaScores
-                            )
-                        } else {
-                            io.reactivex.rxjava3.core.Single.just(messageRes)
-                        }
-                    }
+                    )
                 }
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
