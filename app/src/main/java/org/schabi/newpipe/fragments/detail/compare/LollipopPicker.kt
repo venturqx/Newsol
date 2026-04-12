@@ -359,6 +359,7 @@ private fun LargelyRecommendedSlider(
 
     val currentOnMainChange by rememberUpdatedState(onMainScoreChange)
     val currentOnExtraChange by rememberUpdatedState(onScoreChange)
+    val currentOnSubmit1 by rememberUpdatedState(onSubmit1)
     val dispatchChange: (Int) -> Unit = { v ->
         if (isMain) currentOnMainChange(v) else currentOnExtraChange(selectedCriterionId, v)
     }
@@ -465,14 +466,18 @@ private fun LargelyRecommendedSlider(
                                 .roundToInt()
                                 .coerceIn(SCORE_MIN, SCORE_MAX)
                         }
-                        dispatchChange(xToScore(down.position.x))
+                        var finalScore = xToScore(down.position.x)
+                        dispatchChange(finalScore)
                         val newTouched = touchedCriteria.value + selectedCriterionId
                         touchedCriteria.value = newTouched
                         drag(down.id) { change ->
-                            dispatchChange(xToScore(change.position.x))
+                            finalScore = xToScore(change.position.x)
+                            dispatchChange(finalScore)
                             change.consume()
                         }
-                        if (!isMain) {
+                        if (isMain) {
+                            currentOnSubmit1(selectedCriterionId, finalScore)
+                        } else {
                             val nextIdx = EXTRA_CRITERIA.indexOfFirst {
                                 it.id !in newTouched
                             }
@@ -573,30 +578,13 @@ private fun LargelyRecommendedSlider(
                 modifier = Modifier.align(Alignment.CenterEnd)
             )
         }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp, bottom = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
-        ) {
-            if (isMain) {
-                FilterChip(
-                    selected = true,
-                    onClick = { onSubmit1(selectedCriterionId, currentScore) },
-                    label = { Text(text = "Submit1") },
-                    colors = FilterChipDefaults.filterChipColors(),
-                    shape = RoundedCornerShape(8.dp),
-                    border = null
-                )
-            }
-        }
         LollipopHeadsRow(
             scores = scores,
             mainScore = mainScore,
             activeIndex = activeIndex,
             submittedCriteria = submittedCriteria.value,
             touchedCriteria = touchedCriteria.value,
-            modifier = Modifier.padding(top = 4.dp)
+            modifier = Modifier.padding(top = 12.dp)
         )
         LollipopDescriptionRow(activeIndex = activeIndex.intValue)
     }
