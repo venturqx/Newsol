@@ -194,6 +194,7 @@ internal fun CompareCompactScreen(
     val embedInDetail = !reserveMiniPlayerSpace
     val pickerActiveIndex = remember { mutableIntStateOf(-1) }
     val pickerDragScore = remember { mutableStateOf<Int?>(null) }
+    val pickerTouchedCriteria = remember { mutableStateOf(setOf<String>()) }
     var showHistoryOverlay by remember { mutableStateOf(false) }
     var hasOpenedHistoryOverlay by rememberSaveable { mutableStateOf(false) }
     val overlayGridColumns = 1
@@ -858,11 +859,55 @@ internal fun CompareCompactScreen(
                                         .padding(horizontal = horizontalPadding),
                                     hoistedActiveIndex = if (embedInDetail) pickerActiveIndex else null,
                                     hoistedDragScore = pickerDragScore,
+                                    hoistedTouchedCriteria = pickerTouchedCriteria,
                                     showDescription = !embedInDetail,
                                     onSubmit1Request = onSubmitCriterion,
                                     onSubmitExtrasBatch = onSubmitExtrasBatch
                                 )
                             }
+                        }
+
+                        // Status line: "{text A} {text B}"
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp, bottom = 2.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val touchedExtras = pickerTouchedCriteria.value
+                                .count { it != COMPACT_MAIN_CRITERION_ID }
+                            val statusAlpha = 0.55f
+                            // Text A — main criterion
+                            val textA = when {
+                                state.submitInProgress && !state.submitted ->
+                                    "Submitting main"
+
+                                state.submitted -> "Submitted main"
+
+                                else -> "Please rate"
+                            }
+                            Text(
+                                text = "$textA ",
+                                color = Color.White.copy(alpha = statusAlpha),
+                                fontSize = 11.sp
+                            )
+                            Image(
+                                painter = painterResource(R.drawable.logo_small),
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            // Text B — extra criteria
+                            val textB = when {
+                                state.submitMoreInProgress -> " Submitting extra.."
+                                state.extraSubmitted -> " Submitted extra"
+                                else -> " Rating extra $touchedExtras/9"
+                            }
+                            Text(
+                                text = textB,
+                                color = Color.White.copy(alpha = statusAlpha),
+                                fontSize = 11.sp
+                            )
                         }
 
                         Row(

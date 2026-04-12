@@ -33,6 +33,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -255,13 +256,14 @@ internal fun LollipopPickerWithIntro(
     hoistedActiveIndex: MutableIntState? = null,
     hoistedDragScore: MutableState<Int?>? = null,
     hoistedPhase: MutableIntState? = null,
+    hoistedTouchedCriteria: MutableState<Set<String>>? = null,
     showDescription: Boolean = true,
     onSubmit1Request: ((String, Int, () -> Unit) -> Unit)? = null,
     onSubmitExtrasBatch: ((List<CriteriaScore>, () -> Unit) -> Unit)? = null
 ) {
     val phase = hoistedPhase ?: remember { mutableIntStateOf(1) }
     val phase1ActiveIndex = hoistedActiveIndex ?: remember { mutableIntStateOf(-1) }
-    val touchedCriteria = remember { mutableStateOf(setOf<String>()) }
+    val touchedCriteria = hoistedTouchedCriteria ?: remember { mutableStateOf(setOf<String>()) }
     val allExtrasDone = remember { mutableStateOf(false) }
     val submittedCriteria = remember { mutableStateOf(setOf<String>()) }
     LaunchedEffect(pairKey) {
@@ -361,6 +363,8 @@ private fun LargelyRecommendedSlider(
         currentScore > 0 -> red
         else -> neutralLabel
     }
+    var showCriteriaDesc by remember { mutableStateOf(false) }
+    LaunchedEffect(activeIndex.intValue) { showCriteriaDesc = false }
 
     Column(modifier = modifier.fillMaxWidth()) {
         if (allExtrasDone.value) {
@@ -413,7 +417,9 @@ private fun LargelyRecommendedSlider(
                     activeIndex.intValue = idx
                 }
             )
-            LollipopDescriptionRow(activeIndex = activeIndex.intValue)
+            if (showCriteriaDesc) {
+                LollipopDescriptionRow(activeIndex = activeIndex.intValue)
+            }
             return@Column
         }
         Row(
@@ -555,20 +561,28 @@ private fun LargelyRecommendedSlider(
                 fontSize = 13.sp,
                 modifier = Modifier.align(Alignment.CenterStart)
             )
-            Text(
-                text = buildAnnotatedString {
-                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                        append(qLine.qualifier)
-                    }
-                    append(qLine.tail)
-                },
-                color = Color.White.copy(alpha = 0.9f),
-                fontSize = 13.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.Center)
-            )
+            Row(
+                modifier = Modifier.align(Alignment.Center),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = buildAnnotatedString {
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                            append(qLine.qualifier)
+                        }
+                        append(qLine.tail)
+                    },
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = " ⓘ",
+                    color = Color.White.copy(alpha = if (showCriteriaDesc) 0.5f else 0.2f),
+                    fontSize = 11.sp,
+                    modifier = Modifier.clickable { showCriteriaDesc = !showCriteriaDesc }
+                )
+            }
             Text(
                 text = qLine.rightArrow,
                 color = red,
@@ -584,7 +598,9 @@ private fun LargelyRecommendedSlider(
             touchedCriteria = touchedCriteria.value,
             modifier = Modifier.padding(top = 12.dp)
         )
-        LollipopDescriptionRow(activeIndex = activeIndex.intValue)
+        if (showCriteriaDesc) {
+            LollipopDescriptionRow(activeIndex = activeIndex.intValue)
+        }
     }
 }
 
