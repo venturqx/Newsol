@@ -178,7 +178,6 @@ class CompareFragment : Fragment() {
                             state = uiState,
                             onScoreChange = { score = it },
                             onExtraScoreChange = onExtraScoreChange,
-                            onSubmitSelected = { selected -> sendCompactSubmit(selected) },
                             onSubmitCriterion = { criterionId, value, onSuccess ->
                                 if (criterionId == COMPACT_MAIN_CRITERION_ID) {
                                     sendCompactMainComparison(value, onSuccess)
@@ -189,7 +188,6 @@ class CompareFragment : Fragment() {
                             onSubmitExtrasBatch = { criteriaScores, onSuccess ->
                                 sendCompactExtrasBatch(criteriaScores, onSuccess)
                             },
-                            onUpdateSelected = { selected -> sendCompactUpdate(selected) },
                             onPairSelectionChange = { selection ->
                                 updateCompactPairSelection(selection)
                             },
@@ -568,76 +566,6 @@ class CompareFragment : Fragment() {
         return CompareKey(lastUid, currentUid)
     }
 
-    private fun sendCompactSubmit(selectedIds: Set<String>) {
-        if (submitInProgress) {
-            return
-        }
-        val payload = buildCompactCriteriaPayload(selectedIds) ?: run {
-            Toast.makeText(
-                requireContext(),
-                getString(R.string.compare_select_criteria),
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-        val key = resolveCompactCompareKey() ?: return
-
-        submitInProgress = true
-        disposables.add(
-            TournesolAuthManager.getValidAccessToken(requireContext())
-                .subscribeOn(Schedulers.io())
-                .switchIfEmpty(
-                    io.reactivex.rxjava3.core.Maybe.error(MissingTokenException())
-                )
-                .flatMapSingle { token ->
-                    CompareRepository.submitComparisonWithCriteria(
-                        token,
-                        key.lastUid,
-                        key.currentUid,
-                        payload.criteriaScores
-                    )
-                }
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(
-                    { messageRes ->
-                        submitInProgress = false
-                        markSubmitted(key.lastUid, key.currentUid)
-                        storeSubmittedScores(
-                            key,
-                            mainScore = payload.mainScore,
-                            extraScores = payload.extraScores
-                        )
-                        TournesolAuthManager.incrementComparisonCount(requireContext())
-                        refreshUserInfo()
-                        Toast.makeText(
-                            requireContext(),
-                            getString(messageRes),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    },
-                    { throwable ->
-                        submitInProgress = false
-                        if (throwable is MissingTokenException) {
-                            Toast.makeText(
-                                requireContext(),
-                                getString(R.string.compare_login_required),
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            showLoginDialog()
-                            return@subscribe
-                        }
-                        val message = throwable.message
-                        val errorText = if (message.isNullOrBlank()) {
-                            getString(R.string.compare_failed)
-                        } else {
-                            getString(R.string.compare_failed_with_message, message)
-                        }
-                        Toast.makeText(requireContext(), errorText, Toast.LENGTH_LONG).show()
-                    }
-                )
-        )
-    }
-
     private fun sendCompactMainComparison(score: Int, onSuccess: () -> Unit) {
         if (submitInProgress) {
             return
@@ -813,74 +741,6 @@ class CompareFragment : Fragment() {
                     },
                     { throwable ->
                         submitInProgress = false
-                        if (throwable is MissingTokenException) {
-                            Toast.makeText(
-                                requireContext(),
-                                getString(R.string.compare_login_required),
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            showLoginDialog()
-                            return@subscribe
-                        }
-                        val message = throwable.message
-                        val errorText = if (message.isNullOrBlank()) {
-                            getString(R.string.compare_failed)
-                        } else {
-                            getString(R.string.compare_failed_with_message, message)
-                        }
-                        Toast.makeText(requireContext(), errorText, Toast.LENGTH_LONG).show()
-                    }
-                )
-        )
-    }
-
-    private fun sendCompactUpdate(selectedIds: Set<String>) {
-        if (submitMoreInProgress) {
-            return
-        }
-        val payload = buildCompactCriteriaPayload(selectedIds) ?: run {
-            Toast.makeText(
-                requireContext(),
-                getString(R.string.compare_select_criteria),
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-        val key = resolveCompactCompareKey() ?: return
-
-        submitMoreInProgress = true
-        disposables.add(
-            TournesolAuthManager.getValidAccessToken(requireContext())
-                .subscribeOn(Schedulers.io())
-                .switchIfEmpty(
-                    io.reactivex.rxjava3.core.Maybe.error(MissingTokenException())
-                )
-                .flatMapSingle { token ->
-                    CompareRepository.patchComparison(
-                        token,
-                        key.lastUid,
-                        key.currentUid,
-                        payload.criteriaScores
-                    )
-                }
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(
-                    { messageRes ->
-                        submitMoreInProgress = false
-                        markSubmitted(key.lastUid, key.currentUid)
-                        storeSubmittedScores(
-                            key,
-                            mainScore = payload.mainScore,
-                            extraScores = payload.extraScores
-                        )
-                        Toast.makeText(
-                            requireContext(),
-                            getString(messageRes),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    },
-                    { throwable ->
-                        submitMoreInProgress = false
                         if (throwable is MissingTokenException) {
                             Toast.makeText(
                                 requireContext(),

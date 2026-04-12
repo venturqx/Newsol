@@ -942,26 +942,26 @@ internal fun LollipopDescriptionRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .padding(horizontal = 12.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
             painter = painterResource(criterion.iconRes),
             contentDescription = null,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(17.dp)
         )
-        Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(7.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = stringResource(criterion.labelRes),
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelMedium.copy(fontSize = 8.sp, lineHeight = 10.sp),
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = stringResource(compactDescriptionRes(criterion.id)),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 8.sp, lineHeight = 10.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 4
+                maxLines = 3
             )
         }
     }

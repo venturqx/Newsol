@@ -121,10 +121,8 @@ internal fun CompareCompactScreen(
     state: CompareUiState,
     onScoreChange: (Int) -> Unit,
     onExtraScoreChange: (String, Int) -> Unit,
-    onSubmitSelected: (Set<String>) -> Unit,
     onSubmitCriterion: (String, Int, () -> Unit) -> Unit,
     onSubmitExtrasBatch: (List<CriteriaScore>, () -> Unit) -> Unit,
-    onUpdateSelected: (Set<String>) -> Unit,
     onPairSelectionChange: (ComparePairSelection?) -> Unit,
     onDismissRecommendations: () -> Unit,
     onDismissLogin: () -> Unit,
@@ -337,31 +335,7 @@ internal fun CompareCompactScreen(
         onPairSelectionChange(currentPairSelection)
     }
     val hasStoredScores = state.storedMainScore != null || state.storedExtraScores.isNotEmpty()
-    val hasExistingComparison = state.submitted || hasStoredScores
-    val isBusy = state.submitInProgress || state.submitMoreInProgress
     val hasValidPairSelection = currentPairSelection != null
-    val effectiveSelectedIds: Set<String> = buildSet {
-        if (state.score != 0) add(COMPACT_MAIN_CRITERION_ID)
-        EXTRA_CRITERIA.forEach { criterion ->
-            if ((state.extraScores[criterion.id] ?: 0) != 0) add(criterion.id)
-        }
-    }
-    val canSubmit = hasValidPairSelection && effectiveSelectedIds.isNotEmpty() && !isBusy
-    val submitButtonLabel = stringResource(
-        when {
-            isBusy -> R.string.compare_submitting_label
-            hasExistingComparison -> R.string.compare_update_label
-            else -> R.string.compare_submit_label
-        }
-    )
-    val submitOrUpdateAction = {
-        val snapshot = effectiveSelectedIds.toSet()
-        if (hasExistingComparison) {
-            onUpdateSelected(snapshot)
-        } else {
-            onSubmitSelected(snapshot)
-        }
-    }
     val openHistoryOverlay: (OverlayTarget) -> Unit = { target ->
         val targetEntries = if (target == OverlayTarget.RIGHT) {
             rightEntries
@@ -896,18 +870,6 @@ internal fun CompareCompactScreen(
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            val chipColors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = colorResource(R.color.tournesol_chip_bg_selected),
-                                containerColor = colorResource(R.color.tournesol_chip_bg_unselected),
-                                selectedLabelColor = colorResource(R.color.tournesol_chip_text_selected),
-                                labelColor = MaterialTheme.colorScheme.onSurface
-                            )
-                            val chipShape = RoundedCornerShape(8.dp)
-                            val chipTextStyle = TextStyle(
-                                fontFamily = FontFamily(Typeface.create("sans-serif-medium", Typeface.NORMAL)),
-                                fontSize = 14.sp,
-                                letterSpacing = TextUnit(0.04f, TextUnitType.Em)
-                            )
                             val diceEnabled = !state.suggestionsLoading
                             Surface(
                                 modifier = Modifier
@@ -942,16 +904,6 @@ internal fun CompareCompactScreen(
                                     )
                                 }
                             }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            FilterChip(
-                                selected = true,
-                                onClick = submitOrUpdateAction,
-                                enabled = canSubmit,
-                                label = { Text(text = submitButtonLabel, style = chipTextStyle) },
-                                colors = chipColors,
-                                shape = chipShape,
-                                border = null
-                            )
                         }
                     }
                 }
