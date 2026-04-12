@@ -261,13 +261,15 @@ internal fun LollipopPickerWithIntro(
 ) {
     val phase = hoistedPhase ?: remember { mutableIntStateOf(1) }
     val phase1ActiveIndex = hoistedActiveIndex ?: remember { mutableIntStateOf(-1) }
-    val touchedExtras = remember { mutableStateOf(setOf<String>()) }
+    val touchedCriteria = remember { mutableStateOf(setOf<String>()) }
     val allExtrasDone = remember { mutableStateOf(false) }
+    val submittedCriteria = remember { mutableStateOf(setOf<String>()) }
     LaunchedEffect(pairKey) {
         phase.intValue = 1
         phase1ActiveIndex.intValue = EXTRA_CRITERIA.size
-        touchedExtras.value = emptySet()
+        touchedCriteria.value = emptySet()
         allExtrasDone.value = false
+        submittedCriteria.value = emptySet()
     }
 
     if (phase.intValue == 1) {
@@ -277,13 +279,14 @@ internal fun LollipopPickerWithIntro(
             scores = scores,
             onScoreChange = onScoreChange,
             activeIndex = phase1ActiveIndex,
-            touchedExtras = touchedExtras,
+            touchedCriteria = touchedCriteria,
             allExtrasDone = allExtrasDone,
             onSubmit1 = { criterionId, value ->
                 onSubmit1Request?.invoke(criterionId, value) {
+                    submittedCriteria.value = submittedCriteria.value + criterionId
                     if (criterionId == COMPACT_MAIN_CRITERION_ID) {
                         val firstUntouched = EXTRA_CRITERIA.indexOfFirst {
-                            it.id !in touchedExtras.value
+                            it.id !in touchedCriteria.value
                         }
                         if (firstUntouched >= 0) {
                             phase1ActiveIndex.intValue = firstUntouched
@@ -294,8 +297,12 @@ internal fun LollipopPickerWithIntro(
                 }
             },
             onSubmitExtrasBatch = { batch ->
-                onSubmitExtrasBatch?.invoke(batch) { /* stay on completion screen */ }
+                onSubmitExtrasBatch?.invoke(batch) {
+                    submittedCriteria.value =
+                        submittedCriteria.value + batch.map { it.criteria }
+                }
             },
+            submittedCriteria = submittedCriteria,
             modifier = modifier
         )
     } else {
@@ -319,10 +326,11 @@ private fun LargelyRecommendedSlider(
     scores: Map<String, Int>,
     onScoreChange: (String, Int) -> Unit,
     activeIndex: MutableIntState,
-    touchedExtras: MutableState<Set<String>>,
+    touchedCriteria: MutableState<Set<String>>,
     allExtrasDone: MutableState<Boolean>,
     onSubmit1: (String, Int) -> Unit,
     onSubmitExtrasBatch: (List<CriteriaScore>) -> Unit,
+    submittedCriteria: MutableState<Set<String>>,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
@@ -388,7 +396,7 @@ private fun LargelyRecommendedSlider(
                     selected = true,
                     onClick = {
                         val batch = EXTRA_CRITERIA.mapNotNull { c ->
-                            if (c.id in touchedExtras.value) {
+                            if (c.id in touchedCriteria.value) {
                                 CriteriaScore(c.id, scores[c.id] ?: 0)
                             } else {
                                 null
@@ -406,6 +414,8 @@ private fun LargelyRecommendedSlider(
                 scores = scores,
                 mainScore = mainScore,
                 activeIndex = activeIndex,
+                submittedCriteria = submittedCriteria.value,
+                touchedCriteria = touchedCriteria.value,
                 modifier = Modifier.padding(top = 4.dp),
                 onHeadClick = { idx ->
                     allExtrasDone.value = false
@@ -456,13 +466,13 @@ private fun LargelyRecommendedSlider(
                                 .coerceIn(SCORE_MIN, SCORE_MAX)
                         }
                         dispatchChange(xToScore(down.position.x))
+                        val newTouched = touchedCriteria.value + selectedCriterionId
+                        touchedCriteria.value = newTouched
                         drag(down.id) { change ->
                             dispatchChange(xToScore(change.position.x))
                             change.consume()
                         }
                         if (!isMain) {
-                            val newTouched = touchedExtras.value + selectedCriterionId
-                            touchedExtras.value = newTouched
                             val nextIdx = EXTRA_CRITERIA.indexOfFirst {
                                 it.id !in newTouched
                             }
@@ -569,14 +579,6 @@ private fun LargelyRecommendedSlider(
                 .padding(top = 4.dp, bottom = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
         ) {
-            FilterChip(
-                selected = false,
-                onClick = { dispatchChange(0) },
-                label = { Text(text = "Reset1") },
-                colors = FilterChipDefaults.filterChipColors(),
-                shape = RoundedCornerShape(8.dp),
-                border = null
-            )
             if (isMain) {
                 FilterChip(
                     selected = true,
@@ -592,6 +594,8 @@ private fun LargelyRecommendedSlider(
             scores = scores,
             mainScore = mainScore,
             activeIndex = activeIndex,
+            submittedCriteria = submittedCriteria.value,
+            touchedCriteria = touchedCriteria.value,
             modifier = Modifier.padding(top = 4.dp)
         )
         LollipopDescriptionRow(activeIndex = activeIndex.intValue)
@@ -675,15 +679,24 @@ private fun DrawScope.drawLollipopHead(
     textSizePx: Float,
     textGap: Float,
     labelPaint: AndroidPaint,
+    submitted: Boolean = false,
+    touched: Boolean = true,
     scale: Float = 1f
 ) {
     val cx = center.x
     val cy = center.y
+    // Three-state opacity: untouched → edited → submitted.
+    val ringAlpha = when {
+        submitted -> 1f
+        touched -> 0.65f
+        else -> 0.30f
+    }
+    val iconAlpha = if (touched) 1f else 0.30f
     // Selected outer ring (drawn first so head circle overdraws inner half,
     // leaving a halo flush with the border outer edge)
     if (selected) {
         drawCircle(
-            color = color.copy(alpha = 160f / 255f),
+            color = color.copy(alpha = (160f / 255f) * ringAlpha),
             radius = circleRadius + (3.dp * scale).toPx(),
             center = Offset(cx, cy),
             style = Stroke(width = (4.dp * scale).toPx())
@@ -695,7 +708,7 @@ private fun DrawScope.drawLollipopHead(
         center = Offset(cx, cy)
     )
     drawCircle(
-        color = color,
+        color = color.copy(alpha = ringAlpha),
         radius = circleRadius,
         center = Offset(cx, cy),
         style = Stroke(width = strokeWidth)
@@ -717,11 +730,11 @@ private fun DrawScope.drawLollipopHead(
     }
     translate(left = cx - halfW, top = cy - halfH + iconOffsetY) {
         with(painter) {
-            draw(size = Size(halfW * 2f, halfH * 2f))
+            draw(size = Size(halfW * 2f, halfH * 2f), alpha = iconAlpha)
         }
     }
 
-    labelPaint.color = color.toArgb()
+    labelPaint.color = color.copy(alpha = ringAlpha).toArgb()
     val txt = score.toString()
     val labelY = if (score >= 0) {
         cy - circleRadius - textGap
@@ -740,6 +753,8 @@ private fun LollipopHead(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    submitted: Boolean = false,
+    touched: Boolean = true,
     scale: Float = 1f
 ) {
     val density = LocalDensity.current
@@ -778,6 +793,8 @@ private fun LollipopHead(
             textSizePx = textSizePx,
             textGap = textGap,
             labelPaint = labelPaint,
+            submitted = submitted,
+            touched = touched,
             scale = scale
         )
     }
@@ -788,6 +805,8 @@ private fun LollipopHeadsRow(
     scores: Map<String, Int>,
     mainScore: Int,
     activeIndex: MutableIntState,
+    submittedCriteria: Set<String> = emptySet(),
+    touchedCriteria: Set<String>? = null,
     modifier: Modifier = Modifier,
     onHeadClick: ((Int) -> Unit)? = null
 ) {
@@ -828,6 +847,8 @@ private fun LollipopHeadsRow(
                     score = score,
                     dimensionId = dim.id,
                     selected = activeIndex.intValue == descIdx,
+                    submitted = dim.id in submittedCriteria,
+                    touched = touchedCriteria?.let { dim.id in it } ?: true,
                     onClick = {
                         if (onHeadClick != null) {
                             onHeadClick(descIdx)
