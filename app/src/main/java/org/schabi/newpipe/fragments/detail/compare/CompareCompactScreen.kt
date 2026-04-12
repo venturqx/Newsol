@@ -196,7 +196,6 @@ internal fun CompareCompactScreen(
     val embedInDetail = !reserveMiniPlayerSpace
     val pickerActiveIndex = remember { mutableIntStateOf(-1) }
     val pickerDragScore = remember { mutableStateOf<Int?>(null) }
-    val pickerPhase = remember { mutableIntStateOf(1) }
     var showHistoryOverlay by remember { mutableStateOf(false) }
     var hasOpenedHistoryOverlay by rememberSaveable { mutableStateOf(false) }
     val overlayGridColumns = 1
@@ -885,7 +884,6 @@ internal fun CompareCompactScreen(
                                         .padding(horizontal = horizontalPadding),
                                     hoistedActiveIndex = if (embedInDetail) pickerActiveIndex else null,
                                     hoistedDragScore = pickerDragScore,
-                                    hoistedPhase = pickerPhase,
                                     showDescription = !embedInDetail,
                                     onSubmit1Request = onSubmitCriterion,
                                     onSubmitExtrasBatch = onSubmitExtrasBatch
@@ -911,27 +909,6 @@ internal fun CompareCompactScreen(
                                 letterSpacing = TextUnit(0.04f, TextUnitType.Em)
                             )
                             val diceEnabled = !state.suggestionsLoading
-                            Surface(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clickable {
-                                        pickerPhase.intValue =
-                                            if (pickerPhase.intValue == 1) 2 else 1
-                                    },
-                                shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFFFFD54F).copy(alpha = 0.15f)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Text(
-                                        text = if (pickerPhase.intValue == 1) "9" else "1",
-                                        style = chipTextStyle.copy(
-                                            color = Color(0xFFFFD54F),
-                                            fontSize = 16.sp
-                                        )
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.width(6.dp))
                             Surface(
                                 modifier = Modifier
                                     .size(36.dp)
@@ -975,10 +952,6 @@ internal fun CompareCompactScreen(
                                 shape = chipShape,
                                 border = null
                             )
-                        }
-
-                        if (embedInDetail && pickerPhase.intValue == 2) {
-                            LollipopDescriptionRow(activeIndex = pickerActiveIndex.intValue)
                         }
                     }
                 }
