@@ -284,16 +284,6 @@ internal fun LollipopPickerWithIntro(
             onSubmit1 = { criterionId, value ->
                 onSubmit1Request?.invoke(criterionId, value) {
                     submittedCriteria.value = submittedCriteria.value + criterionId
-                    if (criterionId == COMPACT_MAIN_CRITERION_ID) {
-                        val firstUntouched = EXTRA_CRITERIA.indexOfFirst {
-                            it.id !in touchedCriteria.value
-                        }
-                        if (firstUntouched >= 0) {
-                            phase1ActiveIndex.intValue = firstUntouched
-                        } else {
-                            allExtrasDone.value = true
-                        }
-                    }
                 }
             },
             onSubmitExtrasBatch = { batch ->
@@ -477,6 +467,14 @@ private fun LargelyRecommendedSlider(
                         }
                         if (isMain) {
                             currentOnSubmit1(selectedCriterionId, finalScore)
+                            val firstUntouched = EXTRA_CRITERIA.indexOfFirst {
+                                it.id !in newTouched
+                            }
+                            if (firstUntouched >= 0) {
+                                activeIndex.intValue = firstUntouched
+                            } else {
+                                allExtrasDone.value = true
+                            }
                         } else {
                             val nextIdx = EXTRA_CRITERIA.indexOfFirst {
                                 it.id !in newTouched
