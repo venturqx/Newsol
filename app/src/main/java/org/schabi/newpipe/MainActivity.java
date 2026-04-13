@@ -388,8 +388,10 @@ public class MainActivity extends AppCompatActivity {
         drawerHeaderBinding.drawerHeaderActionButton.setOnClickListener(view -> toggleServices());
 
         drawerHeaderBinding.drawerHeaderLoginButton.setOnClickListener(view -> {
-            TournesolLoginDialog.create(this::updateProfileHeader)
-                    .show(getSupportFragmentManager(), null);
+            TournesolLoginDialog.create(() -> {
+                updateProfileHeader();
+                notifyCompareAuthChanged();
+            }).show(getSupportFragmentManager(), null);
         });
 
         drawerHeaderBinding.drawerHeaderRegisterButton.setOnClickListener(view -> {
@@ -403,6 +405,7 @@ public class MainActivity extends AppCompatActivity {
         drawerHeaderBinding.drawerHeaderLogoutButton.setOnClickListener(view -> {
             TournesolAuthManager.INSTANCE.clearAuthState(this);
             updateProfileHeader();
+            notifyCompareAuthChanged();
         });
 
         updateProfileHeader();
@@ -459,6 +462,14 @@ public class MainActivity extends AppCompatActivity {
             drawerHeaderBinding.drawerHeaderLogoutButton.setVisibility(View.GONE);
             drawerHeaderBinding.drawerHeaderLoginButton.setVisibility(View.VISIBLE);
             drawerHeaderBinding.drawerHeaderRegisterButton.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void notifyCompareAuthChanged() {
+        final Fragment fragment = getSupportFragmentManager()
+                .findFragmentById(R.id.fragment_holder);
+        if (fragment instanceof MainFragment) {
+            ((MainFragment) fragment).notifyAuthChanged();
         }
     }
 

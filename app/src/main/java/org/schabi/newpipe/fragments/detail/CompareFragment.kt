@@ -1293,6 +1293,7 @@ class CompareFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        refreshUserInfo()
         consumePendingOpenComparisons()
     }
 
@@ -1313,7 +1314,7 @@ class CompareFragment : Fragment() {
             )
     }
 
-    private fun refreshUserInfo() {
+    fun refreshUserInfo() {
         val ctx = context ?: return
         username = TournesolAuthManager.getUsername(ctx)
         comparisonCount = TournesolAuthManager.getComparisonCount(ctx)

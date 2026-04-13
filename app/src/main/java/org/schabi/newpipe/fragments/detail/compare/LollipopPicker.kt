@@ -295,6 +295,7 @@ internal fun LollipopPickerWithIntro(
                 }
             },
             submittedCriteria = submittedCriteria,
+            hoistedDragScore = hoistedDragScore,
             modifier = modifier
         )
     } else {
@@ -323,6 +324,7 @@ private fun LargelyRecommendedSlider(
     onSubmit1: (String, Int) -> Unit,
     onSubmitExtrasBatch: (List<CriteriaScore>) -> Unit,
     submittedCriteria: MutableState<Set<String>>,
+    hoistedDragScore: MutableState<Int?>? = null,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
@@ -364,6 +366,8 @@ private fun LargelyRecommendedSlider(
         else -> neutralLabel
     }
     var showCriteriaDesc by remember { mutableStateOf(false) }
+    var isDragging by remember { mutableStateOf(false) }
+    var isInCancelZone by remember { mutableStateOf(false) }
     LaunchedEffect(activeIndex.intValue) { showCriteriaDesc = false }
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -456,39 +460,55 @@ private fun LargelyRecommendedSlider(
                         hostView.parent?.requestDisallowInterceptTouchEvent(true)
                         val left = sidePaddingPx
                         val right = size.width - sidePaddingPx
+                        val canvasBottom = size.height.toFloat()
                         fun xToScore(x: Float): Int {
                             val ratio = ((x - left) / (right - left)).coerceIn(0f, 1f)
                             return (ratio * 200f - 100f)
                                 .roundToInt()
                                 .coerceIn(SCORE_MIN, SCORE_MAX)
                         }
+                        val scoreBeforeDrag = currentScore
                         var finalScore = xToScore(down.position.x)
+                        isDragging = true
+                        isInCancelZone = false
+                        hoistedDragScore?.value = finalScore
                         dispatchChange(finalScore)
                         val newTouched = touchedCriteria.value + selectedCriterionId
                         touchedCriteria.value = newTouched
                         drag(down.id) { change ->
                             finalScore = xToScore(change.position.x)
+                            isInCancelZone = change.position.y > canvasBottom
+                            hoistedDragScore?.value = finalScore
                             dispatchChange(finalScore)
                             change.consume()
                         }
-                        if (isMain) {
-                            currentOnSubmit1(selectedCriterionId, finalScore)
-                            val firstUntouched = EXTRA_CRITERIA.indexOfFirst {
-                                it.id !in newTouched
-                            }
-                            if (firstUntouched >= 0) {
-                                activeIndex.intValue = firstUntouched
-                            } else {
-                                allExtrasDone.value = true
-                            }
+                        isDragging = false
+                        hoistedDragScore?.value = null
+                        if (isInCancelZone) {
+                            // Cancel: restore original score, don't advance
+                            isInCancelZone = false
+                            dispatchChange(scoreBeforeDrag)
+                            touchedCriteria.value = touchedCriteria.value - selectedCriterionId
                         } else {
-                            val nextIdx = EXTRA_CRITERIA.indexOfFirst {
-                                it.id !in newTouched
-                            }
-                            if (nextIdx >= 0) {
-                                activeIndex.intValue = nextIdx
+                            if (isMain) {
+                                currentOnSubmit1(selectedCriterionId, finalScore)
+                                val firstUntouched = EXTRA_CRITERIA.indexOfFirst {
+                                    it.id !in newTouched
+                                }
+                                if (firstUntouched >= 0) {
+                                    activeIndex.intValue = firstUntouched
+                                } else {
+                                    allExtrasDone.value = true
+                                }
                             } else {
-                                allExtrasDone.value = true
+                                val nextIdx = EXTRA_CRITERIA.indexOfFirst {
+                                    it.id !in newTouched
+                                }
+                                if (nextIdx >= 0) {
+                                    activeIndex.intValue = nextIdx
+                                } else {
+                                    allExtrasDone.value = true
+                                }
                             }
                         }
                     }
@@ -553,42 +573,53 @@ private fun LargelyRecommendedSlider(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 32.dp)
+                .padding(horizontal = 32.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = qLine.leftArrow,
-                color = blue,
-                fontSize = 13.sp,
-                modifier = Modifier.align(Alignment.CenterStart)
-            )
-            Row(
-                modifier = Modifier.align(Alignment.Center),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            if (isDragging && isInCancelZone) {
                 Text(
-                    text = buildAnnotatedString {
-                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                            append(qLine.qualifier)
-                        }
-                        append(qLine.tail)
-                    },
-                    color = Color.White.copy(alpha = 0.9f),
-                    fontSize = 13.sp,
+                    text = "CANCEL",
+                    color = red,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )
+            } else {
                 Text(
-                    text = " ⓘ",
-                    color = Color.White.copy(alpha = if (showCriteriaDesc) 0.5f else 0.2f),
-                    fontSize = 11.sp,
-                    modifier = Modifier.clickable { showCriteriaDesc = !showCriteriaDesc }
+                    text = qLine.leftArrow,
+                    color = blue,
+                    fontSize = 13.sp,
+                    modifier = Modifier.align(Alignment.CenterStart)
+                )
+                Row(
+                    modifier = Modifier.align(Alignment.Center),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = buildAnnotatedString {
+                            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                append(qLine.qualifier)
+                            }
+                            append(qLine.tail)
+                        },
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 13.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = " ⓘ",
+                        color = Color.White.copy(alpha = if (showCriteriaDesc) 0.5f else 0.2f),
+                        fontSize = 11.sp,
+                        modifier = Modifier.clickable { showCriteriaDesc = !showCriteriaDesc }
+                    )
+                }
+                Text(
+                    text = qLine.rightArrow,
+                    color = red,
+                    fontSize = 13.sp,
+                    modifier = Modifier.align(Alignment.CenterEnd)
                 )
             }
-            Text(
-                text = qLine.rightArrow,
-                color = red,
-                fontSize = 13.sp,
-                modifier = Modifier.align(Alignment.CenterEnd)
-            )
         }
         LollipopHeadsRow(
             scores = scores,

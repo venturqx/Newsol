@@ -73,10 +73,13 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
@@ -875,39 +878,54 @@ internal fun CompareCompactScreen(
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            val touchedExtras = pickerTouchedCriteria.value
-                                .count { it != COMPACT_MAIN_CRITERION_ID }
+                            val currentExtra = (pickerActiveIndex.intValue + 1).coerceIn(0, 9)
                             val statusAlpha = 0.55f
-                            // Text A — main criterion
-                            val textA = when {
-                                state.submitInProgress && !state.submitted ->
-                                    "Submitting main"
+                            val isDragging = pickerDragScore.value != null
+                            if (isDragging) {
+                                val cancelText = buildAnnotatedString {
+                                    withStyle(SpanStyle(color = Color.White.copy(alpha = statusAlpha))) {
+                                        append("Slide down to ")
+                                    }
+                                    withStyle(SpanStyle(color = Color(0xFFE57373))) {
+                                        append("CANCEL")
+                                    }
+                                    withStyle(SpanStyle(color = Color.White.copy(alpha = statusAlpha))) {
+                                        append(".")
+                                    }
+                                }
+                                Text(text = cancelText, fontSize = 11.sp)
+                            } else {
+                                // Text A — main criterion
+                                val textA = when {
+                                    state.submitInProgress && !state.submitted ->
+                                        "Submitting main"
 
-                                state.submitted -> "Submitted main"
+                                    state.submitted -> "Submitted main"
 
-                                else -> "Please rate"
+                                    else -> "Please rate"
+                                }
+                                Text(
+                                    text = "$textA ",
+                                    color = Color.White.copy(alpha = statusAlpha),
+                                    fontSize = 11.sp
+                                )
+                                Image(
+                                    painter = painterResource(R.drawable.logo_small),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                // Text B — extra criteria
+                                val textB = when {
+                                    state.submitMoreInProgress -> " - Submitting extra.."
+                                    state.extraSubmitted -> " - Submitted extra"
+                                    else -> " - Rating extra $currentExtra/9"
+                                }
+                                Text(
+                                    text = textB,
+                                    color = Color.White.copy(alpha = statusAlpha),
+                                    fontSize = 11.sp
+                                )
                             }
-                            Text(
-                                text = "$textA ",
-                                color = Color.White.copy(alpha = statusAlpha),
-                                fontSize = 11.sp
-                            )
-                            Image(
-                                painter = painterResource(R.drawable.logo_small),
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            // Text B — extra criteria
-                            val textB = when {
-                                state.submitMoreInProgress -> " Submitting extra.."
-                                state.extraSubmitted -> " Submitted extra"
-                                else -> " Rating extra $touchedExtras/9"
-                            }
-                            Text(
-                                text = textB,
-                                color = Color.White.copy(alpha = statusAlpha),
-                                fontSize = 11.sp
-                            )
                         }
 
                         Row(

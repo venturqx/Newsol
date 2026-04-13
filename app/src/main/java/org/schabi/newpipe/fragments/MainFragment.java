@@ -296,6 +296,18 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
         }
     }
 
+    public void notifyAuthChanged() {
+        if (pagerAdapter == null || tabsList == null) {
+            return;
+        }
+        for (int i = 0; i < tabsList.size(); i++) {
+            final Fragment f = (Fragment) pagerAdapter.instantiateItem(binding.pager, i);
+            if (f instanceof CompareFragment) {
+                ((CompareFragment) f).refreshUserInfo();
+            }
+        }
+    }
+
     private void updateTabsIconAndDescription() {
         for (int i = 0; i < tabsList.size(); i++) {
             final TabLayout.Tab tabToSet = binding.mainTabLayout.getTabAt(i);
