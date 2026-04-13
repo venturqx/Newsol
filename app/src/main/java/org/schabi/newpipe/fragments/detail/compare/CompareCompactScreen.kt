@@ -214,6 +214,7 @@ internal fun CompareCompactScreen(
     val rightEntries = state.historyEntries
     var leftHistoryIndex by rememberSaveable { mutableIntStateOf(0) }
     var rightHistoryIndex by rememberSaveable { mutableIntStateOf(0) }
+    var initialPairSeeded by rememberSaveable { mutableStateOf(false) }
     var historyOverlayIndex by rememberSaveable { mutableIntStateOf(0) }
     var historyOverlayPage by rememberSaveable { mutableIntStateOf(0) }
     var activeOverlayTarget by remember { mutableStateOf(OverlayTarget.LEFT) }
@@ -298,6 +299,15 @@ internal fun CompareCompactScreen(
                 rightHistoryIndex = rightHistoryIndex.coerceIn(0, rightMax)
             } else {
                 rightHistoryIndex = 0
+            }
+            if (!initialPairSeeded &&
+                state.currentEntry == null &&
+                !hasSuggestedLeft && !hasSuggestedRight &&
+                leftEntries.isNotEmpty() && rightEntries.size >= 2 &&
+                leftHistoryIndex == 0 && rightHistoryIndex == 0
+            ) {
+                rightHistoryIndex = 1
+                initialPairSeeded = true
             }
         }
     }
@@ -934,10 +944,52 @@ internal fun CompareCompactScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             val diceEnabled = !state.suggestionsLoading
+                            val randomizeLeftFallback: () -> Unit = {
+                                if (hasSuggestedLeft || hasSuggestedRight) {
+                                    onRandomizeLeft()
+                                } else if (leftEntries.size >= 2) {
+                                    val excluded = rightHistoryIndex
+                                        .takeIf { rightEntries.isNotEmpty() }
+                                        ?.let { rightEntries.getOrNull(it)?.streamId }
+                                    val candidates = leftEntries.indices.filter { idx ->
+                                        idx != leftHistoryIndex &&
+                                            (excluded == null || leftEntries[idx].streamId != excluded)
+                                    }
+                                    val pool = if (candidates.isNotEmpty()) {
+                                        candidates
+                                    } else {
+                                        leftEntries.indices.filter { it != leftHistoryIndex }
+                                    }
+                                    if (pool.isNotEmpty()) {
+                                        leftHistoryIndex = pool[(Math.random() * pool.size).toInt()]
+                                    }
+                                }
+                            }
+                            val randomizeRightFallback: () -> Unit = {
+                                if (hasSuggestedLeft || hasSuggestedRight) {
+                                    onRandomizeRight()
+                                } else if (rightEntries.size >= 2) {
+                                    val excluded = leftHistoryIndex
+                                        .takeIf { leftEntries.isNotEmpty() }
+                                        ?.let { leftEntries.getOrNull(it)?.streamId }
+                                    val candidates = rightEntries.indices.filter { idx ->
+                                        idx != rightHistoryIndex &&
+                                            (excluded == null || rightEntries[idx].streamId != excluded)
+                                    }
+                                    val pool = if (candidates.isNotEmpty()) {
+                                        candidates
+                                    } else {
+                                        rightEntries.indices.filter { it != rightHistoryIndex }
+                                    }
+                                    if (pool.isNotEmpty()) {
+                                        rightHistoryIndex = pool[(Math.random() * pool.size).toInt()]
+                                    }
+                                }
+                            }
                             Surface(
                                 modifier = Modifier
                                     .size(36.dp)
-                                    .clickable(enabled = diceEnabled) { onRandomizeLeft() },
+                                    .clickable(enabled = diceEnabled) { randomizeLeftFallback() },
                                 shape = RoundedCornerShape(8.dp),
                                 color = Color(0xFF42A5F5).copy(alpha = 0.15f)
                             ) {
@@ -954,7 +1006,7 @@ internal fun CompareCompactScreen(
                             Surface(
                                 modifier = Modifier
                                     .size(36.dp)
-                                    .clickable(enabled = diceEnabled) { onRandomizeRight() },
+                                    .clickable(enabled = diceEnabled) { randomizeRightFallback() },
                                 shape = RoundedCornerShape(8.dp),
                                 color = Color(0xFFE57373).copy(alpha = 0.15f)
                             ) {
