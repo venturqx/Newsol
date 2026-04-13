@@ -477,7 +477,7 @@ private fun LargelyRecommendedSlider(
                         touchedCriteria.value = newTouched
                         drag(down.id) { change ->
                             finalScore = xToScore(change.position.x)
-                            isInCancelZone = change.position.y > canvasBottom
+                            isInCancelZone = change.position.y < 0f
                             hoistedDragScore?.value = finalScore
                             dispatchChange(finalScore)
                             change.consume()

@@ -884,7 +884,7 @@ internal fun CompareCompactScreen(
                             if (isDragging) {
                                 val cancelText = buildAnnotatedString {
                                     withStyle(SpanStyle(color = Color.White.copy(alpha = statusAlpha))) {
-                                        append("Slide down to ")
+                                        append("Slide up to ")
                                     }
                                     withStyle(SpanStyle(color = Color(0xFFE57373))) {
                                         append("CANCEL")
