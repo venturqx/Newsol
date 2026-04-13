@@ -571,6 +571,7 @@ class CompareFragment : Fragment() {
             return
         }
         val key = resolveCompactCompareKey() ?: return
+        val alreadySubmitted = submittedComparisons.contains(key)
 
         submitInProgress = true
         disposables.add(
@@ -580,12 +581,21 @@ class CompareFragment : Fragment() {
                     io.reactivex.rxjava3.core.Maybe.error(MissingTokenException())
                 )
                 .flatMapSingle { token ->
-                    CompareRepository.submitComparison(
-                        token,
-                        key.lastUid,
-                        key.currentUid,
-                        score
-                    )
+                    if (alreadySubmitted) {
+                        CompareRepository.patchComparison(
+                            token,
+                            key.lastUid,
+                            key.currentUid,
+                            listOf(CriteriaScore(COMPACT_MAIN_CRITERION_ID, score))
+                        )
+                    } else {
+                        CompareRepository.submitComparison(
+                            token,
+                            key.lastUid,
+                            key.currentUid,
+                            score
+                        )
+                    }
                 }
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
@@ -593,11 +603,18 @@ class CompareFragment : Fragment() {
                         submitInProgress = false
                         markSubmitted(key.lastUid, key.currentUid)
                         storeSubmittedScores(key, mainScore = score)
-                        TournesolAuthManager.incrementComparisonCount(requireContext())
-                        refreshUserInfo()
+                        if (!alreadySubmitted) {
+                            TournesolAuthManager.incrementComparisonCount(requireContext())
+                            refreshUserInfo()
+                        }
+                        val toastRes = if (alreadySubmitted) {
+                            R.string.compare_score_updated
+                        } else {
+                            messageRes
+                        }
                         Toast.makeText(
                             requireContext(),
-                            getString(messageRes),
+                            getString(toastRes),
                             Toast.LENGTH_LONG
                         ).show()
                         onSuccess()
@@ -635,6 +652,7 @@ class CompareFragment : Fragment() {
         }
         val key = resolveCompactCompareKey() ?: return
         val criteriaScores = listOf(CriteriaScore(criterionId, value))
+        val alreadySubmitted = submittedComparisons.contains(key)
 
         submitInProgress = true
         disposables.add(
@@ -644,22 +662,20 @@ class CompareFragment : Fragment() {
                     io.reactivex.rxjava3.core.Maybe.error(MissingTokenException())
                 )
                 .flatMapSingle { token ->
-                    CompareRepository.submitComparisonWithCriteria(
-                        token,
-                        key.lastUid,
-                        key.currentUid,
-                        criteriaScores
-                    ).flatMap { messageRes ->
-                        if (messageRes == R.string.compare_already_submitted) {
-                            CompareRepository.patchComparison(
-                                token,
-                                key.lastUid,
-                                key.currentUid,
-                                criteriaScores
-                            )
-                        } else {
-                            io.reactivex.rxjava3.core.Single.just(messageRes)
-                        }
+                    if (alreadySubmitted) {
+                        CompareRepository.patchComparison(
+                            token,
+                            key.lastUid,
+                            key.currentUid,
+                            criteriaScores
+                        )
+                    } else {
+                        CompareRepository.submitComparisonWithCriteria(
+                            token,
+                            key.lastUid,
+                            key.currentUid,
+                            criteriaScores
+                        )
                     }
                 }
                 .observeOn(AndroidSchedulers.mainThread())
@@ -671,9 +687,14 @@ class CompareFragment : Fragment() {
                             extraScores = (storedScores[key.toStorage()]?.extraScores.orEmpty()) +
                                 (criterionId to value)
                         )
+                        val toastRes = if (alreadySubmitted) {
+                            R.string.compare_score_updated
+                        } else {
+                            messageRes
+                        }
                         Toast.makeText(
                             requireContext(),
-                            getString(messageRes),
+                            getString(toastRes),
                             Toast.LENGTH_LONG
                         ).show()
                         onSuccess()
