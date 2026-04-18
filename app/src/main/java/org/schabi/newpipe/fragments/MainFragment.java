@@ -38,6 +38,7 @@ import org.schabi.newpipe.databinding.FragmentMainBinding;
 import org.schabi.newpipe.error.ErrorInfo;
 import org.schabi.newpipe.error.ErrorUtil;
 import org.schabi.newpipe.error.UserAction;
+import org.schabi.newpipe.fragments.detail.CompareFragment;
 import org.schabi.newpipe.local.playlist.LocalPlaylistFragment;
 import org.schabi.newpipe.settings.tabs.Tab;
 import org.schabi.newpipe.settings.tabs.TabsManager;
@@ -249,6 +250,8 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
             type = Tab.Type.TOURNESOL;
         } else if ("LIVE".equals(selectedType)) {
             type = Tab.Type.LIVE;
+        } else if ("COMPARE".equals(selectedType)) {
+            type = Tab.Type.COMPARE;
         }
 
         if (type == null) {
@@ -272,6 +275,36 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
             updateTitleForTab(defaultTabIndex);
         } else {
             updateTitleForTab(binding.pager.getCurrentItem());
+        }
+    }
+
+    public void selectTabById(final int tabId) {
+        for (int i = 0; i < tabsList.size(); i++) {
+            if (tabsList.get(i).getTabId() == tabId) {
+                if (binding.pager.getCurrentItem() == i) {
+                    // Already on this tab — notify fragment directly
+                    final Fragment f = (Fragment) pagerAdapter.instantiateItem(binding.pager, i);
+                    if (f instanceof CompareFragment) {
+                        ((CompareFragment) f).consumePendingOpenComparisons();
+                    }
+                } else {
+                    binding.pager.setCurrentItem(i, true);
+                }
+                updateTitleForTab(i);
+                return;
+            }
+        }
+    }
+
+    public void notifyAuthChanged() {
+        if (pagerAdapter == null || tabsList == null) {
+            return;
+        }
+        for (int i = 0; i < tabsList.size(); i++) {
+            final Fragment f = (Fragment) pagerAdapter.instantiateItem(binding.pager, i);
+            if (f instanceof CompareFragment) {
+                ((CompareFragment) f).refreshUserInfo();
+            }
         }
     }
 

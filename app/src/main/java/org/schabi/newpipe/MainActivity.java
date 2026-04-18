@@ -26,6 +26,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -388,8 +389,10 @@ public class MainActivity extends AppCompatActivity {
         drawerHeaderBinding.drawerHeaderActionButton.setOnClickListener(view -> toggleServices());
 
         drawerHeaderBinding.drawerHeaderLoginButton.setOnClickListener(view -> {
-            TournesolLoginDialog.create(this::updateProfileHeader)
-                    .show(getSupportFragmentManager(), null);
+            TournesolLoginDialog.create(() -> {
+                updateProfileHeader();
+                notifyCompareAuthChanged();
+            }).show(getSupportFragmentManager(), null);
         });
 
         drawerHeaderBinding.drawerHeaderRegisterButton.setOnClickListener(view -> {
@@ -400,8 +403,10 @@ public class MainActivity extends AppCompatActivity {
             CompareHistoryActivity.start(this);
         });
 
-        drawerHeaderBinding.drawerHeaderSeeStatsButton.setOnClickListener(view -> {
-            // TODO: navigate to stats screen
+        drawerHeaderBinding.drawerHeaderLogoutButton.setOnClickListener(view -> {
+            TournesolAuthManager.INSTANCE.clearAuthState(this);
+            updateProfileHeader();
+            notifyCompareAuthChanged();
         });
 
         updateProfileHeader();
@@ -411,37 +416,61 @@ public class MainActivity extends AppCompatActivity {
         final String username = TournesolAuthManager.INSTANCE.getUsername(this);
         if (username != null) {
             final String greeting = getString(R.string.tournesol_hi_greeting) + " ";
-            final String comma = ",";
             final android.text.SpannableStringBuilder ssb =
                     new android.text.SpannableStringBuilder();
             ssb.append(greeting);
-            ssb.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.NORMAL),
-                    0, greeting.length(),
-                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            ssb.setSpan(new android.text.style.ForegroundColorSpan(0xAAF3F3F3),
-                    0, greeting.length(),
-                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             final int nameStart = ssb.length();
             ssb.append(username);
-            ssb.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
-                    nameStart, ssb.length(),
+            ssb.append("  "); // space before icon
+            ssb.setSpan(new android.text.style.TypefaceSpan("sans-serif-medium"),
+                    nameStart, nameStart + username.length(),
                     android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            ssb.append(comma);
-            ssb.setSpan(new android.text.style.ForegroundColorSpan(0xAAF3F3F3),
-                    ssb.length() - comma.length(), ssb.length(),
-                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            final int textSizePx = (int) drawerHeaderBinding.drawerHeaderProfileUsername
+                    .getTextSize();
+            final android.graphics.drawable.Drawable logo =
+                    androidx.core.content.ContextCompat.getDrawable(this, R.drawable.logo_small);
+            if (logo != null) {
+                logo.setBounds(0, 0, textSizePx, textSizePx);
+                final android.text.style.ImageSpan logoSpan =
+                        new android.text.style.ImageSpan(logo,
+                                android.text.style.ImageSpan.ALIGN_CENTER);
+                final int iconPos = ssb.length() - 1;
+                ssb.setSpan(logoSpan, iconPos, ssb.length(),
+                        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            final Integer comparisonCount =
+                    TournesolAuthManager.INSTANCE.getComparisonCount(this);
+            if (comparisonCount != null) {
+                ssb.append(" ");
+                final int countStart = ssb.length();
+                ssb.append(String.valueOf(comparisonCount));
+                ssb.setSpan(new android.text.style.ForegroundColorSpan(0x99FFFFFF),
+                        countStart, ssb.length(),
+                        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                ssb.setSpan(new android.text.style.RelativeSizeSpan(0.85f),
+                        countStart, ssb.length(),
+                        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
             drawerHeaderBinding.drawerHeaderProfileUsername.setText(ssb);
             drawerHeaderBinding.drawerHeaderProfileUsername.setVisibility(View.VISIBLE);
             drawerHeaderBinding.drawerHeaderSeeHistoryButton.setVisibility(View.VISIBLE);
-            drawerHeaderBinding.drawerHeaderSeeStatsButton.setVisibility(View.VISIBLE);
+            drawerHeaderBinding.drawerHeaderLogoutButton.setVisibility(View.VISIBLE);
             drawerHeaderBinding.drawerHeaderLoginButton.setVisibility(View.GONE);
             drawerHeaderBinding.drawerHeaderRegisterButton.setVisibility(View.GONE);
         } else {
             drawerHeaderBinding.drawerHeaderProfileUsername.setVisibility(View.GONE);
             drawerHeaderBinding.drawerHeaderSeeHistoryButton.setVisibility(View.GONE);
-            drawerHeaderBinding.drawerHeaderSeeStatsButton.setVisibility(View.GONE);
+            drawerHeaderBinding.drawerHeaderLogoutButton.setVisibility(View.GONE);
             drawerHeaderBinding.drawerHeaderLoginButton.setVisibility(View.VISIBLE);
             drawerHeaderBinding.drawerHeaderRegisterButton.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void notifyCompareAuthChanged() {
+        final Fragment fragment = getSupportFragmentManager()
+                .findFragmentById(R.id.fragment_holder);
+        if (fragment instanceof MainFragment) {
+            ((MainFragment) fragment).notifyAuthChanged();
         }
     }
 
@@ -540,6 +569,20 @@ public class MainActivity extends AppCompatActivity {
         if (broadcastReceiver != null) {
             unregisterReceiver(broadcastReceiver);
         }
+    }
+
+    @Override
+    public void onConfigurationChanged(@NonNull final Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        final Fragment fragment = getSupportFragmentManager()
+                .findFragmentById(R.id.fragment_holder);
+        if (fragment instanceof VideoDetailFragment
+                && ((VideoDetailFragment) fragment).shouldHandleOrientationChangeInPlace()) {
+            return;
+        }
+
+        ActivityCompat.recreate(this);
     }
 
     @Override

@@ -17,99 +17,96 @@
         android:orientation="vertical"
         app:layout_constraintTop_toTopOf="parent">
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginBottom="4dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:background="#80FFD600" />
-
         <LinearLayout
-            android:id="@+id/drawer_header_profile_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginTop="8dp"
-            android:orientation="vertical">
-
-            <org.schabi.newpipe.views.NewPipeTextView
-                android:id="@+id/drawer_header_profile_username"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/tournesol_soft_white"
-                android:textSize="17sp"
-                android:letterSpacing="0.01"
-                android:visibility="gone"
-                tools:text="Hi user,"
-                tools:visibility="visible" />
+            android:background="@drawable/bg_tournesol_section"
+            android:orientation="vertical"
+            android:paddingTop="12dp"
+            android:paddingBottom="4dp">
 
             <LinearLayout
+                android:id="@+id/drawer_header_profile_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:orientation="vertical"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp">
 
-                <Button
-                    android:id="@+id/drawer_header_login_button"
-                    style="@style/Widget.AppCompat.Button.Borderless"
+                <org.schabi.newpipe.views.NewPipeTextView
+                    android:id="@+id/drawer_header_profile_username"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/tournesol_login_button"
-                    android:textAllCaps="false"
+                    android:textColor="@color/tournesol_soft_white"
+                    android:textSize="15sp"
+                    android:letterSpacing="0.02"
                     android:visibility="gone"
+                    tools:text="Hi user,"
                     tools:visibility="visible" />
 
-                <Button
-                    android:id="@+id/drawer_header_register_button"
-                    style="@style/Widget.AppCompat.Button.Borderless"
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/tournesol_register_button"
-                    android:textAllCaps="false"
-                    android:visibility="gone"
-                    tools:visibility="visible" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <Button
+                        android:id="@+id/drawer_header_login_button"
+                        style="@style/Widget.AppCompat.Button.Borderless"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/tournesol_login_button"
+                        android:textAllCaps="false"
+                        android:visibility="gone"
+                        tools:visibility="visible" />
+
+                    <Button
+                        android:id="@+id/drawer_header_register_button"
+                        style="@style/Widget.AppCompat.Button.Borderless"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/tournesol_register_button"
+                        android:textAllCaps="false"
+                        android:visibility="gone"
+                        tools:visibility="visible" />
+                </LinearLayout>
             </LinearLayout>
+
+            <TextView
+                android:id="@+id/drawer_header_see_history_button"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackground"
+                android:drawableStart="@drawable/ic_history"
+                android:drawablePadding="32dp"
+                android:drawableTint="@color/tournesol_soft_white"
+                android:gravity="center_vertical"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:text="@string/compare_see_history"
+                android:textColor="@color/tournesol_soft_white"
+                android:textSize="14sp"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <TextView
+                android:id="@+id/drawer_header_logout_button"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackground"
+                android:drawableStart="@drawable/ic_logout"
+                android:drawablePadding="32dp"
+                android:drawableTint="@color/tournesol_soft_white"
+                android:gravity="center_vertical"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:text="@string/tournesol_logout_button"
+                android:textColor="@color/tournesol_soft_white"
+                android:textSize="14sp"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
         </LinearLayout>
-
-        <Button
-            android:id="@+id/drawer_header_see_history_button"
-            style="@style/Widget.AppCompat.Button.Borderless"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:gravity="center_vertical|start"
-            android:drawableStart="@drawable/ic_history"
-            android:drawablePadding="32dp"
-            android:text="@string/compare_see_history"
-            android:textAllCaps="false"
-            android:visibility="gone"
-            tools:visibility="visible" />
-
-        <Button
-            android:id="@+id/drawer_header_see_stats_button"
-            style="@style/Widget.AppCompat.Button.Borderless"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:gravity="center_vertical|start"
-            android:drawableStart="@drawable/ic_trending_up"
-            android:drawablePadding="32dp"
-            android:text="@string/compare_see_stats"
-            android:textAllCaps="false"
-            android:visibility="gone"
-            tools:visibility="visible" />
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginTop="4dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:background="#80FFD600" />
 
         <LinearLayout
             android:id="@+id/drawer_header_action_button"
