@@ -1,9 +1,25 @@
 package org.schabi.newpipe.info_list.holder;
 
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.drawable.Drawable;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
 import android.text.TextUtils;
+import android.graphics.Typeface;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.ImageSpan;
+import android.text.style.RelativeSizeSpan;
+import android.text.style.StyleSpan;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
+
+import androidx.annotation.DrawableRes;
+import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 
 import org.schabi.newpipe.R;
 import org.schabi.newpipe.extractor.InfoItem;
@@ -12,6 +28,7 @@ import org.schabi.newpipe.extractor.stream.StreamType;
 import org.schabi.newpipe.info_list.InfoItemBuilder;
 import org.schabi.newpipe.local.history.HistoryRecordManager;
 import org.schabi.newpipe.util.Localization;
+import org.schabi.newpipe.util.TournesolHelper;
 
 /*
  * Created by Christian Schabesberger on 01.08.16.
@@ -39,6 +56,10 @@ import org.schabi.newpipe.util.Localization;
 
 public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
     public final TextView itemAdditionalDetails;
+    private final TextView itemInlineBestArrow;
+    private final ImageView itemInlineBestIcon;
+    private final TextView itemInlineWorstArrow;
+    private final ImageView itemInlineWorstIcon;
 
     public StreamInfoItemHolder(final InfoItemBuilder infoItemBuilder, final ViewGroup parent) {
         this(infoItemBuilder, R.layout.list_stream_item, parent);
@@ -48,6 +69,10 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
                                 final ViewGroup parent) {
         super(infoItemBuilder, layoutId, parent);
         itemAdditionalDetails = itemView.findViewById(R.id.itemAdditionalDetails);
+        itemInlineBestArrow = itemView.findViewById(R.id.itemInlineBestArrow);
+        itemInlineBestIcon = itemView.findViewById(R.id.itemInlineBestIcon);
+        itemInlineWorstArrow = itemView.findViewById(R.id.itemInlineWorstArrow);
+        itemInlineWorstIcon = itemView.findViewById(R.id.itemInlineWorstIcon);
     }
 
     @Override
@@ -60,41 +85,195 @@ public class StreamInfoItemHolder extends StreamMiniInfoItemHolder {
         }
         final StreamInfoItem item = (StreamInfoItem) infoItem;
 
-        String details = getStreamInfoDetailLine(item);
-        if (item.getTournesolScore() != null && !TextUtils.isEmpty(details)) {
-            details = "\u2022 " + details;
+        final SpannableStringBuilder details = buildCompactDetailLine(item);
+
+        if (details.length() > 0) {
+            itemAdditionalDetails.setText(details);
+            itemAdditionalDetails.setVisibility(View.VISIBLE);
+        } else {
+            itemAdditionalDetails.setVisibility(View.GONE);
         }
-        itemAdditionalDetails.setText(details);
-        itemAdditionalDetails.setVisibility(
-                TextUtils.isEmpty(details) ? View.GONE : View.VISIBLE);
+
+        bindInlineCriteria(item);
     }
 
-    private String getStreamInfoDetailLine(final StreamInfoItem infoItem) {
-        String viewsAndDate = "";
-        if (infoItem.getViewCount() >= 0) {
-            if (infoItem.getStreamType().equals(StreamType.AUDIO_LIVE_STREAM)) {
-                viewsAndDate = Localization
-                        .listeningCount(itemBuilder.getContext(), infoItem.getViewCount());
-            } else if (infoItem.getStreamType().equals(StreamType.LIVE_STREAM)) {
-                viewsAndDate = Localization
-                        .shortWatchingCount(itemBuilder.getContext(), infoItem.getViewCount());
+    private SpannableStringBuilder buildCompactDetailLine(final StreamInfoItem item) {
+        final Context context = itemBuilder.getContext();
+        final int iconSize = (int) itemAdditionalDetails.getTextSize();
+        final int textColor = itemAdditionalDetails.getCurrentTextColor();
+        final int tournesolScoreColor = ContextCompat.getColor(
+                context, R.color.dark_settings_accent_color);
+        final SpannableStringBuilder sb = new SpannableStringBuilder();
+
+        // Tournesol score: logo icon (or plant emoji if insufficient) + score (accent yellow)
+        final Long tournesolScore = item.getTournesolScore();
+        if (tournesolScore != null) {
+            final boolean hasInsufficientReason = TournesolHelper.hasInsufficientReason(
+                    item.getTournesolUnsafeReasons());
+            final int textStart;
+            if (hasInsufficientReason) {
+                sb.append("\uD83C\uDF31\u2009");
+                textStart = sb.length();
+                sb.append(Long.toString(tournesolScore));
+                sb.setSpan(new ForegroundColorSpan(tournesolScoreColor),
+                        textStart, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             } else {
-                viewsAndDate = Localization
-                        .shortViewCount(itemBuilder.getContext(), infoItem.getViewCount());
+                appendIconAndText(sb, context, R.drawable.logo_small, iconSize,
+                        Long.toString(tournesolScore), null, tournesolScoreColor);
+                textStart = sb.length() - Long.toString(tournesolScore).length();
             }
+            sb.setSpan(new StyleSpan(Typeface.BOLD),
+                    textStart, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            sb.setSpan(new RelativeSizeSpan(1.15f),
+                    textStart, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
 
-        final String uploadDate = Localization.relativeTimeOrTextual(itemBuilder.getContext(),
-                infoItem.getUploadDate(),
-                infoItem.getTextualUploadDate());
+        // Date: clock emoji + compact relative time (natural color)
+        final String uploadDate = Localization.compactRelativeTimeOrTextual(
+                item.getUploadDate(), item.getTextualUploadDate());
         if (!TextUtils.isEmpty(uploadDate)) {
-            if (viewsAndDate.isEmpty()) {
-                return uploadDate;
+            if (sb.length() > 0) {
+                sb.append("  ");
             }
-
-            return Localization.concatenateStrings(viewsAndDate, uploadDate);
+            sb.append("\uD83D\uDD52\uFE0F\u2009");
+            sb.append(uploadDate);
         }
 
-        return viewsAndDate;
+        // Views: eye emoji + compact count (natural color)
+        if (item.getViewCount() >= 0) {
+            final String viewText;
+            if (item.getStreamType().equals(StreamType.AUDIO_LIVE_STREAM)) {
+                viewText = Localization.listeningCount(context, item.getViewCount());
+            } else if (item.getStreamType().equals(StreamType.LIVE_STREAM)) {
+                viewText = Localization.shortWatchingCount(context, item.getViewCount());
+            } else {
+                viewText = Localization.shortCount(context, item.getViewCount());
+            }
+            if (sb.length() > 0) {
+                sb.append("  ");
+            }
+            sb.append("\uD83D\uDC41\uFE0F\u2009");
+            sb.append(viewText);
+        }
+
+        // Votes: balance scale emoji + count
+        final int nComparisons = item.getTournesolNComparisons();
+        if (nComparisons >= 0) {
+            if (sb.length() > 0) {
+                sb.append("  ");
+            }
+            sb.append("\u2696\uFE0F\u2009");
+            sb.append(String.valueOf(nComparisons));
+        }
+
+        return sb;
+    }
+
+    private static void appendIconAndText(final SpannableStringBuilder sb,
+                                          final Context context,
+                                          @DrawableRes final int iconRes,
+                                          final int iconSize,
+                                          final String text,
+                                          final int tintColor) {
+        appendIconAndText(sb, context, iconRes, iconSize, text, (Integer) tintColor, null);
+    }
+
+    private static void appendIconAndText(final SpannableStringBuilder sb,
+                                          final Context context,
+                                          @DrawableRes final int iconRes,
+                                          final int iconSize,
+                                          final String text,
+                                          @Nullable final Integer iconTint,
+                                          @Nullable final Integer textColor) {
+        final Drawable icon = ContextCompat.getDrawable(context, iconRes);
+        if (icon != null) {
+            icon.mutate();
+            if (iconTint != null) {
+                icon.setTint(iconTint);
+            }
+            icon.setBounds(0, 0, iconSize, iconSize);
+            sb.append(" ");
+            sb.setSpan(new CenteredImageSpan(icon),
+                    sb.length() - 1, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            sb.append("\u2009");
+        }
+        final int textStart = sb.length();
+        sb.append(text);
+        if (textColor != null) {
+            sb.setSpan(new ForegroundColorSpan(textColor),
+                    textStart, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+    }
+
+    private static class CenteredImageSpan extends ImageSpan {
+        CenteredImageSpan(final Drawable d) {
+            super(d, ImageSpan.ALIGN_BASELINE);
+        }
+
+        @Override
+        public void draw(final Canvas canvas, final CharSequence text,
+                         final int start, final int end, final float x,
+                         final int top, final int y, final int bottom,
+                         final Paint paint) {
+            final Drawable d = getDrawable();
+            final Paint.FontMetricsInt fm = paint.getFontMetricsInt();
+            final int textCenter = y + (fm.descent + fm.ascent) / 2;
+            final int transY = textCenter - d.getBounds().height() / 2;
+            canvas.save();
+            canvas.translate(x, transY);
+            d.draw(canvas);
+            canvas.restore();
+        }
+    }
+
+    private void bindInlineCriteria(final StreamInfoItem item) {
+        final String bestCriteria = item.getTournesolBestCriteria();
+        final String worstCriteria = item.getTournesolWorstCriteria();
+        final Integer bestIconRes = getCriteriaIcon(bestCriteria);
+        final Integer worstIconRes = getCriteriaIcon(worstCriteria);
+
+        // Inline best criteria (right of uploader line)
+        if (itemInlineBestArrow != null && itemInlineBestIcon != null) {
+            if (bestIconRes != null) {
+                itemInlineBestArrow.setVisibility(View.VISIBLE);
+                itemInlineBestIcon.setImageResource(bestIconRes);
+                itemInlineBestIcon.setVisibility(View.VISIBLE);
+            } else {
+                itemInlineBestArrow.setVisibility(View.GONE);
+                itemInlineBestIcon.setVisibility(View.GONE);
+            }
+        }
+
+        // Inline worst criteria (right of additional details line)
+        if (itemInlineWorstArrow != null && itemInlineWorstIcon != null) {
+            if (worstIconRes != null) {
+                itemInlineWorstArrow.setVisibility(View.VISIBLE);
+                itemInlineWorstIcon.setImageResource(worstIconRes);
+                itemInlineWorstIcon.setVisibility(View.VISIBLE);
+            } else {
+                itemInlineWorstArrow.setVisibility(View.GONE);
+                itemInlineWorstIcon.setVisibility(View.GONE);
+            }
+        }
+    }
+
+    @Nullable
+    @DrawableRes
+    private static Integer getCriteriaIcon(@Nullable final String criteria) {
+        if (criteria == null) {
+            return null;
+        }
+        switch (criteria) {
+            case "reliability": return R.drawable.reliability;
+            case "pedagogy": return R.drawable.pedagogy;
+            case "importance": return R.drawable.importance;
+            case "layman_friendly": return R.drawable.layman_friendly;
+            case "entertaining_relaxing": return R.drawable.entertaining_relaxing;
+            case "engaging": return R.drawable.engaging;
+            case "diversity_inclusion": return R.drawable.diversity_inclusion;
+            case "better_habits": return R.drawable.better_habits;
+            case "backfire_risk": return R.drawable.backfire_risk;
+            default: return null;
+        }
     }
 }
