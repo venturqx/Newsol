@@ -593,14 +593,6 @@
 
                         </LinearLayout>
 
-                        <View
-                            android:id="@+id/detail_meta_info_separator"
-                            android:layout_width="match_parent"
-                            android:layout_height="1px"
-                            android:layout_marginLeft="8dp"
-                            android:layout_marginRight="8dp"
-                            android:background="?attr/separator_color" />
-
                         <org.schabi.newpipe.views.NewPipeTextView
                             android:id="@+id/detail_meta_info_text_view"
                             android:layout_width="match_parent"
@@ -611,6 +603,7 @@
                             tools:text="Stream meta info with link" />
 
                         <View
+                            android:id="@+id/detail_meta_info_separator"
                             android:layout_width="match_parent"
                             android:layout_height="1px"
                             android:layout_marginLeft="8dp"
@@ -637,6 +630,7 @@
                 app:tabBackground="?attr/windowBackground"
                 app:tabGravity="fill"
                 app:tabIconTint="#FFCA1D"
+                app:tabIndicatorColor="#FFCA1D"
                 app:tabIndicatorGravity="top" />
 
         </org.schabi.newpipe.views.FocusAwareCoordinator>

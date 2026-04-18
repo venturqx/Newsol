@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.content.pm.ActivityInfo
+import android.content.res.Configuration
 import android.database.ContentObserver
 import android.graphics.Color
 import android.graphics.Rect
@@ -45,6 +46,7 @@ import androidx.core.os.postDelayed
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.preference.PreferenceManager
+import androidx.viewpager.widget.ViewPager
 import coil3.util.CoilUtils
 import com.evernote.android.state.State
 import com.google.android.exoplayer2.PlaybackException
@@ -117,6 +119,7 @@ import org.schabi.newpipe.util.PermissionHelper.checkStoragePermissions
 import org.schabi.newpipe.util.PlayButtonHelper
 import org.schabi.newpipe.util.StreamTypeUtil
 import org.schabi.newpipe.util.ThemeHelper
+import org.schabi.newpipe.util.TournesolHelper
 import org.schabi.newpipe.util.TournesolScoreCache
 import org.schabi.newpipe.util.external_communication.KoreUtils
 import org.schabi.newpipe.util.external_communication.ShareUtils
@@ -159,7 +162,7 @@ class VideoDetailFragment :
     // can't make this lateinit because it needs to be set to null when the view is destroyed
     private var nullableBinding: FragmentVideoDetailBinding? = null
     private val binding: FragmentVideoDetailBinding get() = nullableBinding!!
-    private lateinit var pageAdapter: TabAdapter
+    private lateinit var pageAdapter: StateSavingTabAdapter
     private var settingsContentObserver: ContentObserver? = null
 
     // tabs
@@ -174,6 +177,11 @@ class VideoDetailFragment :
     @StringRes val tabContentDescriptions = ArrayList<Int>()
     private var tabSettingsChanged = false
     private var lastAppBarVerticalOffset = Int.Companion.MAX_VALUE // prevents useless updates
+    private var pageChangeListener: ViewPager.OnPageChangeListener? = null
+    private var pendingFullscreenOrientationChange = false
+    private val clearPendingOrientationChange = Runnable {
+        pendingFullscreenOrientationChange = false
+    }
 
     private val preferenceChangeListener =
         OnSharedPreferenceChangeListener { sharedPreferences, key ->
@@ -228,18 +236,7 @@ class VideoDetailFragment :
         }
 
         val mainUi = player?.UIs()?.get(MainPlayerUi::class)
-        if (DeviceUtils.isLandscape(requireContext())) {
-            // If the video is playing but orientation changed
-            // let's make the video in fullscreen again
-            checkLandscape()
-        } else if (mainUi != null && mainUi.isFullscreen && !mainUi.isVerticalVideo &&
-            // Tablet UI has orientation-independent fullscreen
-            !DeviceUtils.isTablet(activity)
-        ) {
-            // Device is in portrait orientation after rotation but UI is in fullscreen.
-            // Return back to non-fullscreen state
-            mainUi.toggleFullscreen()
-        }
+        syncMainPlayerFullscreenWithOrientation()
 
         if (playAfterConnect || (currentInfo != null && this.isAutoplayEnabled && mainUi == null)) {
             autoPlayEnabled = true // forcefully start playing
@@ -258,6 +255,54 @@ class VideoDetailFragment :
 
     override fun onServiceDisconnected() {
         playerService = null
+    }
+
+    private fun syncMainPlayerFullscreenWithOrientation() {
+        val mainUi = player?.UIs()?.get(MainPlayerUi::class) ?: return
+        if (DeviceUtils.isLandscape(requireContext())) {
+            // If the video is playing but orientation changed
+            // let's make the video in fullscreen again
+            checkLandscape()
+        } else if (mainUi.isFullscreen && !mainUi.isVerticalVideo &&
+            // Tablet UI has orientation-independent fullscreen
+            !DeviceUtils.isTablet(activity)
+        ) {
+            // Device is in portrait orientation after rotation but UI is in fullscreen.
+            // Return back to non-fullscreen state
+            mainUi.toggleFullscreen()
+        }
+    }
+
+    fun shouldHandleOrientationChangeInPlace(): Boolean {
+        if (DeviceUtils.isTablet(activity) || DeviceUtils.isTv(activity)) {
+            return false
+        }
+        if (player?.videoPlayerSelected() != true) {
+            return false
+        }
+        val mainUi = player?.UIs()?.get(MainPlayerUi::class) ?: return pendingFullscreenOrientationChange
+        return pendingFullscreenOrientationChange || mainUi.isFullscreen
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+
+        if (!shouldHandleOrientationChangeInPlace() || nullableBinding == null) {
+            return
+        }
+
+        binding.root.removeCallbacks(clearPendingOrientationChange)
+        pendingFullscreenOrientationChange = false
+
+        setupBrightness()
+        syncMainPlayerFullscreenWithOrientation()
+        binding.root.post {
+            if (nullableBinding == null) {
+                return@post
+            }
+            tryAddVideoPlayerView()
+            hideSystemUiIfNeeded()
+        }
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -379,6 +424,11 @@ class VideoDetailFragment :
     }
 
     override fun onDestroyView() {
+        view?.viewTreeObserver?.removeOnPreDrawListener(preDrawListener)
+        view?.removeCallbacks(clearPendingOrientationChange)
+        pageChangeListener?.let { binding.viewPager.removeOnPageChangeListener(it) }
+        pageChangeListener = null
+        pendingFullscreenOrientationChange = false
         super.onDestroyView()
         nullableBinding = null
     }
@@ -589,9 +639,9 @@ class VideoDetailFragment :
     override fun initViews(rootView: View?, savedInstanceState: Bundle?) {
         super.initViews(rootView, savedInstanceState)
 
-        pageAdapter = TabAdapter(getChildFragmentManager())
+        pageAdapter = StateSavingTabAdapter(getChildFragmentManager())
         binding.viewPager.setAdapter(pageAdapter)
-        binding.viewPager.offscreenPageLimit = 2
+        binding.viewPager.offscreenPageLimit = 1
         binding.tabLayout.setupWithViewPager(binding.viewPager)
 
         binding.detailThumbnailRootLayout.requestFocus()
@@ -639,6 +689,27 @@ class VideoDetailFragment :
                 updateTabLayoutVisibility()
             }
         }
+
+        // Lock the AppBar (player + criteria header) from collapsing while the
+        // compare tab is selected. The compare tab's content is short, so a
+        // collapsing AppBar would otherwise expose a large empty area below it
+        // (the ViewPager always sizes its page child to the full coordinator
+        // height). Restore normal scroll behavior on every other tab.
+        pageChangeListener = object : ViewPager.OnPageChangeListener {
+            override fun onPageScrolled(
+                position: Int,
+                positionOffset: Float,
+                positionOffsetPixels: Int
+            ) = Unit
+
+            override fun onPageSelected(position: Int) {
+                applyAppBarLockForTab(position)
+                ensureSelectedTabContentLoaded(position)
+            }
+
+            override fun onPageScrollStateChanged(state: Int) = Unit
+        }
+        binding.viewPager.addOnPageChangeListener(pageChangeListener!!)
 
         setupBottomPlayer()
         if (!PlayerHolder.isBound) {
@@ -840,18 +911,16 @@ class VideoDetailFragment :
             tabContentDescriptions.add(R.string.comments_tab_description)
         }
 
-        if (showRelatedItems && binding.relatedItemsLayout == null) {
+        if (showRelatedItems && binding.relatedItemsLayout == null && !isTournesolTab) {
             // temp empty fragment. will be updated in handleResult
-            if (isTournesolTab) {
-                pageAdapter.addFragment(EmptyFragment.newInstance(false), COMPARE_TAB_TAG)
-                tabIcons.add(R.drawable.logo_small)
-                tabContentDescriptions.add(R.string.compare_tab_description)
-            } else {
-                pageAdapter.addFragment(EmptyFragment.newInstance(false), RELATED_TAB_TAG)
-                tabIcons.add(R.drawable.ic_art_track)
-                tabContentDescriptions.add(R.string.related_items_tab_description)
-            }
+            pageAdapter.addFragment(EmptyFragment.newInstance(false), RELATED_TAB_TAG)
+            tabIcons.add(R.drawable.ic_art_track)
+            tabContentDescriptions.add(R.string.related_items_tab_description)
         }
+
+        pageAdapter.addFragment(TournesolFragment(), TOURNESOL_TAB_TAG)
+        tabIcons.add(R.drawable.logo_small)
+        tabContentDescriptions.add(R.string.tournesol_tab_description)
 
         if (showDescription) {
             // temp empty fragment. will be updated in handleResult
@@ -874,6 +943,93 @@ class VideoDetailFragment :
         }
         // the page adapter now contains tabs: show the tab layout
         updateTabLayoutVisibility()
+        // OnPageChangeListener does not fire when the current item is unchanged,
+        // so make sure the lock state matches the now-current tab.
+        applyAppBarLockForTab(binding.viewPager.currentItem)
+        ensureSelectedTabContentLoaded()
+    }
+
+    private var compareContentHeightPx = 0
+
+    /**
+     * Called by [CompareFragment] when the Compose content has been measured.
+     * Triggers a recalculation of the AppBar collapse limits so the player
+     * can collapse with parallax only as far as the content needs.
+     */
+    fun onCompareContentMeasured(contentHeightPx: Int) {
+        compareContentHeightPx = contentHeightPx
+        if (nullableBinding == null || !::pageAdapter.isInitialized) return
+        val pos = binding.viewPager.currentItem
+        if (pos in 0 until pageAdapter.count &&
+            pageAdapter.getItemTitle(pos) == TOURNESOL_TAB_TAG
+        ) {
+            applyCompareAppBarLimits()
+        }
+    }
+
+    /**
+     * Adjust the AppBar's collapse range when the compare tab is active.
+     * The allowed collapse equals the content overflow (content height minus
+     * the visible area when the AppBar is fully expanded). Each AppBar child
+     * is given [AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED]
+     * with a `minHeight` that limits how far it can collapse, consuming the
+     * overflow budget in order. If there is no overflow the child is pinned.
+     */
+    private fun applyCompareAppBarLimits() {
+        val appBar = binding.appBarLayout
+        val coordinator = binding.detailMainContent
+        val visibleHeight = coordinator.height - appBar.height
+        if (visibleHeight <= 0) return
+
+        var remainingOverflow = max(0, compareContentHeightPx - visibleHeight)
+        for (i in 0 until appBar.childCount) {
+            val child = appBar.getChildAt(i)
+            val lp = child.layoutParams as? AppBarLayout.LayoutParams ?: continue
+            val childHeight = child.height
+            if (remainingOverflow <= 0 || childHeight <= 0) {
+                lp.scrollFlags = 0
+                child.minimumHeight = 0
+            } else {
+                val collapse = min(remainingOverflow, childHeight)
+                lp.scrollFlags = AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or
+                    AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
+                child.minimumHeight = childHeight - collapse
+                remainingOverflow -= collapse
+            }
+            child.layoutParams = lp
+        }
+    }
+
+    /**
+     * Restore standard scroll flags on all AppBar children (used when
+     * leaving the compare tab).
+     */
+    private fun restoreAppBarScrollFlags() {
+        for (i in 0 until binding.appBarLayout.childCount) {
+            val child = binding.appBarLayout.getChildAt(i)
+            val lp = child.layoutParams as? AppBarLayout.LayoutParams ?: continue
+            lp.scrollFlags = AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL
+            child.minimumHeight = 0
+            child.layoutParams = lp
+        }
+    }
+
+    /**
+     * Toggle AppBar behaviour when switching tabs. On the compare tab the
+     * collapse range is limited to the content overflow so no empty space
+     * appears below the short Compose content. On every other tab the
+     * normal fully-collapsible behaviour is restored.
+     */
+    private fun applyAppBarLockForTab(position: Int) {
+        if (nullableBinding == null || !::pageAdapter.isInitialized) return
+        if (position < 0 || position >= pageAdapter.count) return
+        val tag = pageAdapter.getItemTitle(position)
+        if (tag == TOURNESOL_TAB_TAG) {
+            binding.appBarLayout.setExpanded(true, true)
+            applyCompareAppBarLimits()
+        } else {
+            restoreAppBarScrollFlags()
+        }
     }
 
     /**
@@ -902,29 +1058,22 @@ class VideoDetailFragment :
     }
 
     private fun updateTabs(info: StreamInfo) {
-        if (showRelatedItems) {
+        if (showRelatedItems && !isTournesolTab) {
             when (val relatedItemsLayout = binding.relatedItemsLayout) {
                 null -> {
-                    if (isTournesolTab) {
-                        pageAdapter.updateItem(COMPARE_TAB_TAG, CompareFragment.getInstance(info, true))
-                    } else {
-                        pageAdapter.updateItem(RELATED_TAB_TAG, getInstance(info))
-                    }
+                    pageAdapter.updateItem(RELATED_TAB_TAG, getInstance(info))
                 }
 
                 else -> { // tablet + TV
-                    val fragment = if (isTournesolTab) {
-                        CompareFragment.getInstance(info, true)
-                    } else {
-                        getInstance(info)
-                    }
                     getChildFragmentManager().beginTransaction()
-                        .replace(R.id.relatedItemsLayout, fragment)
+                        .replace(R.id.relatedItemsLayout, getInstance(info))
                         .commitAllowingStateLoss()
                     relatedItemsLayout.isVisible = !this.isFullscreen
                 }
             }
         }
+
+        pageAdapter.updateItem(TOURNESOL_TAB_TAG, TournesolFragment.getInstance(info))
 
         if (showDescription) {
             pageAdapter.updateItem(DESCRIPTION_TAB_TAG, DescriptionFragment(info))
@@ -935,6 +1084,23 @@ class VideoDetailFragment :
         updateTabLayoutVisibility()
         pageAdapter.notifyDataSetUpdate()
         updateTabIconsAndContentDescriptions()
+        ensureSelectedTabContentLoaded()
+    }
+
+    private fun ensureSelectedTabContentLoaded(position: Int = binding.viewPager.currentItem) {
+        if (pageAdapter.getItemTitle(position) != TOURNESOL_TAB_TAG) {
+            return
+        }
+
+        binding.viewPager.post {
+            if (nullableBinding == null ||
+                pageAdapter.getItemTitle(binding.viewPager.currentItem) != TOURNESOL_TAB_TAG
+            ) {
+                return@post
+            }
+            (pageAdapter.getFragment(TOURNESOL_TAB_TAG) as? TournesolFragment)
+                ?.ensureCompareAttached()
+        }
     }
 
     private fun shouldShowComments(): Boolean {
@@ -1102,6 +1268,7 @@ class VideoDetailFragment :
         } else {
             replaceQueueIfUserConfirms {
                 NavigationHelper.playOnBackgroundPlayer(activity, queue, true)
+                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED)
             }
         }
     }
@@ -1507,12 +1674,13 @@ class VideoDetailFragment :
             binding.detailThumbsDisabledView.visibility = View.GONE
         }
 
-        val cachedScore = TournesolScoreCache.get(info.originalUrl)
-            ?: TournesolScoreCache.get(info.url)
-        if (cachedScore != null) {
-            binding.detailTournesolScoreView?.text = cachedScore.toString()
-            binding.detailTournesolScoreView?.visibility = View.VISIBLE
-            binding.detailTournesolImgView?.visibility = View.VISIBLE
+        val cachedEntry = TournesolScoreCache.getEntry(info.originalUrl)
+            ?: TournesolScoreCache.getEntry(info.url)
+        if (cachedEntry != null) {
+            updateTournesolDetailIcon(
+                TournesolHelper.hasInsufficientReason(cachedEntry.unsafeReasons),
+                cachedEntry.score
+            )
         } else {
             binding.detailTournesolScoreView?.visibility = View.GONE
             binding.detailTournesolImgView?.visibility = View.GONE
@@ -1576,6 +1744,17 @@ class VideoDetailFragment :
         binding.detailThumbnailPlayButton.setImageResource(
             if (hasVideoStreams) R.drawable.ic_play_arrow_shadow else R.drawable.ic_headset_shadow
         )
+    }
+
+    fun updateTournesolDetailIcon(hasInsufficientReason: Boolean, score: Long) {
+        if (hasInsufficientReason) {
+            binding.detailTournesolScoreView?.text = "\uD83C\uDF31 $score"
+            binding.detailTournesolImgView?.visibility = View.GONE
+        } else {
+            binding.detailTournesolScoreView?.text = score.toString()
+            binding.detailTournesolImgView?.visibility = View.VISIBLE
+        }
+        binding.detailTournesolScoreView?.visibility = View.VISIBLE
     }
 
     private fun displayUploaderAsSubChannel(info: StreamInfo) {
@@ -1825,9 +2004,15 @@ class VideoDetailFragment :
         }
 
         binding.relatedItemsLayout?.isVisible = if (showRelatedItems) !fullscreen else false
-        scrollToTop()
-
         tryAddVideoPlayerView()
+        binding.root.post { scrollToTop() }
+    }
+
+    private fun requestOrientationChangeInPlace(requestedOrientation: Int) {
+        pendingFullscreenOrientationChange = true
+        binding.root.removeCallbacks(clearPendingOrientationChange)
+        activity.setRequestedOrientation(requestedOrientation)
+        binding.root.postDelayed(clearPendingOrientationChange, 1000)
     }
 
     override fun onFullscreenToggleButtonClicked() {
@@ -1842,12 +2027,12 @@ class VideoDetailFragment :
         if (playerUi.isFullscreen) {
             // EXITING FULLSCREEN
             playerUi.toggleFullscreen()
-            activity.setRequestedOrientation(originalOrientation)
+            requestOrientationChangeInPlace(originalOrientation)
         } else {
             // ENTERING FULLSCREEN
             originalOrientation = activity.getRequestedOrientation()
             playerUi.toggleFullscreen()
-            activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE)
+            requestOrientationChangeInPlace(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE)
         }
     }
 
@@ -2270,11 +2455,17 @@ class VideoDetailFragment :
                         manageSpaceAtTheBottom(false)
 
                         bottomSheetBehavior.peekHeight = peekHeight
-
-                        // Re-enable clicks
-                        setOverlayElementsClickable(true)
                         player?.UIs()?.get(MainPlayerUi::class)?.closeItemsList()
-                        setOverlayLook(binding.appBarLayout, behavior, 0f)
+
+                        // Defer overlay visibility until after the layout pass
+                        // triggered by the peekHeight change completes. This avoids
+                        // a frame where the overlay is visible but the sheet hasn't
+                        // been repositioned yet (HIDDEN→COLLAPSED with peekHeight
+                        // changing from 0 to 60dp).
+                        bottomSheet.post {
+                            setOverlayElementsClickable(true)
+                            setOverlayLook(binding.appBarLayout, behavior, 0f)
+                        }
                     }
 
                     BottomSheetBehavior.STATE_DRAGGING, BottomSheetBehavior.STATE_SETTLING -> {
@@ -2388,7 +2579,7 @@ class VideoDetailFragment :
 
         private const val COMMENTS_TAB_TAG = "COMMENTS"
         private const val RELATED_TAB_TAG = "NEXT VIDEO"
-        private const val COMPARE_TAB_TAG = "COMPARE"
+        private const val TOURNESOL_TAB_TAG = "TOURNESOL TAB"
         private const val DESCRIPTION_TAB_TAG = "DESCRIPTION TAB"
         private const val EMPTY_TAB_TAG = "EMPTY TAB"
 
