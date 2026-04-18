@@ -77,7 +77,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:checkable="true"
-            android:text="@string/filter_unsafe_short" />
+            android:text="🌱" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chip_advanced"

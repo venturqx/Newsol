@@ -42,9 +42,37 @@ class TournesolKioskFragment : KioskFragment(), PlaylistControlViewHolder {
                     override fun onFiltersChanged(
                         languages: List<String>,
                         dateKey: String,
-                        includeLowScoreVideos: Boolean
+                        includeLowScoreVideos: Boolean,
+                        durationMinSeconds: Int,
+                        durationMaxSeconds: Int,
+                        weightLargelyRecommended: Int,
+                        weightReliability: Int,
+                        weightImportance: Int,
+                        weightPedagogy: Int,
+                        weightLaymanFriendly: Int,
+                        weightEntertainingRelaxing: Int,
+                        weightEngaging: Int,
+                        weightDiversityInclusion: Int,
+                        weightBetterHabits: Int,
+                        weightBackfireRisk: Int
                     ) {
-                        onTournesolFiltersChanged(languages, dateKey, includeLowScoreVideos)
+                        onTournesolFiltersChanged(
+                            languages,
+                            dateKey,
+                            includeLowScoreVideos,
+                            durationMinSeconds,
+                            durationMaxSeconds,
+                            weightLargelyRecommended,
+                            weightReliability,
+                            weightImportance,
+                            weightPedagogy,
+                            weightLaymanFriendly,
+                            weightEntertainingRelaxing,
+                            weightEngaging,
+                            weightDiversityInclusion,
+                            weightBetterHabits,
+                            weightBackfireRisk
+                        )
                     }
                 }
             )
@@ -55,6 +83,18 @@ class TournesolKioskFragment : KioskFragment(), PlaylistControlViewHolder {
             controller.getCurrentLanguages(),
             controller.getCurrentDateKey(),
             controller.getCurrentIncludeLowScoreVideos(),
+            controller.getCurrentDurationMinSeconds(),
+            controller.getCurrentDurationMaxSeconds(),
+            controller.getCurrentWeightLargelyRecommended(),
+            controller.getCurrentWeightReliability(),
+            controller.getCurrentWeightImportance(),
+            controller.getCurrentWeightPedagogy(),
+            controller.getCurrentWeightLaymanFriendly(),
+            controller.getCurrentWeightEntertainingRelaxing(),
+            controller.getCurrentWeightEngaging(),
+            controller.getCurrentWeightDiversityInclusion(),
+            controller.getCurrentWeightBetterHabits(),
+            controller.getCurrentWeightBackfireRisk(),
             false
         )
     }
@@ -74,18 +114,66 @@ class TournesolKioskFragment : KioskFragment(), PlaylistControlViewHolder {
     private fun onTournesolFiltersChanged(
         languages: List<String>,
         dateKey: String,
-        includeLowScoreVideos: Boolean
+        includeLowScoreVideos: Boolean,
+        durationMinSeconds: Int,
+        durationMaxSeconds: Int,
+        weightLargelyRecommended: Int,
+        weightReliability: Int,
+        weightImportance: Int,
+        weightPedagogy: Int,
+        weightLaymanFriendly: Int,
+        weightEntertainingRelaxing: Int,
+        weightEngaging: Int,
+        weightDiversityInclusion: Int,
+        weightBetterHabits: Int,
+        weightBackfireRisk: Int
     ) {
-        applyTournesolFilters(languages, dateKey, includeLowScoreVideos, true)
+        applyTournesolFilters(
+            languages, dateKey, includeLowScoreVideos,
+            durationMinSeconds, durationMaxSeconds,
+            weightLargelyRecommended, weightReliability, weightImportance,
+            weightPedagogy, weightLaymanFriendly, weightEntertainingRelaxing,
+            weightEngaging, weightDiversityInclusion, weightBetterHabits,
+            weightBackfireRisk,
+            true
+        )
     }
 
     private fun applyTournesolFilters(
         languages: List<String>,
         dateKey: String,
         includeLowScoreVideos: Boolean,
+        durationMinSeconds: Int,
+        durationMaxSeconds: Int,
+        weightLargelyRecommended: Int,
+        weightReliability: Int,
+        weightImportance: Int,
+        weightPedagogy: Int,
+        weightLaymanFriendly: Int,
+        weightEntertainingRelaxing: Int,
+        weightEngaging: Int,
+        weightDiversityInclusion: Int,
+        weightBetterHabits: Int,
+        weightBackfireRisk: Int,
         reload: Boolean
     ) {
-        url = TournesolHelper.buildTournesolUrl(languages, dateKey, includeLowScoreVideos)
+        url = TournesolHelper.buildTournesolUrl(
+            languages,
+            dateKey,
+            includeLowScoreVideos,
+            durationMinSeconds,
+            durationMaxSeconds,
+            weightLargelyRecommended,
+            weightReliability,
+            weightImportance,
+            weightPedagogy,
+            weightLaymanFriendly,
+            weightEntertainingRelaxing,
+            weightEngaging,
+            weightDiversityInclusion,
+            weightBetterHabits,
+            weightBackfireRisk
+        )
         if (!reload) {
             return
         }
