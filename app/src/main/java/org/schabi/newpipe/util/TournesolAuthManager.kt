@@ -26,6 +26,9 @@ object TournesolAuthManager {
     private const val TAG = "TournesolAuthManager"
     private const val SHARED_PREF_AUTH_STATE = "tournesol_auth_state"
     private const val SHARED_PREF_USERNAME = "tournesol_username"
+    private const val SHARED_PREF_COMPARISON_COUNT = "tournesol_comparison_count"
+    private const val SHARED_PREF_DAILY_BASELINE_DATE = "tournesol_daily_baseline_date"
+    private const val SHARED_PREF_DAILY_BASELINE_COUNT = "tournesol_daily_baseline_count"
     private const val AUTH_STATE_PREFS_NAME = "tournesol_auth_state_prefs"
     private const val AUTH_URL = "https://api.tournesol.app/o/authorize/"
     private const val TOKEN_URL = "https://api.tournesol.app/o/token/"
@@ -110,11 +113,50 @@ object TournesolAuthManager {
         return prefs.getString(SHARED_PREF_USERNAME, null)?.takeIf { it.isNotBlank() }
     }
 
+    fun saveComparisonCount(context: Context, count: Int) {
+        val prefs = getAuthStatePrefs(context) ?: return
+        prefs.edit().putInt(SHARED_PREF_COMPARISON_COUNT, count).apply()
+    }
+
+    fun getComparisonCount(context: Context): Int? {
+        val prefs = getAuthStatePrefs(context) ?: return null
+        return if (prefs.contains(SHARED_PREF_COMPARISON_COUNT)) {
+            prefs.getInt(SHARED_PREF_COMPARISON_COUNT, 0)
+        } else {
+            null
+        }
+    }
+
+    fun incrementComparisonCount(context: Context) {
+        val current = getComparisonCount(context) ?: return
+        saveComparisonCount(context, current + 1)
+    }
+
+    fun getDailyComparisons(context: Context): Int {
+        val prefs = getAuthStatePrefs(context) ?: return 0
+        val currentCount = getComparisonCount(context) ?: return 0
+        val today = java.time.LocalDate.now().toString()
+        val storedDate = prefs.getString(SHARED_PREF_DAILY_BASELINE_DATE, null)
+        if (storedDate == today) {
+            val baseline = prefs.getInt(SHARED_PREF_DAILY_BASELINE_COUNT, currentCount)
+            return (currentCount - baseline).coerceAtLeast(0)
+        }
+        // New day: reset baseline to current count
+        prefs.edit()
+            .putString(SHARED_PREF_DAILY_BASELINE_DATE, today)
+            .putInt(SHARED_PREF_DAILY_BASELINE_COUNT, currentCount)
+            .apply()
+        return 0
+    }
+
     fun clearAuthState(context: Context) {
         val prefs = getAuthStatePrefs(context) ?: return
         prefs.edit()
             .remove(SHARED_PREF_AUTH_STATE)
             .remove(SHARED_PREF_USERNAME)
+            .remove(SHARED_PREF_COMPARISON_COUNT)
+            .remove(SHARED_PREF_DAILY_BASELINE_DATE)
+            .remove(SHARED_PREF_DAILY_BASELINE_COUNT)
             .apply()
     }
 
