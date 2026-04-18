@@ -20,6 +20,8 @@ import org.schabi.newpipe.extractor.NewPipe;
 import org.schabi.newpipe.extractor.StreamingService;
 import org.schabi.newpipe.extractor.exceptions.ExtractionException;
 import org.schabi.newpipe.fragments.BlankFragment;
+import org.schabi.newpipe.fragments.detail.CompareFragment;
+import org.schabi.newpipe.fragments.manifesto.ManifestoFragment;
 import org.schabi.newpipe.fragments.list.channel.ChannelFragment;
 import org.schabi.newpipe.fragments.list.kiosk.DefaultKioskFragment;
 import org.schabi.newpipe.fragments.list.kiosk.KioskFragment;
@@ -185,7 +187,9 @@ public abstract class Tab {
         TRENDING_MOVIES(new SpecificKioskTab(22, "trending_movies_and_shows")),
         TRENDING_PODCASTS(new SpecificKioskTab(23, "trending_podcasts_episodes")),
         TOURNESOL(new SpecificKioskTab(24, "Tournesol")),
-        LIVE(new SpecificKioskTab(25, "live"));
+        LIVE(new SpecificKioskTab(25, "live")),
+        COMPARE(new CompareTab()),
+        MANIFESTO(new ManifestoTab());
 
         private final Tab tab;
 
@@ -591,6 +595,56 @@ public abstract class Tab {
                 return TournesolKioskFragment.getInstance(serviceId, kioskId);
             }
             return KioskFragment.getInstance(serviceId, kioskId);
+        }
+    }
+
+    public static class CompareTab extends Tab {
+        public static final int ID = 26;
+
+        @Override
+        public int getTabId() {
+            return ID;
+        }
+
+        @Override
+        public String getTabName(final Context context) {
+            return context.getString(R.string.compare_title);
+        }
+
+        @DrawableRes
+        @Override
+        public int getTabIconRes(final Context context) {
+            return R.drawable.ic_shuffle;
+        }
+
+        @Override
+        public Fragment getFragment(final Context context) {
+            return CompareFragment.getInstance(null, true);
+        }
+    }
+
+    public static class ManifestoTab extends Tab {
+        public static final int ID = 27;
+
+        @Override
+        public int getTabId() {
+            return ID;
+        }
+
+        @Override
+        public String getTabName(final Context context) {
+            return context.getString(R.string.manifesto_tab_description);
+        }
+
+        @DrawableRes
+        @Override
+        public int getTabIconRes(final Context context) {
+            return R.drawable.ic_campaign;
+        }
+
+        @Override
+        public Fragment getFragment(final Context context) {
+            return new ManifestoFragment();
         }
     }
 
