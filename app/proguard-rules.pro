@@ -10,6 +10,7 @@
     public void setLanguages(java.util.List);
     public void setDateGte(java.lang.String);
     public void setUploader(java.lang.String);
+    public void setIncludeUnsafe(boolean);
 }
 ## Rules for Rhino and Rhino Engine
 -keep class org.mozilla.javascript.* { *; }
@@ -27,6 +28,15 @@
 # jsoup safely falls back to JDK regex if re2j not on classpath, but has concrete re2j refs
 # See https://github.com/jhy/jsoup/issues/2459 - may be resolved in future, then this may be removed
 -dontwarn com.google.re2j.**
+
+## Keep fields accessed via reflection in FlingBehavior
+-keepclassmembers class com.google.android.material.appbar.HeaderBehavior {
+    private java.lang.Runnable flingRunnable;
+    private android.widget.OverScroller scroller;
+}
+-keepclassmembers class com.google.android.material.appbar.HeaderScrollingViewBehavior {
+    private java.lang.ref.WeakReference lastNestedScrollingChildRef;
+}
 
 ## Rules for ExoPlayer
 -keep class com.google.android.exoplayer2.** { *; }

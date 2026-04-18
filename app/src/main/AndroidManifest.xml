@@ -32,6 +32,7 @@
         android:name=".App"
         android:allowBackup="true"
         android:banner="@mipmap/newpipe_tv_banner"
+        android:largeHeap="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:logo="@mipmap/ic_launcher"
@@ -40,6 +41,7 @@
         tools:ignore="AllowBackup">
         <activity
             android:name=".MainActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize"
             android:exported="true"
             android:label="@string/app_name"
             android:launchMode="singleTask">
@@ -441,14 +443,14 @@
             android:exported="false" />
 
         <activity
+            android:name=".fragments.detail.CompareHistoryActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".util.TournesolAuthActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:theme="@style/RouterActivityThemeLight" />
-
-        <activity
-            android:name=".fragments.detail.CompareHistoryActivity"
-            android:exported="false" />
 
         <activity
             android:name="net.openid.appauth.RedirectUriReceiverActivity"
