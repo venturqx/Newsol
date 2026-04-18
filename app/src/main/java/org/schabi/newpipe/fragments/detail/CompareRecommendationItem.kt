@@ -5,7 +5,8 @@ data class CompareComparisonVideo(
     val title: String,
     val uploader: String,
     val thumbnailUrl: String?,
-    val videoUrl: String?
+    val videoUrl: String?,
+    val serviceId: Int? = null
 )
 
 data class CompareRecommendationItem(
@@ -14,4 +15,9 @@ data class CompareRecommendationItem(
     val videoB: CompareComparisonVideo,
     val largelyRecommendedScore: Int?,
     val scoreMax: Int?
+)
+
+data class CompareComparisonsResult(
+    val totalCount: Int?,
+    val comparisons: List<CompareRecommendationItem>
 )

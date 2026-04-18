@@ -12,12 +12,14 @@ import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.schabi.newpipe.R
+import org.schabi.newpipe.fragments.detail.compare.CompareComparisonsFullScreen
 import org.schabi.newpipe.ui.theme.AppTheme
 import org.schabi.newpipe.util.TournesolAuthManager
 
 class CompareHistoryActivity : AppCompatActivity() {
 
     private var recommendations by mutableStateOf<List<CompareRecommendationItem>>(emptyList())
+    private var totalCount by mutableStateOf<Int?>(null)
     private var loading by mutableStateOf(true)
     private var error by mutableStateOf<String?>(null)
     private var disposable: Disposable? = null
@@ -29,6 +31,7 @@ class CompareHistoryActivity : AppCompatActivity() {
             AppTheme {
                 CompareComparisonsFullScreen(
                     recommendations = recommendations,
+                    totalCount = totalCount,
                     isLoading = loading,
                     errorMessage = error,
                     onDismiss = { finish() }
@@ -41,6 +44,7 @@ class CompareHistoryActivity : AppCompatActivity() {
         loading = true
         error = null
         recommendations = emptyList()
+        totalCount = null
         disposable?.dispose()
         disposable = TournesolAuthManager.getValidAccessToken(this)
             .subscribeOn(Schedulers.io())
@@ -56,10 +60,14 @@ class CompareHistoryActivity : AppCompatActivity() {
             }
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
-                { items ->
+                { result ->
                     loading = false
-                    recommendations = items
-                    if (items.isEmpty()) {
+                    recommendations = result.comparisons
+                    totalCount = result.totalCount
+                    result.totalCount?.let {
+                        TournesolAuthManager.saveComparisonCount(this, it)
+                    }
+                    if (result.comparisons.isEmpty()) {
                         error = getString(R.string.compare_no_comparisons_available)
                     }
                 },

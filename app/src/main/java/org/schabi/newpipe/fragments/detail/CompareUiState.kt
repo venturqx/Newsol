@@ -18,13 +18,21 @@ data class CompareUiState(
     val changeInProgress: Boolean = false,
     val submitMoreInProgress: Boolean = false,
     val recommendations: List<CompareRecommendationItem> = emptyList(),
+    val recommendationsTotalCount: Int? = null,
     val recommendationsLoading: Boolean = false,
     val recommendationsError: String? = null,
     val showRecommendationsDialog: Boolean = false,
     val showLoginDialog: Boolean = false,
     val loginInProgress: Boolean = false,
     val loginError: String? = null,
-    val compactPopupVisible: Boolean = false
+    val compactPopupVisible: Boolean = false,
+    val suggestedLeft: CompareComparisonVideo? = null,
+    val suggestedRight: CompareComparisonVideo? = null,
+    val suggestionsLoading: Boolean = false,
+    val weeklyComparisons: Int? = null,
+    val dailyComparisons: Int? = null,
+    val username: String? = null,
+    val comparisonCount: Int? = null
 ) {
     val selectedEntry: StreamHistoryEntry?
         get() = historyEntries.getOrNull(selectedIndex)
