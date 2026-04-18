@@ -377,7 +377,8 @@ public abstract class BaseListFragment<I, N> extends BaseStateFragment<I>
         onItemSelected(selectedItem);
         if (selectedItem.getTournesolScore() != null) {
             org.schabi.newpipe.util.TournesolScoreCache.INSTANCE.put(
-                    selectedItem.getUrl(), selectedItem.getTournesolScore());
+                    selectedItem.getUrl(), selectedItem.getTournesolScore(),
+                    java.util.Collections.emptyList());
         }
         NavigationHelper.openVideoDetailFragment(requireContext(), getFM(),
                 selectedItem.getServiceId(), selectedItem.getUrl(), selectedItem.getName(),

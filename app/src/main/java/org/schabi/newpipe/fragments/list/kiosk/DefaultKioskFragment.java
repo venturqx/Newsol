@@ -40,6 +40,18 @@ public class DefaultKioskFragment extends KioskFragment {
             applyTournesolFilters(tournesolFilterController.getCurrentLanguages(),
                     tournesolFilterController.getCurrentDateKey(),
                     tournesolFilterController.getCurrentIncludeLowScoreVideos(),
+                    tournesolFilterController.getCurrentDurationMinSeconds(),
+                    tournesolFilterController.getCurrentDurationMaxSeconds(),
+                    tournesolFilterController.getCurrentWeightLargelyRecommended(),
+                    tournesolFilterController.getCurrentWeightReliability(),
+                    tournesolFilterController.getCurrentWeightImportance(),
+                    tournesolFilterController.getCurrentWeightPedagogy(),
+                    tournesolFilterController.getCurrentWeightLaymanFriendly(),
+                    tournesolFilterController.getCurrentWeightEntertainingRelaxing(),
+                    tournesolFilterController.getCurrentWeightEngaging(),
+                    tournesolFilterController.getCurrentWeightDiversityInclusion(),
+                    tournesolFilterController.getCurrentWeightBetterHabits(),
+                    tournesolFilterController.getCurrentWeightBackfireRisk(),
                     false);
         } else {
             hideTournesolHeader(rootView);
@@ -78,16 +90,49 @@ public class DefaultKioskFragment extends KioskFragment {
 
     private void onTournesolFiltersChanged(@NonNull final List<String> languages,
                                            @NonNull final String dateKey,
-                                           final boolean includeLowScoreVideos) {
-        applyTournesolFilters(languages, dateKey, includeLowScoreVideos, true);
+                                           final boolean includeLowScoreVideos,
+                                           final int durationMinSeconds,
+                                           final int durationMaxSeconds,
+                                           final int weightLargelyRecommended,
+                                           final int weightReliability,
+                                           final int weightImportance,
+                                           final int weightPedagogy,
+                                           final int weightLaymanFriendly,
+                                           final int weightEntertainingRelaxing,
+                                           final int weightEngaging,
+                                           final int weightDiversityInclusion,
+                                           final int weightBetterHabits,
+                                           final int weightBackfireRisk) {
+        applyTournesolFilters(languages, dateKey, includeLowScoreVideos,
+                durationMinSeconds, durationMaxSeconds,
+                weightLargelyRecommended, weightReliability, weightImportance,
+                weightPedagogy, weightLaymanFriendly, weightEntertainingRelaxing,
+                weightEngaging, weightDiversityInclusion, weightBetterHabits,
+                weightBackfireRisk, true);
     }
 
     private void applyTournesolFilters(@NonNull final List<String> languages,
                                        @NonNull final String dateKey,
                                        final boolean includeLowScoreVideos,
+                                       final int durationMinSeconds,
+                                       final int durationMaxSeconds,
+                                       final int weightLargelyRecommended,
+                                       final int weightReliability,
+                                       final int weightImportance,
+                                       final int weightPedagogy,
+                                       final int weightLaymanFriendly,
+                                       final int weightEntertainingRelaxing,
+                                       final int weightEngaging,
+                                       final int weightDiversityInclusion,
+                                       final int weightBetterHabits,
+                                       final int weightBackfireRisk,
                                        final boolean reload) {
         url = TournesolHelper.INSTANCE.buildTournesolUrl(languages, dateKey,
-                includeLowScoreVideos);
+                includeLowScoreVideos, durationMinSeconds, durationMaxSeconds,
+                weightLargelyRecommended, weightReliability, weightImportance,
+                weightPedagogy, weightLaymanFriendly, weightEntertainingRelaxing,
+                weightEngaging, weightDiversityInclusion, weightBetterHabits,
+                weightBackfireRisk);
         if (!reload) {
             return;
         }
