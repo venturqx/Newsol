@@ -1,6 +1,7 @@
 package org.schabi.newpipe.ui.components.items.stream
 
 import android.content.res.Configuration
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
@@ -71,48 +72,89 @@ fun StreamListItem(
                 Text(text = stream.uploaderName.orEmpty(), style = MaterialTheme.typography.bodySmall)
 
                 val tournesolScore = stream.tournesolScore
-                if (tournesolScore != null) {
-                    val isUnsafe = stream.tournesolUnsafeReasons.isNotEmpty()
-                    val hasInsufficientReason = TournesolHelper.hasInsufficientReason(
-                        stream.tournesolUnsafeReasons
-                    )
-                    val scoreText = stringResource(
-                        R.string.tournesol_score_label,
-                        tournesolScore.toString()
-                    )
-                    Row(
-                        modifier = Modifier.alpha(if (isUnsafe) 0.5f else 1f),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        if (hasInsufficientReason) {
-                            Text(text = "\uD83C\uDF31", fontSize = 18.sp)
-                        } else {
-                            Image(
-                                painter = painterResource(R.drawable.logo_small),
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
+                val bestIcon = criteriaIcon(stream.tournesolBestCriteria)
+                val worstIcon = criteriaIcon(stream.tournesolWorstCriteria)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (tournesolScore != null) {
+                        val isUnsafe = stream.tournesolUnsafeReasons.isNotEmpty()
+                        val hasInsufficientReason = TournesolHelper.hasInsufficientReason(
+                            stream.tournesolUnsafeReasons
+                        )
+                        Row(
+                            modifier = Modifier.alpha(if (isUnsafe) 0.5f else 1f),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            if (hasInsufficientReason) {
+                                Text(text = "\uD83C\uDF31", fontSize = 14.sp)
+                            } else {
+                                Image(
+                                    painter = painterResource(R.drawable.logo_small),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                            Text(
+                                text = tournesolScore.toString(),
+                                fontSize = 15.sp,
+                                fontFamily = FontFamily.SansSerif,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFD1B65C)
                             )
                         }
-                        Text(
-                            text = scoreText,
-                            fontSize = 20.sp,
-                            fontFamily = FontFamily.SansSerif,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFFD1B65C)
-                        )
+                    }
+                    Text(
+                        text = getStreamInfoDetail(stream),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.alpha(0.75f)
+                    )
+                    if (bestIcon != null || worstIcon != null) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            modifier = Modifier.alpha(0.75f)
+                        ) {
+                            if (bestIcon != null) {
+                                Text(text = "▲", fontSize = 9.sp, color = Color(0xFF6B9E6F))
+                                Image(
+                                    painter = painterResource(bestIcon),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            }
+                            if (worstIcon != null) {
+                                Text(text = "▼", fontSize = 9.sp, color = Color(0xFFC07070))
+                                Image(
+                                    painter = painterResource(worstIcon),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            }
+                        }
                     }
                 }
-
-                Text(
-                    text = getStreamInfoDetail(stream),
-                    style = MaterialTheme.typography.bodySmall
-                )
             }
         }
 
         StreamMenu(stream, isSelected, onDismissPopup)
     }
+}
+
+@DrawableRes
+private fun criteriaIcon(criteria: String?): Int? = when (criteria) {
+    "reliability" -> R.drawable.reliability
+    "pedagogy" -> R.drawable.pedagogy
+    "importance" -> R.drawable.importance
+    "layman_friendly" -> R.drawable.layman_friendly
+    "entertaining_relaxing" -> R.drawable.entertaining_relaxing
+    "engaging" -> R.drawable.engaging
+    "diversity_inclusion" -> R.drawable.diversity_inclusion
+    "better_habits" -> R.drawable.better_habits
+    "backfire_risk" -> R.drawable.backfire_risk
+    else -> null
 }
 
 @Preview(name = "Light mode", uiMode = Configuration.UI_MODE_NIGHT_NO)
