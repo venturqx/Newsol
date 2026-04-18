@@ -282,6 +282,8 @@
     <string name="comments_tab_description">Comments</string>
     <string name="related_items_tab_description">Related items</string>
     <string name="compare_tab_description">Compare</string>
+    <string name="tournesol_tab_description">Tournesol</string>
+    <string name="manifesto_tab_description">Manifesto</string>
     <string name="description_tab_description">Description</string>
     <string name="search_no_results">No results</string>
     <string name="empty_list_subtitle">Nothing here but crickets</string>
@@ -436,6 +438,22 @@
     <string name="date_short_3_months">3M</string>
     <string name="date_short_year">1Y</string>
     <string name="filter_advanced">Advanced</string>
+    <string name="filter_duration">Duration</string>
+    <string name="filter_duration_min">Min: %1$s</string>
+    <string name="filter_duration_max">Max: %1$s</string>
+    <string name="filter_duration_no_limit">No limit</string>
+    <string name="filter_duration_minutes">%1$d min</string>
+    <string name="filter_criteria">Criteria weight</string>
+    <string name="filter_criteria_largely_recommended">Should be largely recommended</string>
+    <string name="filter_criteria_reliability">Reliable &amp; not misleading</string>
+    <string name="filter_criteria_importance">Important &amp; actionable</string>
+    <string name="filter_criteria_pedagogy">Clear &amp; pedagogical</string>
+    <string name="filter_criteria_layman_friendly">Layman-friendly</string>
+    <string name="filter_criteria_entertaining_relaxing">Entertaining &amp; relaxing</string>
+    <string name="filter_criteria_engaging">Engaging &amp; thought-provoking</string>
+    <string name="filter_criteria_diversity_inclusion">Diversity &amp; inclusion</string>
+    <string name="filter_criteria_better_habits">Better habits</string>
+    <string name="filter_criteria_backfire_risk">Resilience to backfiring</string>
     <string name="filter_unsafe_short">More</string>
     <string name="apply">Apply</string>
 
@@ -453,6 +471,7 @@
     <string name="tournesol_password_hint">Password</string>
     <string name="tournesol_login_button">Login</string>
     <string name="tournesol_register_button">Register</string>
+    <string name="tournesol_logout_button">Logout</string>
     <string name="tournesol_login_action">Log in to Tournesol</string>
     <string name="tournesol_login_missing_fields">Please enter username and password</string>
     <string name="tournesol_login_in_progress">Extracting and logging in...</string>
@@ -490,7 +509,8 @@
     <string name="compare_no_comparisons_available">No comparisons available</string>
     <string name="compare_score_label">Score: %1$d</string>
     <string name="compare_action_button">Compare</string>
-    <string name="compare_see_history">Tournesol history</string>
+    <string name="compare_see_history">Your comparisons</string>
+    <string name="compare_you_submitted">You submitted %1$d comparisons.</string>
     <string name="compare_see_stats">Tournesol stats</string>
     <string name="compare_submit_label">Submit</string>
     <string name="compare_submitting_label">Submitting</string>
@@ -513,6 +533,9 @@
     <string name="compare_current_unavailable">Current video unavailable</string>
     <string name="compare_current_label">CURRENT</string>
     <string name="compare_login_required">Tournesol login required</string>
+    <string name="compare_greeting">Hi %1$s,</string>
+    <string name="compare_greeting_comparisons">You\'ve made %1$d comparisons!</string>
+    <string name="compare_login_prompt">You need to login to compare:</string>
     <string name="compare_service_not_supported">Service not supported</string>
     <string name="compare_submitted">Comparison submitted</string>
     <string name="compare_score_updated">Comparison updated</string>
@@ -522,6 +545,7 @@
     <string name="compare_failed_with_message">Compare failed: %1$s</string>
     <string name="compare_select_criteria">Select at least one criterion</string>
     <string name="compare_criteria_largely_recommended">Largely recommended</string>
+    <string name="compare_compact_initial_prompt">Please start rating by sliding up and down the %1$s icon.</string>
     <string name="compare_criteria_desc_largely_recommended">Overall, should be recommended widely to a broad audience.</string>
     <string name="compare_criteria_desc_reliability">Information is trustworthy, well-supported, nuanced, and not misleading.</string>
     <string name="compare_criteria_desc_pedagogy">Guides understanding step-by-step with clear, helpful explanations.</string>
@@ -541,6 +565,8 @@
     <string name="compare_criteria_diversity_inclusion">Diversity \u0026 inclusion</string>
     <string name="compare_criteria_better_habits">Better habits</string>
     <string name="compare_criteria_backfire_risk">Backfire risk</string>
+    <string name="compare_randomize_left">Randomize left video</string>
+    <string name="compare_randomize_right">Randomize right video</string>
     <string name="select_a_feed_group">Select a feed group</string>
     <string name="no_feed_group_created_yet">No feed group created yet</string>
     <!-- Kiosk Names -->
@@ -551,6 +577,7 @@
     <string name="recently_added">Recently added</string>
     <string name="most_liked">Most liked</string>
     <string name="conferences">Conferences</string>
+    <string name="explore">Explore</string>
     <!-- Play Queue -->
     <string name="title_activity_play_queue">Play queue</string>
     <string name="play_queue_remove">Remove</string>
@@ -1029,5 +1056,65 @@
     <string name="youtube_player_http_403">HTTP error 403 received from server while playing, likely caused by an IP ban or streaming URL deobfuscation issues</string>
     <string name="sign_in_confirm_not_bot_error">%1$s refused to provide data, asking for a login to confirm the requester is not a bot.\n\nYour IP might have been temporarily banned by %1$s, you can wait some time or switch to a different IP (for example by turning on/off a VPN, or by switching from WiFi to mobile data).</string>
     <string name="unsupported_content_in_country">This content is not available for the currently selected content country.\n\nChange your selection from \"Settings > Content > Default content country\".</string>
+
+    <!-- Manifesto screen -->
+    <string name="manifesto_hero_title">Tournesol: why? how?</string>
+    <string name="manifesto_hero_body">Today, the content we consume on major platforms is chosen by mechanisms called \'recommendation algorithms\' or \'recommendation AIs\'.</string>
+
+    <string name="manifesto_s1_title">Recommendation AIs weaken our democracies</string>
+    <string name="manifesto_s1_p1">Our democratic functioning depends on information exchanges that now often take place on digital platforms, and are therefore organized by these recommendation AIs. However, numerous scientific studies show that these recommendation AIs harm the public interest: **unprecedented degradation of mental health** among young people [1], **polarization** of public discourse [2], **election manipulation** [3], disinformation [4], contribution to **genocides** [5].</string>
+    <string name="manifesto_s1_p2">Digital giants use these recommendation AIs to organize the flow of information. They operate according to opaque criteria, serve only their economic or ideological interests, are subject to virtually no regulation and therefore no democratic control.</string>
+    <string name="manifesto_s1_p3">In short, current recommendation AIs largely favor private interests at the expense of the public interest.</string>
+
+    <string name="manifesto_s2_title">Recommendation AIs must be truly regulated</string>
+    <string name="manifesto_s2_p1">We advocate regulating these digital spaces and their recommendation AIs, like other high-risk industries (aviation, pharmaceutical, or agri-food).</string>
+    <string name="manifesto_s2_p2">We demand that **existing laws be effectively enforced**, and that digital spaces cease to be lawless zones. Europe has established several laws and regulations aimed at regulating digital platforms (AI Act, DSA, DMA, GDPR); they are largely unenforced.</string>
+    <string name="manifesto_s2_p3">Moreover, we believe that **these laws are insufficient**. We propose introducing new principles into the legislative corpus, such as:</string>
+    <string name="manifesto_s2_b1_title">marketing authorization for any new recommendation AI</string>
+    <string name="manifesto_s2_b1_detail">Like aerospace or medical industries, recommendation AIs should not be deployed at large scale without prior proof that they will not generate dramatic consequences (cyber-harassment, opinion polarization, false information amplification, etc.).</string>
+    <string name="manifesto_s2_b2_title">the principle of non-massive recommendability of content</string>
+    <string name="manifesto_s2_b2_detail">By default, content should not be able to be recommended to millions of users without a specific prior verification process.</string>
+    <string name="manifesto_s2_b3_title">the right to configuration</string>
+    <string name="manifesto_s2_b3_detail">Each individual should be able to freely and simply configure the criteria taken into account by the recommendation AIs of the sites/platforms they use, as well as the personal data recorded by them.</string>
+
+    <string name="manifesto_s3_title">We must build a more democratic digital space</string>
+    <string name="manifesto_s3_p1">Concretely, we believe that for our digital spaces to be aligned with our democratic standards and participate in the proper functioning of our societies, their mechanisms should be at minimum:</string>
+    <string name="manifesto_s3_b1_title">transparent</string>
+    <string name="manifesto_s3_b1_detail">That recommendation AIs and digital spaces in general be open, verifiable and understandable by the greatest number.</string>
+    <string name="manifesto_s3_b2_title">resistant to attacks</string>
+    <string name="manifesto_s3_b2_detail">That platforms and their recommendation AIs be secured to avoid malicious attacks from billions of fake accounts.</string>
+    <string name="manifesto_s3_b3_title">based on thoughtful opinions</string>
+    <string name="manifesto_s3_b3_detail">That future recommendations reflect users\' thoughtful desires rather than their impulsive reactions (clicks, swipes, …).</string>
+    <string name="manifesto_s3_b4_title">favorable to the emergence of a common information base</string>
+    <string name="manifesto_s3_b4_detail">That members of these digital spaces can share a common information base (historical facts, scientific knowledge, cultural achievements, …), rather than risk being locked in hyper-personalized bubbles.</string>
+    <string name="manifesto_s3_p2">The operating mode of digital platforms, itself, must facilitate the democratic expression. In this sense, content massively recommended on social networks should reflect the interests and opinions of citizen voice.</string>
+    <string name="manifesto_s3_p3">This is quite possible, provided we develop recommendation AIs based on citizens\' thoughtful judgments, and not on the interests of digital giants.</string>
+
+    <string name="manifesto_tournesol_title">The Tournesol project</string>
+    <string name="manifesto_tournesol_body_prefix">The Tournesol project develops alternative and more democratic recommendation AIs, which rely on your judgments and your interests. Come try the platform on </string>
+    <string name="manifesto_tournesol_body_suffix"> !</string>
+    <string name="manifesto_tournesol_body2">Beyond that, the Tournesol association brings together volunteer citizens, researchers, content creators, developers. Its purpose is to defend the three principles proposed in this manifesto.</string>
+
+    <string name="manifesto_help_title">This manifesto speaks to you and you want to help us?</string>
+    <string name="manifesto_help_1min_title">In less than 1 minute</string>
+    <string name="manifesto_help_1min_detail">Follow us on LinkedIn and like our best publications to train the algorithm and have a chance to see our upcoming posts.</string>
+    <string name="manifesto_help_2min_title">In less than 2 minutes</string>
+    <string name="manifesto_help_2min_detail">Install the extension and the app to benefit from the community\'s democratic super recommendations.</string>
+    <string name="manifesto_help_5min_title">In less than 5 minutes</string>
+    <string name="manifesto_help_5min_detail">Create an account on the platform and make at least one comparison to express yourself on the videos that should be widely recommended.</string>
+    <string name="manifesto_help_regular_title">More regularly</string>
+    <string name="manifesto_help_regular_detail">Introduce yourself by email or on the dedicated Discord channel (#intros): communication, research, funding requests or development strategy, we always need motivated people. Or attend a Tournesol presentation, organized once every two months.</string>
+    <string name="manifesto_help_more_title">Even more?</string>
+    <string name="manifesto_help_more_prefix">Find out more on </string>
+
+    <string name="manifesto_further_title">To go further</string>
+    <string name="manifesto_further_link">[link]</string>
+
+    <string name="manifesto_notes_title">Notes</string>
+    <string name="manifesto_note1">According to the Facebook Files, an internal Facebook/Meta study shows that Instagram contributes to degrading teenage girls\' mental health. In the United States, 57% of teenage girls report experiencing persistent sadness or despair, compared to 36% in 2011, and 30% reveal they have considered suicide, compared to 19% in 2011. According to psychologists, the hypothesis of constant access to social networks best explains this mental health crisis.</string>
+    <string name="manifesto_note2">The Facebook Files reveal the influence of Facebook\'s recommendation AIs on politicians in 2017. European politicians notably wrote to Facebook, emphasizing that the AIs then much more radically favored divisive discourse, which forced these politicians to be more hateful to survive politically.</string>
+    <string name="manifesto_note3">Several studies report electoral process manipulations in Romania in 2024 on TikTok, which led to the cancellation and postponement of the presidential election. These cases of foreign interference echo many others on the same subject, as in the case of Cambridge Analytica in 2015 and 2016.</string>
+    <string name="manifesto_note4">Over-optimization of engagement has very dangerous implications for amplifying affective polarization and disinformation [Twitter and Tear Gas 2017, The Hype Machine 2021, Toxic Data 2022].</string>
+    <string name="manifesto_note5">The United Nations and Amnesty International accuse Facebook of knowingly contributing to genocides, particularly the genocide of Rohingyas in Burma, by promoting hate speech against minorities.</string>
 </resources>
 

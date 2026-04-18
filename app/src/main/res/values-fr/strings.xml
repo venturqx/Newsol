@@ -355,6 +355,7 @@
     <string name="download_failed">Téléchargement échoué</string>
     <string name="error_timeout">Délai de connexion expiré</string>
     <string name="conferences">Conférences</string>
+    <string name="explore">Explorer</string>
     <string name="queued">ajouté à la liste de lecture</string>
     <string name="generate_unique_name">Générer un nom unique</string>
     <string name="overwrite">Écraser</string>
@@ -882,6 +883,22 @@
     <string name="date_short_3_months">3M</string>
     <string name="date_short_year">1A</string>
     <string name="filter_advanced">Avancé</string>
+    <string name="filter_duration">Durée</string>
+    <string name="filter_duration_min">Min : %1$s</string>
+    <string name="filter_duration_max">Max : %1$s</string>
+    <string name="filter_duration_no_limit">Sans limite</string>
+    <string name="filter_duration_minutes">%1$d min</string>
+    <string name="filter_criteria">Poids des critères</string>
+    <string name="filter_criteria_largely_recommended">Devrait être largement recommandée</string>
+    <string name="filter_criteria_reliability">Fiable et non trompeuse</string>
+    <string name="filter_criteria_importance">Importante et utile</string>
+    <string name="filter_criteria_pedagogy">Claire et pédagogique</string>
+    <string name="filter_criteria_layman_friendly">Accessible aux non-spécialistes</string>
+    <string name="filter_criteria_entertaining_relaxing">Divertissante et relaxante</string>
+    <string name="filter_criteria_engaging">Engageante et stimulante</string>
+    <string name="filter_criteria_diversity_inclusion">Diversité et inclusion</string>
+    <string name="filter_criteria_better_habits">Meilleures habitudes</string>
+    <string name="filter_criteria_backfire_risk">Résistance aux effets contre-productifs</string>
     <string name="filter_unsafe_short">Plus</string>
     <string name="language_english">Anglais</string>
     <string name="language_french">Français</string>
@@ -891,6 +908,31 @@
     <string name="language_portuguese">Portugais</string>
     <string name="tournesol_hi_greeting">Salut</string>
     <string name="tournesol_hi_user">Salut %1$s,</string>
+    <string name="tournesol_login_title">Se connecter à Tournesol</string>
+    <string name="tournesol_login_action">Se connecter à Tournesol</string>
+    <string name="tournesol_username_hint">Nom d\’utilisateur</string>
+    <string name="tournesol_password_hint">Mot de passe</string>
+    <string name="tournesol_login_button">Connexion</string>
+    <string name="tournesol_register_button">S\’inscrire</string>
+    <string name="tournesol_logout_button">Déconnexion</string>
+    <string name="tournesol_login_missing_fields">Veuillez saisir un nom d\’utilisateur et un mot de passe</string>
+    <string name="tournesol_login_in_progress">Extraction et connexion…</string>
+    <string name="tournesol_login_success">Connexion réussie</string>
+    <string name="tournesol_login_failed">Échec de la connexion</string>
+    <string name="tournesol_login_failed_with_message">Échec de la connexion : %1$s</string>
+    <string name="tournesol_auth_cancelled">Authentification Tournesol annulée</string>
+    <string name="tournesol_detail_contributors">%1$d contributeurs</string>
+    <string name="tournesol_detail_comparisons">%1$d comparaisons</string>
+    <string name="tournesol_detail_unsafe_warning">⚠ Signalée comme non recommandable</string>
+    <string name="tournesol_criteria_reliability">Fiable et non trompeuse</string>
+    <string name="tournesol_criteria_importance">Importante et utile</string>
+    <string name="tournesol_criteria_engaging">Engageante et stimulante</string>
+    <string name="tournesol_criteria_pedagogy">Claire et pédagogique</string>
+    <string name="tournesol_criteria_layman_friendly">Accessible aux non-spécialistes</string>
+    <string name="tournesol_criteria_entertaining_relaxing">Divertissante et relaxante</string>
+    <string name="tournesol_criteria_diversity_inclusion">Diversité et inclusion</string>
+    <string name="tournesol_criteria_backfire_risk">Résistante aux effets contre-productifs</string>
+    <string name="tournesol_criteria_better_habits">Encourage de meilleures habitudes</string>
     <string name="compare_title">Comparer</string>
     <string name="compare_instruction_text">%1$s devrait être plus recommandée que %2$s.</string>
     <string name="compare_current_video_header">Vidéo actuelle</string>
@@ -901,6 +943,14 @@
     <string name="compare_no_comparisons_available">Aucune comparaison disponible</string>
     <string name="compare_score_label">Score : %1$d</string>
     <string name="compare_action_button">Comparer</string>
+    <string name="compare_see_history">Vos comparaisons</string>
+    <string name="compare_you_submitted">Vous avez envoyé %1$d comparaisons.</string>
+    <string name="compare_see_stats">Statistiques Tournesol</string>
+    <string name="compare_greeting">Salut %1$s,</string>
+    <string name="compare_greeting_comparisons">Vous avez fait %1$d comparaisons !</string>
+    <string name="compare_login_prompt">Vous devez vous connecter pour comparer :</string>
+    <string name="compare_randomize_left">Vidéo aléatoire à gauche</string>
+    <string name="compare_randomize_right">Vidéo aléatoire à droite</string>
     <string name="compare_submit_label">ENVOYER</string>
     <string name="compare_submitting_label">ENVOI…</string>
     <string name="compare_submitted_label">ENVOYÉ</string>
@@ -931,6 +981,7 @@
     <string name="compare_failed_with_message">Échec de la comparaison : %1$s</string>
     <string name="compare_select_criteria">Sélectionnez au moins un critère</string>
     <string name="compare_criteria_largely_recommended">Largement recommandée</string>
+    <string name="compare_compact_initial_prompt">Commencez à noter en faisant glisser l\'icône %1$s vers le haut ou le bas.</string>
     <string name="compare_criteria_desc_largely_recommended">Globalement, devrait être recommandée au plus grand nombre.</string>
     <string name="compare_criteria_desc_reliability">Les informations sont fiables, étayées, nuancées et non trompeuses.</string>
     <string name="compare_criteria_desc_pedagogy">Favorise la compréhension pas à pas avec des explications claires et utiles.</string>
@@ -950,4 +1001,65 @@
     <string name="compare_criteria_diversity_inclusion">Diversité et inclusion</string>
     <string name="compare_criteria_better_habits">Meilleures habitudes</string>
     <string name="compare_criteria_backfire_risk">Risque d’effet contre-productif</string>
+
+    <!-- Manifesto screen -->
+    <string name="manifesto_tab_description">Manifeste</string>
+    <string name="manifesto_hero_title">Tournesol : pourquoi ? comment ?</string>
+    <string name="manifesto_hero_body">Aujourd\’hui, les contenus que nous consommons sur les grandes plateformes sont choisis par des mécanismes appelés « algorithmes de recommandation » ou « IA de recommandation ».</string>
+
+    <string name="manifesto_s1_title">Les IA de recommandation fragilisent nos démocraties</string>
+    <string name="manifesto_s1_p1">Le fonctionnement de nos démocraties dépend d\’échanges d\’informations qui se font désormais souvent sur des plateformes numériques, et sont donc organisés par ces IA de recommandation. Or, de nombreuses études scientifiques montrent que ces IA de recommandation nuisent à l\’intérêt général : **dégradation inédite de la santé mentale** des jeunes [1], **polarisation** du discours public [2], **manipulation des élections** [3], désinformation [4], contribution à des **génocides** [5].</string>
+    <string name="manifesto_s1_p2">Les géants du numérique utilisent ces IA de recommandation pour organiser les flux d\’informations. Elles fonctionnent selon des critères opaques, ne servent que leurs intérêts économiques ou idéologiques, ne sont soumises à quasiment aucune réglementation et donc aucun contrôle démocratique.</string>
+    <string name="manifesto_s1_p3">En résumé, les IA de recommandation actuelles favorisent largement les intérêts privés au détriment de l\’intérêt général.</string>
+
+    <string name="manifesto_s2_title">Les IA de recommandation doivent être véritablement réglementées</string>
+    <string name="manifesto_s2_p1">Nous prônons une réglementation de ces espaces numériques et de leurs IA de recommandation, à l\’image d\’autres industries à haut risque (aéronautique, pharmaceutique ou agroalimentaire).</string>
+    <string name="manifesto_s2_p2">Nous exigeons que **les lois existantes soient effectivement appliquées**, et que les espaces numériques cessent d\’être des zones de non-droit. L\’Europe a établi plusieurs lois et réglementations visant à réguler les plateformes numériques (AI Act, DSA, DMA, RGPD) ; elles sont largement inappliquées.</string>
+    <string name="manifesto_s2_p3">De plus, nous estimons que **ces lois sont insuffisantes**. Nous proposons d\’introduire de nouveaux principes dans le corpus législatif, comme :</string>
+    <string name="manifesto_s2_b1_title">l\’autorisation de mise sur le marché de toute nouvelle IA de recommandation</string>
+    <string name="manifesto_s2_b1_detail">À l\’image de l\’aéronautique ou du médical, les IA de recommandation ne devraient pas être déployées à grande échelle sans preuve préalable qu\’elles ne génèreront pas de conséquences dramatiques (cyber-harcèlement, polarisation des opinions, amplification de fausses informations, etc.).</string>
+    <string name="manifesto_s2_b2_title">le principe de non-recommandabilité massive des contenus</string>
+    <string name="manifesto_s2_b2_detail">Par défaut, un contenu ne devrait pas pouvoir être recommandé à des millions d\’utilisateurs sans un processus de vérification préalable spécifique.</string>
+    <string name="manifesto_s2_b3_title">le droit à la configuration</string>
+    <string name="manifesto_s2_b3_detail">Chaque individu devrait pouvoir configurer librement et simplement les critères pris en compte par les IA de recommandation des sites/plateformes qu\’il utilise, ainsi que les données personnelles enregistrées par celles-ci.</string>
+
+    <string name="manifesto_s3_title">Nous devons construire un espace numérique plus démocratique</string>
+    <string name="manifesto_s3_p1">Concrètement, nous pensons que pour que nos espaces numériques soient conformes à nos standards démocratiques et participent au bon fonctionnement de nos sociétés, leurs mécanismes devraient être au minimum :</string>
+    <string name="manifesto_s3_b1_title">transparents</string>
+    <string name="manifesto_s3_b1_detail">Que les IA de recommandation et les espaces numériques en général soient ouverts, vérifiables et compréhensibles par le plus grand nombre.</string>
+    <string name="manifesto_s3_b2_title">résistants aux attaques</string>
+    <string name="manifesto_s3_b2_detail">Que les plateformes et leurs IA de recommandation soient sécurisées pour éviter des attaques malveillantes de milliards de faux comptes.</string>
+    <string name="manifesto_s3_b3_title">fondés sur des jugements réfléchis</string>
+    <string name="manifesto_s3_b3_detail">Que les recommandations futures reflètent les désirs réfléchis des utilisateurs plutôt que leurs réactions impulsives (clics, swipes, …).</string>
+    <string name="manifesto_s3_b4_title">favorables à l\’émergence d\’une base d\’informations commune</string>
+    <string name="manifesto_s3_b4_detail">Que les membres de ces espaces numériques puissent partager une base d\’informations commune (faits historiques, connaissances scientifiques, réalisations culturelles, …), plutôt que de risquer d\’être enfermés dans des bulles hyper-personnalisées.</string>
+    <string name="manifesto_s3_p2">Le mode de fonctionnement des plateformes numériques, lui-même, doit faciliter l\’expression démocratique. En ce sens, les contenus massivement recommandés sur les réseaux sociaux devraient refléter les intérêts et les opinions de la voix citoyenne.</string>
+    <string name="manifesto_s3_p3">C\’est tout à fait possible, à condition de développer des IA de recommandation basées sur les jugements réfléchis des citoyens, et non sur les intérêts des géants du numérique.</string>
+
+    <string name="manifesto_tournesol_title">Le projet Tournesol</string>
+    <string name="manifesto_tournesol_body_prefix">Le projet Tournesol développe des IA de recommandation alternatives et plus démocratiques, qui s\’appuient sur vos jugements et vos intérêts. Venez essayer la plateforme sur </string>
+    <string name="manifesto_tournesol_body_suffix"> !</string>
+    <string name="manifesto_tournesol_body2">Au-delà, l\’association Tournesol rassemble des citoyens bénévoles, des chercheurs, des créateurs de contenus, des développeurs. Elle a pour objet de défendre les trois principes proposés dans ce manifeste.</string>
+
+    <string name="manifesto_help_title">Ce manifeste vous parle et vous souhaitez nous aider ?</string>
+    <string name="manifesto_help_1min_title">En moins d\’1 minute</string>
+    <string name="manifesto_help_1min_detail">Suivez-nous sur LinkedIn et likez nos meilleures publications pour entraîner l\’algorithme et avoir une chance de voir nos prochaines publications.</string>
+    <string name="manifesto_help_2min_title">En moins de 2 minutes</string>
+    <string name="manifesto_help_2min_detail">Installez l\’extension et l\’app pour bénéficier des super recommandations démocratiques de la communauté.</string>
+    <string name="manifesto_help_5min_title">En moins de 5 minutes</string>
+    <string name="manifesto_help_5min_detail">Créez un compte sur la plateforme et faites au moins une comparaison pour vous exprimer sur les vidéos qui devraient être largement recommandées.</string>
+    <string name="manifesto_help_regular_title">Plus régulièrement</string>
+    <string name="manifesto_help_regular_detail">Présentez-vous par mail ou sur le canal Discord dédié (#intros) : communication, recherche, demandes de financement ou stratégie de développement, nous avons toujours besoin de personnes motivées. Ou assistez à une présentation Tournesol, organisée une fois tous les deux mois.</string>
+    <string name="manifesto_help_more_title">Encore plus ?</string>
+    <string name="manifesto_help_more_prefix">Découvrez-en plus sur </string>
+
+    <string name="manifesto_further_title">Pour aller plus loin</string>
+    <string name="manifesto_further_link">[lien]</string>
+
+    <string name="manifesto_notes_title">Notes</string>
+    <string name="manifesto_note1">Selon les Facebook Files, une étude interne de Facebook/Meta montre qu\’Instagram contribue à dégrader la santé mentale des adolescentes. Aux États-Unis, 57 % des adolescentes déclarent éprouver une tristesse ou un désespoir persistants, contre 36 % en 2011, et 30 % révèlent avoir envisagé le suicide, contre 19 % en 2011. Selon les psychologues, l\’hypothèse d\’un accès constant aux réseaux sociaux explique le mieux cette crise de santé mentale.</string>
+    <string name="manifesto_note2">Les Facebook Files révèlent l\’influence des IA de recommandation de Facebook sur les politiciens en 2017. Des politiciens européens ont notamment écrit à Facebook, soulignant que les IA favorisaient alors beaucoup plus radicalement les discours clivants, ce qui forçait ces politiciens à être plus haineux pour survivre politiquement.</string>
+    <string name="manifesto_note3">Plusieurs études rapportent des manipulations des processus électoraux en Roumanie en 2024 sur TikTok, qui ont conduit à l\’annulation et au report de l\’élection présidentielle. Ces cas d\’ingérence étrangère font écho à de nombreux autres sur le même sujet, comme dans le cas de Cambridge Analytica en 2015 et 2016.</string>
+    <string name="manifesto_note4">La sur-optimisation de l\’engagement a des implications très dangereuses pour l\’amplification de la polarisation affective et de la désinformation [Twitter and Tear Gas 2017, The Hype Machine 2021, Toxic Data 2022].</string>
+    <string name="manifesto_note5">Les Nations Unies et Amnesty International accusent Facebook d\’avoir sciemment contribué à des génocides, notamment le génocide des Rohingyas en Birmanie, en promouvant des discours de haine contre les minorités.</string>
 </resources>
