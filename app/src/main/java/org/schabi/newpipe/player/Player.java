@@ -704,6 +704,12 @@ public final class Player implements PlaybackListener, Listener {
         destroyPlayer();
         unregisterBroadcastReceiver();
 
+        if (thumbnailDisposable != null) {
+            thumbnailDisposable.dispose();
+            thumbnailDisposable = null;
+        }
+        currentThumbnail = null;
+
         databaseUpdateDisposable.clear();
         progressUpdateDisposable.set(null);
         streamItemDisposable.clear();
