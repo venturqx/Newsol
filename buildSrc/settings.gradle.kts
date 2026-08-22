@@ -16,3 +16,5 @@ dependencyResolutionManagement {
         maven(url = "https://maven-central.storage-download.googleapis.com/maven2")
     }
 }
+
+rootProject.name = "buildSrc"

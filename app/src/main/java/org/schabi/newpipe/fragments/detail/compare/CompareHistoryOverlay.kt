@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import org.schabi.newpipe.database.history.model.StreamHistoryEntry
 import org.schabi.newpipe.fragments.detail.compareMetaTitleColor
 import org.schabi.newpipe.fragments.detail.compareMetaUploaderColor
+import org.schabi.newpipe.ui.components.items.Stream
 import org.schabi.newpipe.ui.components.items.stream.StreamThumbnail
 
 @Composable
@@ -36,7 +37,7 @@ internal fun CompareHistoryOverlayGridCard(
     modifier: Modifier = Modifier
 ) {
     val scale = LocalCompareScale.current
-    val stream = remember(entry) { entry.toStreamInfoItem() }
+    val stream = remember(entry) { Stream(entry.toStreamInfoItem()) }
     val titleColor = compareMetaTitleColor()
     val uploaderColor = compareMetaUploaderColor()
     val cardBackground = Color(0xFF131313)

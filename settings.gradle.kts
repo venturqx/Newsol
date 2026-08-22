@@ -2,6 +2,8 @@
  * SPDX-FileCopyrightText: 2025 NewPipe e.V. <https://newpipe-ev.de>
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+rootProject.name = "NewPipe"
 
 pluginManagement {
     repositories {
@@ -47,7 +49,9 @@ dependencyResolutionManagement {
         maven(url = "https://repo.clojars.org")
     }
 }
-include (":app")
+include(":app") // androidApp
+include(":desktopApp")
+include("shared")
 
 // Use the local submodule when present, otherwise fall back to the remote
 // dependency declared in libs.versions.toml.

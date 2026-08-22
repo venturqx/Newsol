@@ -75,3 +75,6 @@
 -keepclassmembers class * extends com.google.protobuf.GeneratedMessageLite {
     <fields>;
 }
+
+# See https://github.com/TeamNewPipe/NewPipe/issues/13508
+-keep class org.ocpsoft.prettytime.i18n.Resources* { *; }

@@ -156,6 +156,7 @@ import org.schabi.newpipe.fragments.detail.compare.compactDescriptionRes
 import org.schabi.newpipe.fragments.detail.compare.computeCompareScale
 import org.schabi.newpipe.fragments.detail.compare.formatScoreMagnitude
 import org.schabi.newpipe.fragments.detail.compare.requestDisallowParentIntercept
+import org.schabi.newpipe.ui.components.items.Stream
 import org.schabi.newpipe.ui.components.items.stream.StreamThumbnail
 
 internal const val COMPACT_MAIN_CRITERION_ID = "largely_recommended"
@@ -970,7 +971,7 @@ internal fun LollipopDescriptionRow(
 @Composable
 private fun CompareVideoRow(entry: StreamHistoryEntry) {
     val scale = LocalCompareScale.current
-    val stream = remember(entry) { entry.toStreamInfoItem() }
+    val stream = remember(entry) { Stream(entry.toStreamInfoItem()) }
     val thumbnailDescription = stringResource(R.string.compare_thumbnail_description)
     Row(
         modifier = Modifier
@@ -1017,7 +1018,7 @@ internal fun CompareVideoThumbnailCard(
     showMeta: Boolean = true,
     contentScale: ContentScale = ContentScale.Crop
 ) {
-    val stream = remember(entry) { entry.toStreamInfoItem() }
+    val stream = remember(entry) { Stream(entry.toStreamInfoItem()) }
     val thumbnailDescription = stringResource(R.string.compare_thumbnail_description)
     Column(modifier = if (showMeta) Modifier.fillMaxWidth() else Modifier) {
         StreamThumbnail(

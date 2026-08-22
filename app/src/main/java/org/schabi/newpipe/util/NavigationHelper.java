@@ -1,7 +1,6 @@
 package org.schabi.newpipe.util;
 
 import static android.text.TextUtils.isEmpty;
-import android.text.TextUtils;
 import static org.schabi.newpipe.util.ListHelper.getUrlAndNonTorrentStreams;
 
 import android.annotation.SuppressLint;
@@ -10,13 +9,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
+import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
@@ -26,6 +25,9 @@ import androidx.preference.PreferenceManager;
 
 import com.jakewharton.processphoenix.ProcessPhoenix;
 
+import net.newpipe.app.navigation.Destination;
+
+import org.schabi.newpipe.ComposeActivity;
 import org.schabi.newpipe.MainActivity;
 import org.schabi.newpipe.NewPipeDatabase;
 import org.schabi.newpipe.R;
@@ -52,7 +54,7 @@ import org.schabi.newpipe.fragments.list.search.SearchFragment;
 import org.schabi.newpipe.ktx.ContextKt;
 import org.schabi.newpipe.local.bookmark.BookmarkFragment;
 import org.schabi.newpipe.local.feed.FeedFragment;
-import org.schabi.newpipe.local.history.StatisticsPlaylistFragment;
+import org.schabi.newpipe.local.history.HistoryFragment;
 import org.schabi.newpipe.local.playlist.LocalPlaylistFragment;
 import org.schabi.newpipe.local.subscription.SubscriptionFragment;
 import org.schabi.newpipe.local.subscription.SubscriptionsImportFragment;
@@ -66,7 +68,6 @@ import org.schabi.newpipe.player.helper.PlayerHelper;
 import org.schabi.newpipe.player.helper.PlayerHolder;
 import org.schabi.newpipe.player.playqueue.PlayQueue;
 import org.schabi.newpipe.player.playqueue.PlayQueueItem;
-import org.schabi.newpipe.ComposeActivity;
 import org.schabi.newpipe.settings.SettingsActivity;
 import org.schabi.newpipe.util.external_communication.ShareUtils;
 
@@ -128,7 +129,7 @@ public final class NavigationHelper {
     }
 
     /* PLAY */
-    public static void playOnMainPlayer(final AppCompatActivity activity,
+    public static void playOnMainPlayer(final FragmentActivity activity,
                                         @NonNull final PlayQueue playQueue) {
         final PlayQueueItem item = playQueue.getItem();
         if (item != null) {
@@ -173,7 +174,7 @@ public final class NavigationHelper {
 
         final Intent intent = getPlayerIntent(context, PlayerService.class, queue,
                 PlayerIntentType.AllOthers)
-                .putExtra(Player.PLAYER_TYPE, PlayerType.AUDIO)
+                .putExtra(Player.PLAYER_TYPE, PlayerType.BACKGROUND)
                 .putExtra(Player.RESUME_PLAYBACK, resumePlayback);
         ContextCompat.startForegroundService(context, intent);
     }
@@ -206,7 +207,7 @@ public final class NavigationHelper {
         PlayerType playerType = PlayerHolder.INSTANCE.getType();
         if (playerType == null) {
             Log.e(TAG, "Enqueueing but no player is open; defaulting to background player");
-            playerType = PlayerType.AUDIO;
+            playerType = PlayerType.BACKGROUND;
         }
 
         enqueueOnPlayer(context, queue, playerType);
@@ -217,7 +218,7 @@ public final class NavigationHelper {
         PlayerType playerType = PlayerHolder.INSTANCE.getType();
         if (playerType == null) {
             Log.e(TAG, "Enqueueing next but no player is open; defaulting to background player");
-            playerType = PlayerType.AUDIO;
+            playerType = PlayerType.BACKGROUND;
         }
         Toast.makeText(context, R.string.enqueued_next, Toast.LENGTH_SHORT).show();
         final Intent intent = getPlayerEnqueueNextIntent(context, PlayerService.class, queue)
@@ -567,7 +568,7 @@ public final class NavigationHelper {
 
     public static void openStatisticFragment(final FragmentManager fragmentManager) {
         defaultTransaction(fragmentManager)
-                .replace(R.id.fragment_holder, new StatisticsPlaylistFragment())
+                .replace(R.id.fragment_holder, HistoryFragment.class, null, null)
                 .addToBackStack(null)
                 .commit();
     }
@@ -647,8 +648,7 @@ public final class NavigationHelper {
     }
 
     public static void openAbout(final Context context) {
-        final Intent intent = ComposeActivity.Companion.aboutIntent(context);
-        context.startActivity(intent);
+        ContextKt.navigateTo(context, Destination.About.INSTANCE);
     }
 
     public static void openSettings(final Context context) {

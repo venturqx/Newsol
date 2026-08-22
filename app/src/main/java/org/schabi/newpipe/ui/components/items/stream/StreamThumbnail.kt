@@ -27,7 +27,7 @@ import coil3.compose.AsyncImage
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import org.schabi.newpipe.R
-import org.schabi.newpipe.extractor.stream.StreamInfoItem
+import org.schabi.newpipe.ui.components.items.Stream
 import org.schabi.newpipe.util.Localization
 import org.schabi.newpipe.util.StreamTypeUtil
 import org.schabi.newpipe.util.image.ImageStrategy
@@ -35,7 +35,7 @@ import org.schabi.newpipe.viewmodels.StreamViewModel
 
 @Composable
 fun StreamThumbnail(
-    stream: StreamInfoItem,
+    stream: Stream,
     showProgress: Boolean,
     showDuration: Boolean = true,
     durationTextStyle: TextStyle? = null,
@@ -55,7 +55,7 @@ fun StreamThumbnail(
             )
 
             if (showDuration) {
-                val isLive = StreamTypeUtil.isLiveStream(stream.streamType)
+                val isLive = StreamTypeUtil.isLiveStream(stream.type)
                 Text(
                     modifier = Modifier
                         .padding(2.dp)
@@ -77,7 +77,7 @@ fun StreamThumbnail(
             var progress by rememberSaveable { mutableLongStateOf(0L) }
 
             LaunchedEffect(stream) {
-                progress = streamViewModel.getStreamState(stream)?.progressMillis ?: 0L
+                progress = streamViewModel.getStreamState(stream.toStreamInfoItem())?.progressMillis ?: 0L
             }
 
             if (progress != 0L) {

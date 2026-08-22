@@ -37,8 +37,10 @@
     <string name="tab_bookmarks">Bookmarked Playlists</string>
     <string name="tab_bookmarks_short">Playlists</string>
     <string name="tab_choose">Choose Tab</string>
-    <string name="controls_background_title">Background</string>
-    <string name="controls_popup_title">Popup</string>
+    <string name="player_options_label">Play in</string>
+    <string name="controls_main_title">Video player</string>
+    <string name="controls_background_title">Background player</string>
+    <string name="controls_popup_title">Popup player</string>
     <string name="controls_add_to_playlist_title">Add To</string>
     <string name="download_path_title">Video download folder</string>
     <string name="download_path_summary">Downloaded video files are stored here</string>
@@ -222,6 +224,7 @@
     <string name="clear_views_history_title">Clear watch history</string>
     <string name="clear_views_history_summary">Deletes the history of played streams and the playback positions</string>
     <string name="delete_view_history_alert">Delete entire watch history?</string>
+    <string name="delete_view_history_description">Your watching history will be permanently erased</string>
     <string name="watch_history_deleted">Watch history deleted</string>
     <string name="clear_playback_states_title">Delete playback positions</string>
     <string name="clear_playback_states_summary">Deletes all playback positions</string>
@@ -402,8 +405,8 @@
     <string name="title_activity_history">History</string>
     <string name="action_history">History</string>
     <string name="delete_item_search_history">Do you want to delete this item from search history?</string>
-    <string name="title_last_played">Last Played</string>
-    <string name="title_most_played">Most Played</string>
+    <string name="history_sort_date">Date</string>
+    <string name="history_sort_views">Views</string>
     <!-- Content -->
     <string name="recommendation_algorithm_title">Recommendation Algorithm</string>
     <string name="recommendation_algorithm_summary">Choose the service used for recommendations</string>
@@ -1037,6 +1040,7 @@
         <item quantity="one">%s reply</item>
         <item quantity="other">%s replies</item>
     </plurals>
+    <string name="edited_comment_indicator">(edited)</string>
     <string name="show_more">Show more</string>
     <string name="show_less">Show less</string>
     <string name="import_settings_vulnerable_format">The settings in the export being imported use a vulnerable format that was deprecated since NewPipe 0.27.0. Make sure the export being imported is from a trusted source, and prefer using only exports obtained from NewPipe 0.27.0 or newer in the future. Support for importing settings in this vulnerable format will soon be removed completely, and then old versions of NewPipe will not be able to import settings of exports from new versions anymore.</string>
@@ -1044,6 +1048,10 @@
     <string name="migration_info_6_7_message">SoundCloud has discontinued the original Top 50 charts. The corresponding tab has been removed from your main page.</string>
     <string name="auto_queue_description">Next</string>
     <string name="newpipe_extractor_description">NewPipeExtractor is a library for extracting things from streaming sites. It is a core component of NewPipe, but could be used independently.</string>
+    <string name="history_sort_label">Sort by</string>
+    <string name="clear_history_description">Button to clear watch history</string>
+    <string name="playlist_content_description">Thumbnail for playlist %1$s</string>
+    <string name="stream_content_description">Thumbnail for stream %1$s</string>
     <plurals name="comments">
         <item quantity="one">%d comment</item>
         <item quantity="other">%d comments</item>
