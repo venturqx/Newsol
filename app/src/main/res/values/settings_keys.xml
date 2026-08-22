@@ -10,6 +10,9 @@
     <string name="saved_tabs_key">saved_tabs_key</string>
 
     <!-- Key values -->
+    <string name="kao_last_checked_key">kao_last_checked</string>
+    <string name="api23_requirement_dialog_shown_key">api23_requirement_dialog_shown</string>
+
     <string name="download_path_video_key">download_path</string>
     <string name="download_path_audio_key">download_path_audio</string>
 
@@ -1215,7 +1218,6 @@
         <item>fi</item>
         <item>fil</item>
         <item>fr</item>
-        <item>frc</item>
         <item>gl</item>
         <item>gu</item>
         <item>he</item>
@@ -1372,7 +1374,6 @@
         <item>Suomen kieli</item>
         <item>Wikang Filipino</item>
         <item>Français</item>
-        <item>Français (Louisiana)</item>
         <item>Galego</item>
         <item>ગુજરાતી</item>
         <item>עברית</item>

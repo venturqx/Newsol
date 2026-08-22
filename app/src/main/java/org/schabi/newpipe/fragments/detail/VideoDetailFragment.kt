@@ -118,7 +118,6 @@ import org.schabi.newpipe.util.PermissionHelper
 import org.schabi.newpipe.util.PermissionHelper.checkStoragePermissions
 import org.schabi.newpipe.util.PlayButtonHelper
 import org.schabi.newpipe.util.StreamTypeUtil
-import org.schabi.newpipe.util.ThemeHelper
 import org.schabi.newpipe.util.TournesolHelper
 import org.schabi.newpipe.util.TournesolScoreCache
 import org.schabi.newpipe.util.external_communication.KoreUtils
@@ -151,6 +150,8 @@ class VideoDetailFragment :
     @JvmField
     @State
     var autoPlayEnabled: Boolean = true
+
+    var forceFullscreen: Boolean = false
 
     @JvmField
     @State
@@ -1060,9 +1061,8 @@ class VideoDetailFragment :
     private fun updateTabs(info: StreamInfo) {
         if (showRelatedItems && !isTournesolTab) {
             when (val relatedItemsLayout = binding.relatedItemsLayout) {
-                null -> {
-                    pageAdapter.updateItem(RELATED_TAB_TAG, getInstance(info))
-                }
+                // phone
+                null -> pageAdapter.updateItem(RELATED_TAB_TAG, getInstance(info))
 
                 else -> { // tablet + TV
                     getChildFragmentManager().beginTransaction()
@@ -1253,7 +1253,11 @@ class VideoDetailFragment :
      * = false`, hence preventing it from going directly fullscreen.
      */
     fun openVideoPlayerAutoFullscreen() {
-        openVideoPlayer(PlayerHelper.isStartMainPlayerFullscreenEnabled(requireContext()))
+        openVideoPlayer(
+            forceFullscreen ||
+                PlayerHelper.isStartMainPlayerFullscreenEnabled(requireContext())
+        )
+        forceFullscreen = false
     }
 
     private fun openNormalBackgroundPlayer(append: Boolean) {
@@ -2004,6 +2008,8 @@ class VideoDetailFragment :
         }
 
         binding.relatedItemsLayout?.isVisible = if (showRelatedItems) !fullscreen else false
+        scrollToTop()
+
         tryAddVideoPlayerView()
         binding.root.post { scrollToTop() }
     }

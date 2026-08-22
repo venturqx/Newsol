@@ -2,18 +2,17 @@
  * SPDX-FileCopyrightText: 2025 NewPipe e.V. <https://newpipe-ev.de>
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
-import com.mikepenz.aboutlibraries.plugin.DuplicateMode
+import com.android.build.api.dsl.ApplicationExtension
 
 import com.android.build.api.dsl.ApplicationExtension
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.jetbrains.kotlin.android)
+    alias(libs.plugins.android.legacy.kapt)
+    alias(libs.plugins.google.ksp)
     alias(libs.plugins.jetbrains.kotlin.compose)
-    alias(libs.plugins.jetbrains.kotlin.kapt)
     alias(libs.plugins.jetbrains.kotlin.parcelize)
     alias(libs.plugins.jetbrains.kotlinx.serialization)
-    alias(libs.plugins.google.ksp)
     alias(libs.plugins.sonarqube)
     alias(libs.plugins.hilt)
     alias(libs.plugins.about.libraries)
@@ -24,13 +23,8 @@ val gitWorkingBranch = providers.exec {
     commandLine("git", "rev-parse", "--abbrev-ref", "HEAD")
 }.standardOutput.asText.map { it.trim() }
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
-}
-
 kotlin {
+    jvmToolchain(21)
     compilerOptions {
         // TODO: Drop annotation default target when it is stable
         freeCompilerArgs.addAll(
@@ -79,11 +73,11 @@ configure<ApplicationExtension> {
         versionCode = System.getProperty("versionCodeOverride")
             ?.takeIf { it.isNotBlank() }
             ?.toIntOrNull()
-            ?: 1008
+            ?: 1011
 
         versionName = System.getProperty("versionNameOverride")
             ?.takeIf { it.isNotBlank() }
-            ?: "0.28.3"
+            ?: "0.28.6"
         System.getProperty("versionNameSuffix")?.let { versionNameSuffix = it }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -255,7 +249,6 @@ aboutLibraries {
     // note: offline mode prevents the plugin from fetching licenses at build time, which would be
     // harmful for reproducible builds
     offlineMode = true
-    duplicationMode = DuplicateMode.MERGE
 }
 
 dependencies {
@@ -307,9 +300,14 @@ dependencies {
     implementation(libs.androidx.compose.ui.text) // Needed for parsing HTML to AnnotatedString
     implementation(libs.androidx.compose.material.icons.extended)
 
+    // Jetpack navigatio3
+    implementation(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.navigation3.runtime)
+    implementation(libs.androidx.navigation3.viewmodel)
+
     // Jetpack Compose related dependencies
     implementation(libs.androidx.paging.compose)
-    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.hilt.navigation.compose)
 
     // Coroutines interop
     implementation(libs.kotlinx.coroutines.rx3)
