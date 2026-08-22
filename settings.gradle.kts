@@ -55,7 +55,9 @@ include("shared")
 
 // Use the local submodule when present, otherwise fall back to the remote
 // dependency declared in libs.versions.toml.
-if (file("NewPipeExtractor/settings.gradle").exists()) {
+if (file("NewPipeExtractor/settings.gradle.kts").exists() ||
+    file("NewPipeExtractor/settings.gradle").exists()
+) {
     includeBuild("NewPipeExtractor") {
         dependencySubstitution {
             substitute(module("com.github.TeamNewPipe:NewPipeExtractor"))
