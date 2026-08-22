@@ -4,8 +4,6 @@
  */
 import com.android.build.api.dsl.ApplicationExtension
 
-import com.android.build.api.dsl.ApplicationExtension
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.android.legacy.kapt)

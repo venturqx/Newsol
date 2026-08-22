@@ -441,7 +441,7 @@ public final class NavigationHelper {
         final RunnableWithVideoDetailFragment onVideoDetailFragmentReady = detailFragment -> {
             expandMainPlayer(detailFragment.requireActivity());
             detailFragment.setAutoPlay(autoPlay);
-            if (switchingPlayers && TextUtils.equals(detailFragment.getUrl(), url)) {
+            if (switchingPlayers && TextUtils.equals(detailFragment.url, url)) {
                 // Situation when user switches from players to main player. All needed data is
                 // here, we can start watching (assuming newQueue equals playQueue).
                 // Starting directly in fullscreen if the previous player type was popup.
